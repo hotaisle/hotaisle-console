@@ -15,7 +15,7 @@ It runs on Cloudflare Workers: the Worker serves the app and is its backend. Bui
 
 ## Try it
 
-Run it locally with sample data (Bun 1.4.4):
+Run it locally with sample data (Bun 1.4.4 and Node 26 LTS):
 
 ```sh
 git clone https://github.com/hotaisle/hotaisle-console && cd hotaisle-console
@@ -33,11 +33,14 @@ bun run dev                           # http://localhost:8787, then "Look around
 Or from your machine, with a Cloudflare account:
 
 ```sh
-bun run --bun wrangler secret put SESSION_SECRET   # 32+ random characters
-bun run build && bun run deploy
+openssl rand -base64 32 | bun run --cwd worker cf workers secrets update SESSION_SECRET --worker hotaisle-console --type secret_text --text @/dev/stdin
+bun run deploy
 ```
 
 The Worker needs one secret, `SESSION_SECRET`, and uses one Durable Object class (`Account`). Workers Free is enough.
+Set the secret on the target Worker using the command above or the Cloudflare dashboard. Deployment builds the
+frontend, packages the Worker with the Cloudflare Vite plugin, then publishes that prebuilt output using `cf`.
+The `cf` CLI and its Vite integration are pinned beta releases.
 
 ## Features
 
@@ -109,13 +112,17 @@ external contributors' fork pull requests require approval before running. CI ha
 and does not deploy. Production deployment requires a separately configured Cloudflare target and credentials;
 the manual commands above remain available.
 
+Bun manages the root, `web`, and `worker` workspaces through one `bun.lock`, and runs the frontend build, type
+checks, and helper scripts. Cloudflare's `cloudflare.config.ts` loader requires Node, so `cf`, the Worker bundler,
+and Vitest's Worker orchestration use Node 26 LTS. Run the Worker suite with `bun run test`.
+
 ```sh
-bun run dev          # build, then wrangler dev on http://localhost:8787
+bun run dev          # build, then cf dev on http://localhost:8787
 bun run dev:fake     # the same against a local stand-in API, to try sign-in
 bun run test             # Worker tests, in the Workers runtime, against the stand-in API
 bun run typecheck    # Worker and app
 bun run test:ui      # layout and motion checks in headless Chrome, at three window sizes
-cd web && bun run watch   # rebuild the app on save while wrangler dev runs
+cd web && bun run watch   # rebuild the app on save while cf dev runs
 ```
 
 - `worker/src/index.ts`: routes, the guard, sign-in and the API proxy. `session.ts`: the encrypted cookie.
@@ -125,7 +132,7 @@ cd web && bun run watch   # rebuild the app on save while wrangler dev runs
 - `web/`: the React + TypeScript app, built with Vite. `web/src/demo/` is the sample-data API.
 - `web/src/iso/`: the drawing. `hall.ts` builds the racks and GPU trays, `chip.ts` the MI300X close-up, `fanGL.ts`
   the WebGL fans; `Stage.tsx` animates them.
-- `web/tests/stability.mjs`: runs the app with `wrangler dev` in headless Chrome and fails on any layout shift,
+- `web/tests/stability.mjs`: runs the app with `cf dev` in headless Chrome and fails on any layout shift,
   overflow or console error. `SHOTS=dir` saves screenshots.
 
 See [AGENTS.md](AGENTS.md) for a guide to the code.

@@ -1,4 +1,4 @@
 # Secrets for the Worker. For `bun run dev`, copy this file to .dev.vars and fill it in; for a deployed
-# Worker, `bun run --bun wrangler secret put SESSION_SECRET`.
+# Worker, set SESSION_SECRET using the cf CLI (see README) or the Cloudflare dashboard.
 # 32 or more random characters, e.g. from `openssl rand -base64 32`.
 SESSION_SECRET=

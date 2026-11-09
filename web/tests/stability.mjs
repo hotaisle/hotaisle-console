@@ -11,7 +11,7 @@
 // Steps that change the view on purpose (opening another screen, expanding a machine) are marked
 // `moves` and only checked for errors.
 //
-//   bun run test:ui                          builds the app, runs it with `wrangler dev` on sample data, and finds Chrome
+//   bun run test:ui                          builds the app, runs the Cloudflare Vite server on sample data, and finds Chrome
 //   CHROME=/path/to/chrome bun web/tests/stability.mjs
 import { spawn, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -21,7 +21,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const wrangler = path.join(root, 'node_modules', '.bin', 'wrangler');
 const freePort = () => new Promise((r) => { const srv = net.createServer(); srv.listen(0, '127.0.0.1', () => { const { port } = srv.address(); srv.close(() => r(port)); }); });
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'hotaisle-console-stability-'));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -29,7 +28,7 @@ const children = [];
 const cleanup = () => {
   for (const c of children) {
     try {
-      process.kill(-c.pid, 'SIGTERM'); // a detached group: wrangler and its runtime
+      process.kill(-c.pid, 'SIGTERM'); // a detached group: Vite and its Worker runtime
     } catch {
       c.kill('SIGTERM');
     }
@@ -226,9 +225,18 @@ async function run(viewport) {
   const chrome = findChrome();
   // the app as it runs on Cloudflare, locally; sample data needs no account
   const port = await freePort();
-  const server = spawn(process.execPath, ['run', '--bun', 'wrangler', 'dev', '--ip', '127.0.0.1', '--port', String(port), '--var', 'SESSION_SECRET:stability-test-secret-0123456789abcdef', '--persist-to', path.join(tmp, 'wrangler-' + viewport.name)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
+  const server = spawn(process.execPath, ['run', '--cwd', 'worker', 'vite', '--host', '127.0.0.1', '--port', String(port)], {
+    cwd: root,
+    env: {
+      ...process.env,
+      SESSION_SECRET: 'stability-test-secret-0123456789abcdef',
+      HOTAISLE_STATE_DIR: path.join(tmp, 'worker-' + viewport.name),
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+    detached: true,
+  });
   children.push(server);
-  await Promise.race([waitForLine(server, 'stdout', /Ready on/, 'wrangler dev'), waitForLine(server, 'stderr', /Ready on/, 'wrangler dev')]);
+  await waitForLine(server, 'stdout', /Local:\s+http:/, 'Cloudflare Vite dev server');
   const link = `http://127.0.0.1:${port}/?demo`;
   const args = [`--user-data-dir=${path.join(tmp, 'chrome-' + viewport.name)}`, '--remote-debugging-port=0', '--no-first-run', '--no-default-browser-check', '--disable-gpu', '--hide-scrollbars', 'about:blank'];
   if (!chrome.shell) args.unshift('--headless=new');
@@ -415,14 +423,14 @@ async function run(viewport) {
 
   browser.kill('SIGTERM');
   try {
-    process.kill(-server.pid, 'SIGTERM'); // wrangler and the runtime it started
+    process.kill(-server.pid, 'SIGTERM'); // Vite and the Worker runtime it started
   } catch {
     server.kill('SIGTERM');
   }
   return failures;
 }
 
-if (!fs.existsSync(path.join(root, 'web', 'dist', 'index.html')) || !fs.existsSync(wrangler)) {
+if (!fs.existsSync(path.join(root, 'web', 'dist', 'index.html')) || !fs.existsSync(path.join(root, 'node_modules', '.bin', 'cf'))) {
   console.error('Build first: bun install --frozen-lockfile && bun run build (or run bun run test:ui).');
   process.exit(2);
 }

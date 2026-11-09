@@ -15,18 +15,22 @@ bun run typecheck
 bun run test:ui                   # layout and motion checks in headless Chrome (~3 min)
 ```
 
-Bun 1.4.4. The Worker serves `web/dist` as static assets, so run `bun run build` after changing the app (or keep
+Bun 1.4.4 and Node 26 LTS. The Worker serves `web/dist` as static assets, so run `bun run build` after changing the app (or keep
 `cd web && bun run watch` running).
 
-The root and `web` packages form one Bun workspace with a single `bun.lock`. Run `bun install --frozen-lockfile`
+The root, `web` and `worker` packages form one Bun workspace with a single `bun.lock`. Run `bun install --frozen-lockfile`
 from the repository root. Use `bun run test` for the Vitest suite: it runs inside Cloudflare's Workers runtime;
-the native `bun test` command does not load that integration. JavaScript tools run under Bun via `--bun`.
+the native `bun test` command does not load that integration. Frontend tools and type checks run under Bun via
+`--bun`. Cloudflare's new config loader rejects Bun, so `cf`, the Worker Vite build, and Vitest orchestration must
+use Node. Do not force `--bun` for those commands. `bun run build` builds the frontend then packages the Worker
+into `worker/.cloudflare/output`; `bun run deploy` publishes the prebuilt output with `cf`.
 
 ## Where things are
 
 | Path | What |
 | --- | --- |
-| `wrangler.jsonc` | the Worker: static assets, the `Account` Durable Object, vars |
+| `worker/cloudflare.config.ts` | the Worker: static assets, the SQLite `Account` Durable Object, bindings and secrets |
+| `worker/vite.config.ts` | packages `web/dist` with the Worker; local dev port and state directory |
 | `worker/src/index.ts` | routes, the guard, sign-in (`/auth/*`), the API proxy (`/api/*`), records (`/records/*`) |
 | `worker/src/session.ts` | the session cookie: AES-GCM, keys derived from `SESSION_SECRET` |
 | `worker/src/account.ts` | one Durable Object per account: launch records and history (no logins) |
@@ -39,7 +43,7 @@ the native `bun test` command does not load that integration. JavaScript tools r
 | `web/src/App.tsx` | views, state, what the drawing is told to show |
 | `web/src/Launch.tsx`, `Machines.tsx` | ordering, the hold-to-launch key, machine cards, receipts, history |
 | `web/src/Stage.tsx`, `web/src/iso/` | the drawing and its frame loop |
-| `web/tests/stability.mjs` | drives the app (via `wrangler dev`) in headless Chrome; fails on any layout shift |
+| `web/tests/stability.mjs` | drives the Cloudflare Vite app in headless Chrome; fails on any layout shift |
 
 ## Connecting it to the real API
 

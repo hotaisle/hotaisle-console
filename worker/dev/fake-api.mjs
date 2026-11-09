@@ -4,7 +4,7 @@
 // approved, then 204; `complete` exchanges the ticket for a session, sent back in the X-New-Session-Key header and
 // used as `X-Session-Key: <token>`. Each call is logged with how it authenticated ("key:…" or "session:…").
 //
-//   bun worker/dev/fake-api.mjs    runs it with `wrangler dev` pointed at it, and prints each "email" link
+//   bun worker/dev/fake-api.mjs    runs it with `cf dev` pointed at it, and prints each "email" link
 
 export const KEYS = { 'tok-alice': 'alice@example.com', 'tok-bob': 'bob@example.com' };
 
@@ -94,7 +94,7 @@ export function fakeHotAisle({ onEmail } = {}) {
   return { fetch, calls };
 }
 
-// ---------------------------------------------------------------- run it locally with wrangler dev
+// ---------------------------------------------------------------- run it locally with cf dev
 if (import.meta.url === `file://${process.argv[1]}`) {
   const { createServer } = await import('node:http');
   const { spawn } = await import('node:child_process');
@@ -114,7 +114,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   server.listen(8788, '127.0.0.1', async () => {
     console.log('fake Hot Aisle API on http://127.0.0.1:8788/api  (API keys: tok-alice, tok-bob)');
     const secret = (await import('node:crypto')).randomBytes(32).toString('base64url');
-    const w = spawn(process.execPath, ['run', '--bun', 'wrangler', 'dev', '--port', '8787', '--var', `SESSION_SECRET:${secret}`, '--var', 'API_BASE:http://127.0.0.1:8788/api'], { stdio: 'inherit' });
+    const w = spawn(process.execPath, ['run', '--cwd', 'worker', 'dev', '--mode', 'fake'], {
+      stdio: 'inherit',
+      env: { ...process.env, HOTAISLE_FAKE_SESSION_SECRET: secret },
+    });
     w.on('exit', (c) => process.exit(c ?? 0));
   });
 }

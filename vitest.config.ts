@@ -9,8 +9,10 @@ const fake = fakeHotAisle();
 export default defineConfig({
   plugins: [
     cloudflareTest({
-      wrangler: { configPath: './wrangler.jsonc' },
+      config: './worker/cloudflare.config.ts',
+      remoteBindings: false,
       miniflare: {
+        assets: { directory: './web/dist', binding: 'ASSETS' },
         bindings: {
           SESSION_SECRET: 'test-only-secret-0123456789abcdefghijklmnop',
           API_BASE: 'https://api.test/api',

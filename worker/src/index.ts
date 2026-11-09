@@ -58,7 +58,7 @@ export default {
     if (origin && origin !== url.origin) return fail(403, 'cross-origin request refused');
 
     if (!env.SESSION_SECRET || env.SESSION_SECRET.length < 32)
-      return fail(500, 'This Worker has no SESSION_SECRET. Set one of 32+ random characters: `bun run --bun wrangler secret put SESSION_SECRET` (locally, in .dev.vars).');
+      return fail(500, 'This Worker has no SESSION_SECRET. Set a secret of 32+ random characters in Cloudflare (locally, in .dev.vars).');
     const session = await readSession(req, env.SESSION_SECRET);
     if (area === 'auth') return auth(req, env, url, session);
     if (!session?.token || !session.account) return fail(401, 'not signed in');

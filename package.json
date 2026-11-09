@@ -3,20 +3,22 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "bun run --cwd web build",
-    "dev": "bun run build && bun run --bun wrangler dev",
-    "dev:fake": "bun run build && bun worker/dev/fake-api.mjs",
-    "deploy": "bun run --bun wrangler deploy",
-    "typecheck": "bun run --bun tsc -p worker && bun run --cwd web typecheck",
-    "test": "bun run --bun vitest run",
-    "test:ui": "bun run build && bun web/tests/stability.mjs"
+    "build": "bun run build:web && bun run build:worker",
+    "dev": "bun run build:web && bun run --cwd worker dev",
+    "dev:fake": "bun run build:web && bun worker/dev/fake-api.mjs",
+    "deploy": "bun run build && bun run --cwd worker deploy",
+    "typecheck": "bun run --bun tsc -p tsconfig.tools.json && bun run --bun tsc -p worker && bun run --cwd web typecheck",
+    "test": "vitest run",
+    "test:ui": "bun run build && bun web/tests/stability.mjs",
+    "build:web": "bun run --cwd web build",
+    "build:worker": "bun run --cwd worker build"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.6.1",
     "@cloudflare/workers-types": "5.20261109.1",
     "typescript": "7.0.2",
     "vitest": "5.1.0",
-    "wrangler": "4.159.0"
+    "@types/node": "26.6.6"
   },
   "cloudflare": {
     "bindings": {
@@ -27,6 +29,10 @@
   },
   "packageManager": "bun@1.4.4",
   "workspaces": [
-    "web"
-  ]
+    "web",
+    "worker"
+  ],
+  "engines": {
+    "node": "^26.13.0"
+  }
 }
