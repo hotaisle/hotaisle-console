@@ -16,9 +16,7 @@ permissions:
 # Third-party actions are pinned to exact commits, so a moved tag can't change what runs.
 jobs:
   test:
-    runs-on:
-      group: Shared Linux Runners
-      labels: [self-hosted, Linux, X64, hotaisle-shared]
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

@@ -103,10 +103,10 @@ passing `test` CI, signed commits, and resolved review threads. New commits dism
 push must be approved by someone other than its author. Direct pushes, force pushes, and deletion of `main` are
 blocked, including for administrators.
 
-CI builds the app, checks types, and runs Worker tests on Hot Aisle's disposable VM runners in the
-`Shared Linux Runners` group (`hotaisle-shared`). Each runner handles one job and is then destroyed. CI has a
-read-only repository token and does not deploy. Production deployment requires a separately configured Cloudflare
-target and credentials; the manual commands above remain available.
+CI builds the app, checks types, and runs Worker tests on GitHub-hosted Ubuntu 24.04 runners. Workflows from
+external contributors' fork pull requests require approval before running. CI has a read-only repository token
+and does not deploy. Production deployment requires a separately configured Cloudflare target and credentials;
+the manual commands above remain available.
 
 ```sh
 npm run dev          # build, then wrangler dev on http://localhost:8787
