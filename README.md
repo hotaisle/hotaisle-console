@@ -1,11 +1,14 @@
-# hotaisle-ui
+# hotaisle-console
 
 A web app for renting [Hot Aisle](https://hotaisle.xyz) AMD MI300X GPUs. Sign in with your email or an API key, pick a
 size, hold the launch button, SSH in, end it when you're done. Next to the controls is a live isometric drawing of the
 Dell XE9680 servers your GPUs are on.
 
 It runs on Cloudflare Workers: the Worker serves the app and is its backend. Built on the public
-[Hot Aisle API](https://admin.hotaisle.app/api/docs/). Not affiliated with Hot Aisle.
+[Hot Aisle API](https://admin.hotaisle.app/api/docs/).
+
+Maintained by Hot Aisle. Imported from [StayLameBro/hotaisle-ui](https://github.com/StayLameBro/hotaisle-ui)
+with its original Git history and MIT license preserved.
 
 ![A running 4× MI300X machine with its SSH command and live meters, and its server's GPU tray pulled out](docs/machine.jpg)
 
@@ -14,7 +17,7 @@ It runs on Cloudflare Workers: the Worker serves the app and is its backend. Bui
 Run it locally with sample data (Node 20+):
 
 ```sh
-git clone https://github.com/StayLameBro/hotaisle-ui && cd hotaisle-ui
+git clone https://github.com/hotaisle/hotaisle-console && cd hotaisle-console
 npm install
 cp .dev.vars.example .dev.vars        # then put 32+ random characters in it: openssl rand -base64 32
 npm run dev                           # http://localhost:8787, then "Look around with sample data"
@@ -24,7 +27,7 @@ npm run dev                           # http://localhost:8787, then "Look around
 
 ## Deploy
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/StayLameBro/hotaisle-ui)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/hotaisle/hotaisle-console)
 
 Or from your machine, with a Cloudflare account:
 
