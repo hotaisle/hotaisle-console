@@ -1,4 +1,4 @@
-// Typed calls to the Hot Aisle API, through the local hotaisle-ui server (which adds the token).
+// Typed calls to the Hot Aisle API, through the local hotaisle-console server (which adds the token).
 // Shapes follow https://admin.hotaisle.app/api/docs/swagger.json
 
 export type GPU = { count: number; manufacturer?: string; model?: string };
@@ -140,7 +140,7 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
   const res = await fetch(path, {
     method,
     headers: {
-      'X-Requested-With': 'hotaisle-ui',
+      'X-Requested-With': 'hotaisle-console',
       Accept: 'application/json',
       ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
     },

@@ -116,7 +116,7 @@ export function SettingsView({ status, teams, team, onTeam, onDemo }: { status: 
             : status.kind === 'email'
               ? 'Signed in with an emailed link.'
               : 'Signed in with an API key.'}{' '}
-          hotaisle-ui {status.version}, community-built on the public Hot Aisle API.
+          hotaisle-console {status.version}, maintained by Hot Aisle.
         </p>
         {status.signed_in && !status.demo && (
           <button

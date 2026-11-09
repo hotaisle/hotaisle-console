@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const wrangler = path.join(root, 'node_modules', '.bin', 'wrangler');
 const freePort = () => new Promise((r) => { const srv = net.createServer(); srv.listen(0, '127.0.0.1', () => { const { port } = srv.address(); srv.close(() => r(port)); }); });
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'hotaisle-ui-stability-'));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'hotaisle-console-stability-'));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const children = [];
 const cleanup = () => {

@@ -1,7 +1,7 @@
-// hotaisle-ui on Cloudflare Workers. `npm run dev` runs it locally; `npm run deploy` publishes it.
+// hotaisle-console on Cloudflare Workers. `npm run dev` runs it locally; `npm run deploy` publishes it.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "hotaisle-ui",
+  "name": "hotaisle-console",
   "main": "worker/src/index.ts",
   "compatibility_date": "2026-10-01",
   "assets": {

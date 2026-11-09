@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { accountId } from '../src/session';
 
 const ORIGIN = 'https://ui.test';
-const H = { 'X-Requested-With': 'hotaisle-ui', 'Content-Type': 'application/json' };
+const H = { 'X-Requested-With': 'hotaisle-console', 'Content-Type': 'application/json' };
 
 /** One browser: keeps the session cookie between calls, like a real one. */
 function browser() {

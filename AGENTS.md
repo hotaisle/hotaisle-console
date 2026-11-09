@@ -1,6 +1,6 @@
 # AGENTS.md
 
-A guide for coding agents (and people) working on hotaisle-ui: a web app for renting Hot Aisle MI300X GPUs, running
+A guide for coding agents (and people) working on hotaisle-console: a web app for renting Hot Aisle MI300X GPUs, running
 on Cloudflare Workers. The README has the product description.
 
 ## Run it
@@ -74,13 +74,21 @@ Keys and privacy:
 - A token never reaches the page: not in a response body, a URL, or a readable cookie. It is only ever in the
   encrypted session cookie. Nothing stores logins on the server.
 - Never log tokens, emails or claim tickets. Durable Objects are named by a hash of the email, not the email.
-- The guard stays: `X-Requested-With: hotaisle-ui` on `/auth`, `/api`, `/records`, same-origin only,
+- The guard stays: `X-Requested-With: hotaisle-console` on `/auth`, `/api`, `/records`, same-origin only,
   `SameSite=Strict` cookie, strict CSP.
 
 Layout and motion (checked by `npm run test:ui`):
 - Nothing moves unless the person asked: no layout shift, fixed-width numbers, the order fits its sheet.
 - The drawing writes to the DOM only when a value changes and sleeps when nothing moves. Fans are WebGL, not SVG.
 - One drawer out at a time, and none reverses on load.
+
+## Naming and compatibility
+
+The project, packages, Worker deployment, request guard and user-agent identify as `hotaisle-console`.
+The original MIT copyright notice and upstream attribution remain intact. Browser storage keys retain the
+`hotaisle-ui:*` namespace so existing preferences, selected teams and sample data remain available. The HKDF salt
+and account hash prefix in `worker/src/session.ts` also retain their original values so existing session cookies
+and account records remain readable. Changing these persistent identifiers requires a migration.
 
 ## Not verified yet
 

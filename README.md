@@ -79,7 +79,7 @@ browser ── /auth, /api, /records ──▶ Worker ──▶ admin.hotaisle.a
 - **No auto-end.** Hot Aisle's API can't schedule a shutdown, and a timer kept by the app could miss one and leave a
   machine billing, so the app doesn't offer one. Machines run until you end them; each card shows its running time
   and cost.
-- **Guard.** `/auth`, `/api` and `/records` require `X-Requested-With: hotaisle-ui` and refuse cross-origin requests;
+- **Guard.** `/auth`, `/api` and `/records` require `X-Requested-With: hotaisle-console` and refuse cross-origin requests;
   with the `SameSite=Strict` cookie, other sites can't make these calls. Pages are served with a strict Content
   Security Policy.
 

@@ -1,4 +1,4 @@
-// hotaisle-ui on Cloudflare Workers: the app's static files, and its backend.
+// hotaisle-console on Cloudflare Workers: the app's static files, and its backend.
 //
 //   /auth/*     sign in (an API key, or an emailed link), see who is signed in, sign out
 //   /api/*      the Hot Aisle API, forwarded with the session's token (the API doesn't answer browsers directly,
@@ -6,7 +6,7 @@
 //   /records/*  this account's machine records and history (a Durable Object per account)
 //   anything else: the app
 //
-// Every /auth, /api and /records call must carry `X-Requested-With: hotaisle-ui` and, when the browser sends an
+// Every /auth, /api and /records call must carry `X-Requested-With: hotaisle-console` and, when the browser sends an
 // Origin, come from this site. Together with the SameSite=Strict cookie, other sites can't make these calls.
 
 import { apiBase, authHeaders, completeEmailLogin, send, startEmailLogin, waitEmailLogin, whoIs, type Credential, type Env } from './hotaisle';
@@ -53,7 +53,7 @@ export default {
     if (area !== 'auth' && area !== 'api' && area !== 'records') return withHeaders(await env.ASSETS.fetch(req));
 
     // only this site's own pages can call these
-    if (req.headers.get('X-Requested-With') !== 'hotaisle-ui') return fail(403, 'missing X-Requested-With header');
+    if (req.headers.get('X-Requested-With') !== 'hotaisle-console') return fail(403, 'missing X-Requested-With header');
     const origin = req.headers.get('Origin');
     if (origin && origin !== url.origin) return fail(403, 'cross-origin request refused');
 
@@ -146,7 +146,7 @@ async function proxy(req: Request, env: Env, url: URL, session: Session): Promis
     if (v) headers.set(h, v);
   }
   for (const [k, v] of Object.entries(authHeaders(cred))) headers.set(k, v);
-  headers.set('User-Agent', `hotaisle-ui/${env.VERSION ?? 'dev'}`);
+  headers.set('User-Agent', `hotaisle-console/${env.VERSION ?? 'dev'}`);
   let r: Response;
   try {
     r = await send(env, apiBase(env) + path, {

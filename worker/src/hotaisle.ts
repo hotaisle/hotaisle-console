@@ -26,7 +26,7 @@ export const send = (env: Env, url: string, init: RequestInit) => (env.UPSTREAM 
 
 export const apiBase = (env: Env) => (env.API_BASE || 'https://admin.hotaisle.app/api').replace(/\/+$/, '');
 
-const UA = (env: Env) => `hotaisle-ui/${env.VERSION ?? 'dev'}`;
+const UA = (env: Env) => `hotaisle-console/${env.VERSION ?? 'dev'}`;
 
 export async function upstream(env: Env, method: string, path: string, opts: { cred?: Credential; body?: unknown } = {}): Promise<Response> {
   const headers: Record<string, string> = { Accept: 'application/json', 'User-Agent': UA(env), ...(opts.cred ? authHeaders(opts.cred) : {}) };
