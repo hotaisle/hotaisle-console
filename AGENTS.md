@@ -6,17 +6,21 @@ on Cloudflare Workers. The README has the product description.
 ## Run it
 
 ```sh
-npm install
+bun install --frozen-lockfile
 cp .dev.vars.example .dev.vars    # SESSION_SECRET: 32+ random characters
-npm run dev                       # http://localhost:8787 (add ?demo for sample data)
-npm run dev:fake                  # against a local stand-in API: email sign-in, keys tok-alice / tok-bob
-npm test                          # Worker tests in the Workers runtime; run before every commit
-npm run typecheck
-npm run test:ui                   # layout and motion checks in headless Chrome (~3 min)
+bun run dev                       # http://localhost:8787 (add ?demo for sample data)
+bun run dev:fake                  # against a local stand-in API: email sign-in, keys tok-alice / tok-bob
+bun run test                          # Worker tests in the Workers runtime; run before every commit
+bun run typecheck
+bun run test:ui                   # layout and motion checks in headless Chrome (~3 min)
 ```
 
-Node 20+. The Worker serves `web/dist` as static assets, so run `npm run build` after changing the app (or keep
-`cd web && npm run watch` running).
+Bun 1.4.4. The Worker serves `web/dist` as static assets, so run `bun run build` after changing the app (or keep
+`cd web && bun run watch` running).
+
+The root and `web` packages form one Bun workspace with a single `bun.lock`. Run `bun install --frozen-lockfile`
+from the repository root. Use `bun run test` for the Vitest suite: it runs inside Cloudflare's Workers runtime;
+the native `bun test` command does not load that integration. JavaScript tools run under Bun via `--bun`.
 
 ## Where things are
 
@@ -27,7 +31,7 @@ Node 20+. The Worker serves `web/dist` as static assets, so run `npm run build` 
 | `worker/src/session.ts` | the session cookie: AES-GCM, keys derived from `SESSION_SECRET` |
 | `worker/src/account.ts` | one Durable Object per account: launch records and history (no logins) |
 | `worker/src/hotaisle.ts` | calls the Worker itself makes to Hot Aisle; the email sign-in adapter |
-| `worker/dev/fake-api.mjs` | a stand-in Hot Aisle API for tests and `npm run dev:fake` |
+| `worker/dev/fake-api.mjs` | a stand-in Hot Aisle API for tests and `bun run dev:fake` |
 | `shared/records.ts` | records and history logic, shared by the Worker and sample data |
 | `web/src/api.ts` | every call the app makes; sends them to sample data when that's on |
 | `web/src/demo/api.ts` | sample data: an in-browser copy of the API and of `/records` |
@@ -77,7 +81,7 @@ Keys and privacy:
 - The guard stays: `X-Requested-With: hotaisle-console` on `/auth`, `/api`, `/records`, same-origin only,
   `SameSite=Strict` cookie, strict CSP.
 
-Layout and motion (checked by `npm run test:ui`):
+Layout and motion (checked by `bun run test:ui`):
 - Nothing moves unless the person asked: no layout shift, fixed-width numbers, the order fits its sheet.
 - The drawing writes to the DOM only when a value changes and sleeps when nothing moves. Fans are WebGL, not SVG.
 - One drawer out at a time, and none reverses on load.

@@ -15,13 +15,13 @@ It runs on Cloudflare Workers: the Worker serves the app and is its backend. Bui
 
 ## Try it
 
-Run it locally with sample data (Node 20+):
+Run it locally with sample data (Bun 1.4.4):
 
 ```sh
 git clone https://github.com/hotaisle/hotaisle-console && cd hotaisle-console
-npm install
+bun install --frozen-lockfile
 cp .dev.vars.example .dev.vars        # then put 32+ random characters in it: openssl rand -base64 32
-npm run dev                           # http://localhost:8787, then "Look around with sample data"
+bun run dev                           # http://localhost:8787, then "Look around with sample data"
 ```
 
 `http://localhost:8787/?demo` opens straight into sample data. Nothing is billed; it all runs in the browser tab.
@@ -33,8 +33,8 @@ npm run dev                           # http://localhost:8787, then "Look around
 Or from your machine, with a Cloudflare account:
 
 ```sh
-npx wrangler secret put SESSION_SECRET   # 32+ random characters
-npm run build && npm run deploy
+bun run --bun wrangler secret put SESSION_SECRET   # 32+ random characters
+bun run build && bun run deploy
 ```
 
 The Worker needs one secret, `SESSION_SECRET`, and uses one Durable Object class (`Account`). Workers Free is enough.
@@ -94,7 +94,7 @@ browser ── /auth, /api, /records ──▶ Worker ──▶ admin.hotaisle.a
 The claim ticket stays inside the encrypted session; the emailed link only approves the sign-in, in Hot Aisle's own
 page. The session cookie lasts as long as Hot Aisle's session (at most 30 days).
 
-`npm run dev:fake` runs the app against a local stand-in API that does the whole flow (the "email" is a link printed
+`bun run dev:fake` runs the app against a local stand-in API that does the whole flow (the "email" is a link printed
 in the terminal) and knows two API keys, `tok-alice` and `tok-bob`.
 
 ## Develop
@@ -110,12 +110,12 @@ and does not deploy. Production deployment requires a separately configured Clou
 the manual commands above remain available.
 
 ```sh
-npm run dev          # build, then wrangler dev on http://localhost:8787
-npm run dev:fake     # the same against a local stand-in API, to try sign-in
-npm test             # Worker tests, in the Workers runtime, against the stand-in API
-npm run typecheck    # Worker and app
-npm run test:ui      # layout and motion checks in headless Chrome, at three window sizes
-cd web && npm run watch   # rebuild the app on save while wrangler dev runs
+bun run dev          # build, then wrangler dev on http://localhost:8787
+bun run dev:fake     # the same against a local stand-in API, to try sign-in
+bun run test             # Worker tests, in the Workers runtime, against the stand-in API
+bun run typecheck    # Worker and app
+bun run test:ui      # layout and motion checks in headless Chrome, at three window sizes
+cd web && bun run watch   # rebuild the app on save while wrangler dev runs
 ```
 
 - `worker/src/index.ts`: routes, the guard, sign-in and the API proxy. `session.ts`: the encrypted cookie.

@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc --noEmit && vite build",
-    "watch": "vite build --watch",
-    "typecheck": "tsc --noEmit"
+    "build": "bun run --bun tsc --noEmit && bun run --bun vite build",
+    "watch": "bun run --bun vite build --watch",
+    "typecheck": "bun run --bun tsc --noEmit"
   },
   "dependencies": {
     "@fontsource-variable/instrument-sans": "5.2.8",

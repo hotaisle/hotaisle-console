@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // Layout stability: nothing on the page may move or resize unless the person asked for a different view.
 //
 // Runs the real binary in sample-data mode, drives it in headless Chrome over the DevTools protocol
@@ -11,8 +11,8 @@
 // Steps that change the view on purpose (opening another screen, expanding a machine) are marked
 // `moves` and only checked for errors.
 //
-//   npm run test:ui                          builds the app, runs it with `wrangler dev` on sample data, and finds Chrome
-//   CHROME=/path/to/chrome node web/tests/stability.mjs
+//   bun run test:ui                          builds the app, runs it with `wrangler dev` on sample data, and finds Chrome
+//   CHROME=/path/to/chrome bun web/tests/stability.mjs
 import { spawn, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import net from 'node:net';
@@ -226,7 +226,7 @@ async function run(viewport) {
   const chrome = findChrome();
   // the app as it runs on Cloudflare, locally; sample data needs no account
   const port = await freePort();
-  const server = spawn(wrangler, ['dev', '--ip', '127.0.0.1', '--port', String(port), '--var', 'SESSION_SECRET:stability-test-secret-0123456789abcdef', '--persist-to', path.join(tmp, 'wrangler-' + viewport.name)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
+  const server = spawn(process.execPath, ['run', '--bun', 'wrangler', 'dev', '--ip', '127.0.0.1', '--port', String(port), '--var', 'SESSION_SECRET:stability-test-secret-0123456789abcdef', '--persist-to', path.join(tmp, 'wrangler-' + viewport.name)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
   children.push(server);
   await Promise.race([waitForLine(server, 'stdout', /Ready on/, 'wrangler dev'), waitForLine(server, 'stderr', /Ready on/, 'wrangler dev')]);
   const link = `http://127.0.0.1:${port}/?demo`;
@@ -423,7 +423,7 @@ async function run(viewport) {
 }
 
 if (!fs.existsSync(path.join(root, 'web', 'dist', 'index.html')) || !fs.existsSync(wrangler)) {
-  console.error('Build first: npm install && npm run build (or run npm run test:ui).');
+  console.error('Build first: bun install --frozen-lockfile && bun run build (or run bun run test:ui).');
   process.exit(2);
 }
 const all = [];

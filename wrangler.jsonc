@@ -1,4 +1,4 @@
-// hotaisle-console on Cloudflare Workers. `npm run dev` runs it locally; `npm run deploy` publishes it.
+// hotaisle-console on Cloudflare Workers. `bun run dev` runs it locally; `bun run deploy` publishes it.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "hotaisle-console",
@@ -18,6 +18,6 @@
   "vars": {
     "API_BASE": "https://admin.hotaisle.app/api"
   },
-  // SESSION_SECRET is a secret, not a var: `npx wrangler secret put SESSION_SECRET` (32+ random characters).
+  // SESSION_SECRET is a secret, not a var: `bun run --bun wrangler secret put SESSION_SECRET` (32+ random characters).
   "observability": { "enabled": true }
 }
