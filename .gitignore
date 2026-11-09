@@ -1,7 +1,6 @@
 /bin/
 /web/node_modules/
-/web/dist/*
-!/web/dist/.gitkeep
+/web/dist/
 .DS_Store
 /node_modules/
 .dev.vars
