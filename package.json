@@ -12,11 +12,11 @@
     "test:ui": "bun run build && bun web/tests/stability.mjs"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "1.5.0",
-    "@cloudflare/workers-types": "5.20261102.1",
-    "typescript": "5.6.3",
-    "vitest": "4.1.11",
-    "wrangler": "4.156.2"
+    "@cloudflare/vitest-plugin": "1.6.1",
+    "@cloudflare/workers-types": "5.20261109.1",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0",
+    "wrangler": "4.159.0"
   },
   "cloudflare": {
     "bindings": {
