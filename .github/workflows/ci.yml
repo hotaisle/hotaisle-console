@@ -3,6 +3,11 @@ on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Read-only: tests and pull requests can't write to the repo or publish anything.
 permissions:
@@ -11,7 +16,10 @@ permissions:
 # Third-party actions are pinned to exact commits, so a moved tag can't change what runs.
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on:
+      group: Shared Linux Runners
+      labels: [self-hosted, Linux, X64, hotaisle-shared]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
