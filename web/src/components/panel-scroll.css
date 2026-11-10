@@ -1,0 +1,54 @@
+.panel-scroll {
+	display: flex;
+	flex: 1;
+	min-block-size: 0;
+}
+.scroll-marker {
+	display: block;
+	block-size: 1px;
+	pointer-events: none;
+}
+.scroll-hint {
+	position: sticky;
+	z-index: 6;
+	block-size: 0;
+	pointer-events: none;
+	opacity: 0;
+}
+.scroll-hint span {
+	position: absolute;
+	inset-inline: 0;
+	padding: 12px 20px;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--ink);
+	text-align: center;
+}
+.scroll-hint-top {
+	inset-block-start: 0;
+}
+.scroll-hint-top span {
+	inset-block-start: 0;
+	background: linear-gradient(var(--plate) 55%, transparent);
+}
+.scroll-hint-bottom {
+	inset-block-end: 0;
+}
+.scroll-hint-bottom span {
+	inset-block-end: 0;
+	background: linear-gradient(transparent, var(--plate) 45%);
+}
+@container panel-scroll scroll-state(scrollable: top) {
+	.scroll-hint-top {
+		opacity: 1;
+	}
+}
+@container panel-scroll scroll-state(scrollable: bottom) {
+	.scroll-hint-bottom {
+		opacity: 1;
+	}
+}
+.panel-scroll[data-above="true"] .scroll-hint-top,
+.panel-scroll[data-below="true"] .scroll-hint-bottom {
+	opacity: 1;
+}

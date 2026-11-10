@@ -1,0 +1,24 @@
+.form-field {
+	display: grid;
+	flex: 1;
+	gap: 8px;
+	min-width: 0;
+}
+.submit-labels {
+	display: grid;
+}
+.submit-labels > span {
+	grid-area: 1 / 1;
+}
+.submit-labels > [aria-hidden="true"] {
+	visibility: hidden;
+}
+.form-field input {
+	width: 100%;
+}
+.form-field label {
+	margin: 0;
+}
+.pasterow:has(.form-field) {
+	align-items: end;
+}
