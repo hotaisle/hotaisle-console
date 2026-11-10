@@ -11,6 +11,7 @@ export default defineConfig({
 		env: {
 			API_BASE: bindings.text("https://admin.hotaisle.app/api"),
 			ASSETS: bindings.assets(),
+			HISTORY_SECRET: bindings.secret(),
 			SESSION_SECRET: bindings.secret(),
 		},
 		exports: {

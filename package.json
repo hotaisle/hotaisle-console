@@ -36,6 +36,9 @@
 		"bindings": {
 			"SESSION_SECRET": {
 				"description": "Encrypts sign-in sessions. 32 or more random characters: `openssl rand -base64 32`."
+			},
+			"HISTORY_SECRET": {
+				"description": "Stable, dedicated 32+ character secret for browser history. Back up securely; changing it makes existing encrypted history unreadable."
 			}
 		}
 	}

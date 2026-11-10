@@ -58,6 +58,61 @@ const upstreamCalls = async (): Promise<string[]> =>
 	).json()) as string[];
 
 describe("stateless API keys", () => {
+	it("releases stable history keys only for verified, same-origin credentials", async () => {
+		const alice = browser();
+		const bob = browser();
+		alice.authorize("tok-alice");
+		bob.authorize("tok-bob");
+		const first = await alice.call("POST", "/auth/history-key");
+		expect(first.status).toBe(200);
+		expect(first.headers.get("Cache-Control")).toBe("no-store");
+		expect(first.headers.get("Cross-Origin-Resource-Policy")).toBe(
+			"same-origin"
+		);
+		expect(first.setCookie).toBeNull();
+		expect(first.text).not.toContain("tok-alice");
+		expect(first.text).not.toContain("alice@example.com");
+		expect((await alice.call("POST", "/auth/history-key")).text).toBe(
+			first.text
+		);
+		expect((await bob.call("POST", "/auth/history-key")).text).not.toBe(
+			first.text
+		);
+		expect((await browser().call("POST", "/auth/history-key")).status).toBe(
+			401
+		);
+		alice.authorize("revoked-key");
+		expect((await alice.call("POST", "/auth/history-key")).status).toBe(401);
+		alice.authorize("tok-alice");
+		expect(
+			(
+				await alice.call("POST", "/auth/history-key", undefined, {
+					...H,
+					Origin: "https://evil.test",
+				})
+			).status
+		).toBe(403);
+	});
+	it("uses the same history key for email and API-key sign-ins to the same account", async () => {
+		const keyLogin = browser();
+		keyLogin.authorize("tok-alice");
+		const expected = (await keyLogin.call("POST", "/auth/history-key")).text;
+		const emailLogin = browser();
+		await emailLogin.call("POST", "/auth/email/start", {
+			email: "alice@example.com",
+		});
+		await env.UPSTREAM.fetch(
+			"https://api.test/api/__open?email=alice%40example.com"
+		);
+		await emailLogin.call("POST", "/auth/email/wait");
+		expect((await emailLogin.call("POST", "/auth/history-key")).text).toBe(
+			expected
+		);
+		await emailLogin.call("POST", "/auth/signout");
+		expect((await emailLogin.call("POST", "/auth/history-key")).status).toBe(
+			401
+		);
+	});
 	it("checks a key without creating a session or cookie", async () => {
 		const visitor = browser();
 		visitor.authorize("tok-alice");

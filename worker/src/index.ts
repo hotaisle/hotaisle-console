@@ -9,6 +9,7 @@
 // Every /auth and /api call must carry `X-Requested-With: hotaisle-console` and, when the browser sends an
 // Origin, come from this site. Together with the SameSite=Strict cookie, other sites can't make these calls.
 
+import { historyKey } from "./history-key";
 import {
 	apiBase,
 	authHeaders,
@@ -173,6 +174,8 @@ async function auth(
 			return await authGetAuthStatus(env, session);
 		case "GET /auth/key":
 			return await authGetAuthKey(req, env);
+		case "POST /auth/history-key":
+			return await authPostHistoryKey(req, env, url, session);
 		case "POST /auth/email/start":
 			return await authPostAuthEmailStart(req, env);
 		case "POST /auth/email/wait":
@@ -184,6 +187,45 @@ async function auth(
 	}
 }
 
+async function authPostHistoryKey(
+	req: Request,
+	env: Env,
+	url: URL,
+	session: Session | undefined
+) {
+	const header = req.headers.get("Authorization");
+	let credential: Credential | undefined;
+	if (header) {
+		credential = keyFromHeader(header);
+	} else if (isAuthenticatedSession(session)) {
+		credential = credentialOf(session);
+	}
+	if (!credential) {
+		return fail(401, "Sign in to unlock browser history.");
+	}
+	const who = await whoIs(env, credential);
+	if (!who.ok) {
+		return fail(who.status, "Sign in again to unlock browser history.");
+	}
+	if (!env.HISTORY_SECRET || env.HISTORY_SECRET.length < 32) {
+		return fail(
+			503,
+			"Encrypted browser history is unavailable until HISTORY_SECRET is configured. Existing saved history has not been changed."
+		);
+	}
+	try {
+		return json(
+			await historyKey(env.HISTORY_SECRET, url.origin, who.who),
+			200,
+			{ "Cross-Origin-Resource-Policy": "same-origin" }
+		);
+	} catch {
+		return fail(
+			502,
+			"Could not establish the account identity for browser history. Existing saved history has not been changed."
+		);
+	}
+}
 function authGetAuthStatus(env: Env, session: Session | undefined) {
 	return json({
 		email_login: true,

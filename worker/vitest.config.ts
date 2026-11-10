@@ -13,6 +13,7 @@ export default defineConfig({
 				assets: { binding: "ASSETS", directory: "../web/dist" },
 				bindings: {
 					API_BASE: "https://api.test/api",
+					HISTORY_SECRET: "history-test-only-0123456789abcdefghijklmnop",
 					SESSION_SECRET: "test-only-secret-0123456789abcdefghijklmnop",
 				},
 				serviceBindings: {

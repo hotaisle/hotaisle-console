@@ -1,4 +1,7 @@
 # Secrets for the Worker. For `bun run dev`, copy this file to .dev.vars and fill it in; for a deployed
-# Worker, set SESSION_SECRET using the cf CLI (see README) or the Cloudflare dashboard.
+# Worker, set both secrets using the cf CLI (see README) or the Cloudflare dashboard.
 # 32 or more random characters, e.g. from `openssl rand -base64 32`.
 SESSION_SECRET=
+# Generate independently and back up securely. Never regenerate on deployment: existing browser history
+# depends on this value. Changing it requires a history-key migration.
+HISTORY_SECRET=

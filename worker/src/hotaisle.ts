@@ -6,6 +6,8 @@ export interface Env {
 	/** Default https://admin.hotaisle.app/api */
 	API_BASE?: string;
 	ASSETS: Fetcher;
+	/** Dedicated, stable secret for browser-history keys. Never rotate without a recovery plan. */
+	HISTORY_SECRET?: string;
 	/** At least 32 random characters. Encrypts session cookies. A Worker secret. */
 	SESSION_SECRET: string;
 	/** Tests and local development only: a stand-in Hot Aisle API that calls go to instead of API_BASE. */
