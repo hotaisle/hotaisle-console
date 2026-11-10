@@ -3,11 +3,13 @@ import { useCallback, useEffect, useState } from "react";
 // Per-browser preferences. Credentials are managed separately by the key vault.
 export type Image = "standard" | "vllm" | "custom";
 export type Theme = "system" | "light" | "dark";
+export type StatusMotion = "system" | "on" | "off";
 export interface Prefs {
 	customURL: string;
 	image: Image;
 	notify: boolean; // desktop notification when a machine is ready
 	sound: boolean; // soft key clicks and a chime when a machine is ready
+	statusMotion: StatusMotion;
 	theme: Theme;
 }
 
@@ -17,6 +19,7 @@ const DEFAULTS: Prefs = {
 	image: "standard",
 	notify: false,
 	sound: true,
+	statusMotion: "system",
 	theme: "system",
 };
 
@@ -28,6 +31,12 @@ function read(): Prefs {
 		};
 		if (saved.theme !== "light" && saved.theme !== "dark") {
 			saved.theme = "system";
+		}
+		// The old checkbox followed the system when enabled.
+		if (saved.statusMotion === false) {
+			saved.statusMotion = "off";
+		} else if (saved.statusMotion !== "on" && saved.statusMotion !== "off") {
+			saved.statusMotion = "system";
 		}
 		return saved;
 	} catch {
@@ -45,6 +54,7 @@ if (typeof window !== "undefined") {
 		}
 		current = read();
 		applyTheme(current.theme);
+		applyStatusMotion(current.statusMotion);
 		for (const listener of listeners) {
 			listener(current);
 		}
@@ -87,11 +97,15 @@ export function applyTheme(t: Theme) {
 	}
 }
 
+export function applyStatusMotion(preference: StatusMotion) {
+	document.documentElement.dataset.statusMotion = preference;
+}
+
 export const VLLM_URL =
 	"https://raw.githubusercontent.com/hotaisle/cloud-init-templates/master/vllm-docker.yaml";
 export const IMAGES: Record<Image, { name: string; note: string }> = {
 	custom: {
-		name: "My cloud-init",
+		name: "Custom cloud-init",
 		note: "Runs your user-data file on first boot. Takes a few extra minutes.",
 	},
 	standard: {

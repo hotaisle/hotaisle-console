@@ -5,12 +5,17 @@ import {
 	SegmentedControl,
 	type SegmentOption,
 } from "../../components/ui/segmented-control";
-import { type Theme, usePrefs } from "../../lib/prefs";
+import { type StatusMotion, type Theme, usePrefs } from "../../lib/prefs";
 
 const THEMES: readonly SegmentOption<Theme>[] = [
 	{ label: "System", value: "system" },
 	{ label: "Light", value: "light" },
 	{ label: "Dark", value: "dark" },
+];
+const STATUS_MOTION: readonly SegmentOption<StatusMotion>[] = [
+	{ label: "System", value: "system" },
+	{ label: "On", value: "on" },
+	{ label: "Off", value: "off" },
 ];
 async function enableNotifications(enabled: boolean) {
 	if (!enabled) {
@@ -32,6 +37,10 @@ export function AppearanceSettings() {
 	});
 	const theme = useCallback((value: Theme) => set({ theme: value }), [set]);
 	const sound = useCallback((value: boolean) => set({ sound: value }), [set]);
+	const motion = useCallback(
+		(value: StatusMotion) => set({ statusMotion: value }),
+		[set]
+	);
 	return (
 		<section className="group">
 			<h2 className="group-h section-heading">Look and sound</h2>
@@ -44,6 +53,19 @@ export function AppearanceSettings() {
 					value={prefs.theme}
 				/>
 			</div>
+			<div className="field">
+				<span className="field-l">Status animation</span>
+				<SegmentedControl
+					label="Status animation"
+					onChange={motion}
+					options={STATUS_MOTION}
+					value={prefs.statusMotion}
+				/>
+			</div>
+			<p className="hint">
+				System follows your reduced-motion preference. On enables status
+				animations even when reduced motion is enabled.
+			</p>
 			<PreferenceToggle
 				checked={prefs.sound}
 				label="Key sounds, and a chime when a machine is ready"

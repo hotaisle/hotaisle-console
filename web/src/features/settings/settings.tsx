@@ -24,8 +24,8 @@ export function SettingsView({
 }) {
 	return (
 		<div className="settings">
-			<DefaultMachineSettings />
 			<AppearanceSettings />
+			<DefaultMachineSettings />
 			<SshKeys keys={sshKeys} queryError={keysError} refresh={refreshKeys} />
 			<KeyboardSettings />
 			<AccountSettings

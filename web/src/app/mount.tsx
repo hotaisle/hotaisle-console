@@ -8,7 +8,7 @@ import "../features/stage/iso/iso.css";
 import "../styles/main.css";
 import { type RouterHistory, RouterProvider } from "@tanstack/react-router";
 import { ToastHost } from "../components/ui/toast";
-import { applyTheme, getPrefs } from "../lib/prefs";
+import { applyStatusMotion, applyTheme, getPrefs } from "../lib/prefs";
 import { createQueryClient } from "./query-client";
 import { createAppRouter } from "./router";
 
@@ -18,6 +18,7 @@ export async function mountApp(
 ) {
 	const router = createAppRouter(history);
 	applyTheme(getPrefs().theme);
+	applyStatusMotion(getPrefs().statusMotion);
 	const fonts = Promise.all(
 		[
 			'400 16px "Instrument Sans Variable"',

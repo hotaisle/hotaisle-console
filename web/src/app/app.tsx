@@ -24,7 +24,7 @@ import {
 	type Team,
 	type UserAccount,
 } from "../lib/api";
-import { applyTheme, usePrefs } from "../lib/prefs";
+import { applyStatusMotion, applyTheme, usePrefs } from "../lib/prefs";
 import { Redirect } from "./redirect";
 import { safeReturnTo, viewPath } from "./route-state";
 
@@ -192,6 +192,7 @@ export function App() {
 	const location = useLocation();
 	const [prefs] = usePrefs();
 	useEffect(() => applyTheme(prefs.theme), [prefs.theme]);
+	useEffect(() => applyStatusMotion(prefs.statusMotion), [prefs.statusMotion]);
 	const session = useQuery({
 		queryFn: api.status,
 		queryKey: STATUS_KEY,
