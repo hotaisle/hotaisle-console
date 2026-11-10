@@ -9,7 +9,6 @@
 	"scripts": {
 		"build": "bun run build:web && bun run build:worker",
 		"dev": "bun run build:web && bun run --cwd worker dev",
-		"dev:fake": "bun run build:web && bun worker/dev/fake-api.mjs",
 		"deploy": "bun run build && bun run --cwd worker deploy",
 		"typecheck": "bun run --bun tsc -p tsconfig.tools.json && bun run --bun tsc -p worker && bun run --cwd web typecheck",
 		"test": "vitest run",
@@ -17,7 +16,8 @@
 		"build:web": "bun run --cwd web build",
 		"build:worker": "bun run --cwd worker build",
 		"check": "bun run --bun ultracite check",
-		"fix": "bun run --bun ultracite fix"
+		"fix": "bun run --bun ultracite fix",
+		"test:worker": "vitest run --project worker"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.6.6",

@@ -1,13 +1,21 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "lib": ["ES2022", "DOM"],
-    "strict": true,
-    "allowJs": true,
-    "noEmit": true,
-    "skipLibCheck": true
-  },
-  "include": ["worker/cloudflare.config.ts", "worker/vite.config.ts", "vitest.config.ts"]
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"lib": [
+			"ES2022",
+			"DOM"
+		],
+		"strict": true,
+		"allowImportingTsExtensions": true,
+		"noEmit": true,
+		"skipLibCheck": true
+	},
+	"include": [
+		"vitest.config.ts",
+		"worker/cloudflare.config.ts",
+		"worker/vite.config.ts",
+		"worker/vitest.config.ts"
+	]
 }
