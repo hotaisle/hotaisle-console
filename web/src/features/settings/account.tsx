@@ -31,6 +31,15 @@ export function AccountSettings({
 			<Link className="btn-text more" to="/teams">
 				Manage teams and invitations
 			</Link>
+			{team.effective_roles.includes("owner") ? (
+				<Link
+					className="btn-text more"
+					params={{ team: team.handle }}
+					to="/teams/$team/details"
+				>
+					Edit team details
+				</Link>
+			) : null}
 			{teams.length > 1 ? (
 				<div className="field">
 					<label className="field-l" htmlFor="team">

@@ -347,6 +347,7 @@ export const api = {
 		}
 		return { ...status, key_stored: stored };
 	},
+	team: (handle: string) => call<Team>("GET", `${t(handle)}/`),
 	teams: () => call<Team[]>("GET", "/api/teams/"),
 	unlockKey: async (passphrase: string) => {
 		await keyVault.unlock(passphrase);
@@ -357,6 +358,10 @@ export const api = {
 			throw error;
 		}
 	},
+	updateTeam: (
+		handle: string,
+		details: { name?: string; description?: string }
+	) => call<Team>("PATCH", `${t(handle)}/`, details),
 
 	user: () => call<UserAccount>("GET", "/api/user/"),
 	vmState: async (team: string, vm: string): Promise<VMState> => {

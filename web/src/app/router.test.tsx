@@ -1,13 +1,14 @@
+import { focusManager } from "@tanstack/react-query";
 import {
 	createMemoryHistory,
 	RouterProvider,
 	useLocation,
 } from "@tanstack/react-router";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useCallback } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { TestProvider } from "../../test/render";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { TestProvider, testClient } from "../../test/render";
 import { useNavigation } from "../features/console/use-navigation";
 import { useOrder } from "../features/launch/use-order";
 import { APIError, api, type Team } from "../lib/api";
@@ -64,6 +65,10 @@ beforeEach(() => {
 	vi.spyOn(api, "user").mockResolvedValue({ teams: [TEAM], user: USER });
 	localStorage.clear();
 });
+afterEach(() => {
+	vi.useRealTimers();
+	focusManager.setFocused(undefined);
+});
 async function open(path: string) {
 	const history = createMemoryHistory({ initialEntries: [path] });
 	const router = createAppRouter(history);
@@ -76,6 +81,122 @@ async function open(path: string) {
 	return { history, router };
 }
 describe("console URLs", () => {
+	it("opens the team editor from the chooser", async () => {
+		vi.spyOn(api, "team").mockResolvedValue(TEAM);
+		const { router } = await open("/teams");
+		await userEvent
+			.setup()
+			.click(
+				await screen.findByRole("link", { name: "Edit team details for Lab" })
+			);
+		expect(await screen.findByLabelText("Team name")).toHaveValue("Lab");
+		expect(router.state.location.pathname).toBe("/teams/lab/details");
+	});
+	it("deep-links to team details and updates the chooser from a successful save", async () => {
+		vi.spyOn(api, "team").mockResolvedValue(TEAM);
+		vi.spyOn(api, "updateTeam").mockResolvedValue({
+			...TEAM,
+			description: "GPU research",
+			name: "Renamed Lab",
+		});
+		const { router } = await open("/teams/lab/details");
+		const user = userEvent.setup();
+		await user.clear(await screen.findByLabelText("Team name"));
+		await user.type(screen.getByLabelText("Team name"), "Renamed Lab");
+		await user.type(screen.getByLabelText("Description"), "GPU research");
+		await user.click(screen.getByRole("button", { name: "Save changes" }));
+		await screen.findByText("Team details saved.");
+		expect(router.state.location.pathname).toBe("/teams/lab/details");
+		await user.click(screen.getByRole("link", { name: "Back to your teams" }));
+		expect(
+			await screen.findByRole("link", { name: "Open team Renamed Lab" })
+		).toBeInTheDocument();
+	});
+	it("shows a direct team-details URL read-only without owner access", async () => {
+		vi.spyOn(api, "team").mockResolvedValue({
+			...TEAM,
+			effective_roles: ["user"],
+		});
+		await open("/teams/lab/details");
+		expect(
+			await screen.findByText("A team owner can edit these details.")
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: "Save changes" })
+		).not.toBeInTheDocument();
+	});
+	it("refreshes the team chooser automatically, pauses in background, and stops polling while creating a team", async () => {
+		vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
+		focusManager.setFocused(true);
+		const { router } = await open("/teams");
+		await screen.findByRole("link", { name: "Open team Lab" });
+		const getAccount = vi.mocked(api.user);
+		getAccount.mockClear();
+		getAccount.mockResolvedValue({
+			teams: [
+				TEAM,
+				{
+					...TEAM,
+					handle: "new-invite",
+					invitation: true,
+					name: "New invitation",
+				},
+			],
+			user: USER,
+		});
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(30_000);
+		});
+		expect(getAccount).toHaveBeenCalledOnce();
+		expect(
+			await screen.findByRole("button", {
+				name: "Accept invitation to New invitation",
+			})
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: "Refresh teams" })
+		).not.toBeInTheDocument();
+		focusManager.setFocused(false);
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(30_000);
+		});
+		expect(getAccount).toHaveBeenCalledOnce();
+		await act(async () => {
+			focusManager.setFocused(true);
+			await vi.advanceTimersByTimeAsync(0);
+		});
+		expect(getAccount).toHaveBeenCalledTimes(2);
+		await act(async () => {
+			await router.navigate({ to: "/teams/new" });
+		});
+		const before = getAccount.mock.calls.length;
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(30_000);
+		});
+		expect(getAccount).toHaveBeenCalledTimes(before);
+	});
+	it("keeps the team list visible after a background update fails and offers a retry beside it", async () => {
+		await open("/teams");
+		await screen.findByRole("link", { name: "Open team Lab" });
+		vi.mocked(api.user).mockRejectedValueOnce(
+			new APIError(503, "Temporarily unavailable")
+		);
+		await act(async () => {
+			await testClient.refetchQueries({ queryKey: ["auth", "account"] });
+		});
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"Your current list is still shown"
+		);
+		expect(
+			screen.getByRole("link", { name: "Open team Lab" })
+		).toBeInTheDocument();
+		await userEvent
+			.setup()
+			.click(screen.getByRole("button", { name: "Retry update" }));
+		await waitFor(() =>
+			expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+		);
+	});
 	it("offers a password-manager compatible field when unlocking the browser vault", async () => {
 		vi.spyOn(api, "status").mockResolvedValue({
 			email_login: true,

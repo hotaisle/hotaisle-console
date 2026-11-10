@@ -15,6 +15,7 @@ export function TeamChoice({
 	creating = false,
 	onAvailable,
 	onRefresh,
+	refreshError,
 	requestedTeam,
 }: {
 	teams: Team[];
@@ -22,6 +23,7 @@ export function TeamChoice({
 	creating?: boolean;
 	onAvailable: (team: Team) => Promise<void>;
 	onRefresh: () => Promise<void>;
+	refreshError?: Error | null;
 	requestedTeam?: string;
 }) {
 	const { logout } = useSessionActions();
@@ -38,23 +40,13 @@ export function TeamChoice({
 					<span className="muted">Logged in as {email}</span>
 					<button
 						className="btn-text"
-						disabled={refresh.isPending}
-						onClick={reload}
-						type="button"
-					>
-						{refresh.isPending ? "Refreshing…" : "Refresh teams"}
-					</button>
-					<button
-						className="btn-text"
 						disabled={logout.isPending}
 						onClick={signOut}
 						type="button"
 					>
 						Sign out
 					</button>
-					<FormError
-						message={logout.error?.message ?? refresh.error?.message ?? ""}
-					/>
+					<FormError message={logout.error?.message ?? ""} />
 				</div>
 			}
 			label="Teams"
@@ -63,7 +55,7 @@ export function TeamChoice({
 			<p className="lede team-intro">
 				{showCreate
 					? "Teams keep your machines and members together. Create one to get started."
-					: "Choose a team to open its machines, or accept an invitation to join one."}
+					: "Open an existing team, accept an invitation, or create a new team."}
 			</p>
 			{requestedTeam ? (
 				<p className="team-notice" role="status">
@@ -71,16 +63,31 @@ export function TeamChoice({
 					accept an invitation below.
 				</p>
 			) : null}
+			{refreshError || refresh.error ? (
+				<div className="team-refresh-error">
+					<p role="alert">
+						Could not update teams. Your current list is still shown.
+					</p>
+					<button
+						className="btn-text"
+						disabled={refresh.isPending}
+						onClick={reload}
+						type="button"
+					>
+						{refresh.isPending ? "Retrying…" : "Retry update"}
+					</button>
+				</div>
+			) : null}
 			{showCreate ? (
 				<CreateTeamForm onCreated={onAvailable} />
 			) : (
 				<div className="team-sections">
 					{memberships.length > 0 ? (
 						<section aria-label="Your teams">
-							<h2 className="group-h">Your teams</h2>
+							<h2 className="team-section-title">Open an existing team</h2>
 							<ul className="team-list">
 								{memberships.map((team) => (
-									<li key={team.handle}>
+									<li className="team-card" key={team.handle}>
 										<Link
 											aria-label={`Open team ${team.name}`}
 											className="team-row team-link"
@@ -95,6 +102,16 @@ export function TeamChoice({
 												Open team <span aria-hidden="true">→</span>
 											</span>
 										</Link>
+										{team.effective_roles.includes("owner") ? (
+											<Link
+												aria-label={`Edit team details for ${team.name}`}
+												className="team-edit-link btn-text"
+												params={{ team: team.handle }}
+												to="/teams/$team/details"
+											>
+												Edit team details
+											</Link>
+										) : null}
 									</li>
 								))}
 							</ul>
@@ -102,7 +119,7 @@ export function TeamChoice({
 					) : null}
 					{invitations.length > 0 ? (
 						<section aria-label="Team invitations">
-							<h2 className="group-h">Invitations</h2>
+							<h2 className="team-section-title">Invitations</h2>
 							<ul className="team-list">
 								{invitations.map((team) => (
 									<TeamInvitation
@@ -114,9 +131,21 @@ export function TeamChoice({
 							</ul>
 						</section>
 					) : null}
-					<Link className="btn primary team-create-link" to="/teams/new">
-						Create a team
-					</Link>
+					<div aria-hidden="true" className="team-choice-divider">
+						or
+					</div>
+					<section
+						aria-label="Create a new team"
+						className="team-create-option"
+					>
+						<div>
+							<h2 className="team-section-title">Create a new team</h2>
+							<p>Start a team for a new project or group.</p>
+						</div>
+						<Link className="btn primary team-create-link" to="/teams/new">
+							Create a team
+						</Link>
+					</section>
 				</div>
 			)}
 			{showCreate && teams.length > 0 ? (

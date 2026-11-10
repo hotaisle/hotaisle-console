@@ -44,6 +44,7 @@ const routeTree = rootRoute.addChildren([
 	}),
 	createRoute({ getParentRoute: parent, path: "/teams/$team/launch" }),
 	createRoute({ getParentRoute: parent, path: "/teams/$team/settings" }),
+	createRoute({ getParentRoute: parent, path: "/teams/$team/details" }),
 	createRoute({ getParentRoute: parent, path: "/teams/$team/credits" }),
 	createRoute({
 		beforeLoad: ({ params, search }) => {

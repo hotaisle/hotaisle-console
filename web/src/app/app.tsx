@@ -1,8 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	useLocation,
-	useParams,
 	useRouter,
+	useRouterState,
 	useSearch,
 } from "@tanstack/react-router";
 import { useCallback, useEffect } from "react";
@@ -11,6 +11,7 @@ import { HistoryAccess } from "../features/auth/history-access";
 import { UnlockKey } from "../features/auth/unlock-key";
 import { Console } from "../features/console/console";
 import { TeamChoice } from "../features/teams/team-choice";
+import { TeamDetails } from "../features/teams/team-details";
 import {
 	ACCOUNT_KEY,
 	STATUS_KEY,
@@ -71,13 +72,26 @@ export function ConnectionError({
 
 function AccountView({ status }: { status: Status }) {
 	const client = useQueryClient();
+	// Keep path and params on the same committed match during navigation.
+	const location = useRouterState({
+		select: (state): { params: { team?: string }; pathname: string } => {
+			const match = state.matches.at(-1);
+			return {
+				params: { team: match?.params.team },
+				pathname: match?.pathname ?? "/",
+			};
+		},
+		structuralSharing: true,
+	});
 	const account = useQuery({
 		queryFn: api.user,
 		queryKey: ACCOUNT_KEY,
+		refetchInterval: location.pathname === "/teams" ? 30_000 : false,
+		refetchIntervalInBackground: false,
+		refetchOnWindowFocus: true,
 		retry: false,
 	});
-	const params = useParams({ strict: false });
-	const location = useLocation();
+	const { params } = location;
 	const router = useRouter();
 	const search = useSearch({ from: "__root__" });
 	const { logout } = useSessionActions();
@@ -119,6 +133,35 @@ function AccountView({ status }: { status: Status }) {
 	const retry = useCallback(async () => {
 		await account.refetch({ throwOnError: true });
 	}, [account.refetch]);
+	const teamSaved = useCallback(
+		async (team: Team) => {
+			const detailsKey = ["resource", "team-details", team.handle];
+			await Promise.all([
+				client.cancelQueries({ queryKey: ACCOUNT_KEY }),
+				client.cancelQueries({ queryKey: detailsKey }),
+			]);
+			const current = client.getQueryData<UserAccount>(ACCOUNT_KEY);
+			if (
+				!(client.getQueryData<Status>(STATUS_KEY)?.signed_in && current) ||
+				current.user.email !== account.data?.user.email ||
+				current.user.created !== account.data?.user.created
+			) {
+				return;
+			}
+			client.setQueryData<UserAccount>(ACCOUNT_KEY, (previous) =>
+				previous
+					? {
+							...previous,
+							teams: previous.teams.map((existing) =>
+								existing.handle === team.handle ? team : existing
+							),
+						}
+					: previous
+			);
+			client.setQueryData(detailsKey, team);
+		},
+		[client, account.data?.user.email, account.data?.user.created]
+	);
 	const signIn = useCallback(() => {
 		logout.mutate();
 	}, [logout.mutate]);
@@ -126,7 +169,10 @@ function AccountView({ status }: { status: Status }) {
 		return <LoadingScreen />;
 	}
 	if (account.isError) {
-		if (account.error instanceof APIError && account.error.status === 401) {
+		if (
+			account.error instanceof APIError &&
+			[401, 403].includes(account.error.status)
+		) {
 			return (
 				<ConnectionError
 					label="Sign in again"
@@ -138,7 +184,11 @@ function AccountView({ status }: { status: Status }) {
 				/>
 			);
 		}
-		return <ConnectionError message={account.error.message} onRetry={retry} />;
+		if (!account.data) {
+			return (
+				<ConnectionError message={account.error.message} onRetry={retry} />
+			);
+		}
 	}
 	const teams = account.data.teams.filter((team) => !team.invitation);
 	const creating = location.pathname === "/teams/new";
@@ -167,10 +217,17 @@ function AccountView({ status }: { status: Status }) {
 				email={account.data.user.email}
 				onAvailable={available}
 				onRefresh={retry}
+				refreshError={account.error}
 				requestedTeam={params.team}
 				teams={account.data.teams}
 			/>
 		);
+	}
+	if (
+		location.pathname ===
+		`/teams/${encodeURIComponent(selected.handle)}/details`
+	) {
+		return <TeamDetails onSaved={teamSaved} team={selected} />;
 	}
 	return (
 		<HistoryAccess
