@@ -106,6 +106,12 @@ function isAuthenticatedSession(
 export default {
 	async fetch(req: Request, env: Env): Promise<Response> {
 		const url = new URL(req.url);
+		if (
+			url.pathname.startsWith("/__preview") &&
+			url.hostname !== "preview.localhost"
+		) {
+			return fail(404, "not found");
+		}
 		const [, area] = url.pathname.split("/");
 		if (area === "records" || area === "live") {
 			return fail(

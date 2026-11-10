@@ -8,16 +8,17 @@
 	],
 	"scripts": {
 		"build": "bun run build:web && bun run build:worker",
-		"dev": "bun run build:web && bun run --cwd worker dev",
-		"deploy": "bun run build && bun run --cwd worker deploy",
-		"typecheck": "bun run --bun tsc -p tsconfig.tools.json && bun run --bun tsc -p worker && bun run --cwd web typecheck",
-		"test": "vitest run",
 		"build:web": "bun run --cwd web build",
 		"build:worker": "bun run --cwd worker build",
 		"check": "bun run --bun ultracite check",
+		"deploy": "bun run build && bun run --cwd worker deploy",
+		"dev": "bun run build:web && bun run --cwd worker dev",
 		"fix": "bun run --bun ultracite fix",
+		"preview": "bun run --cwd web build:preview",
+		"test": "vitest run",
+		"test:components": "vitest run --project components",
 		"test:worker": "vitest run --project worker",
-		"test:components": "vitest run --project components"
+		"typecheck": "bun run --bun tsc -p tsconfig.tools.json && bun run --bun tsc -p worker && bun run --cwd web typecheck"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.6.6",
@@ -34,11 +35,11 @@
 	},
 	"cloudflare": {
 		"bindings": {
-			"SESSION_SECRET": {
-				"description": "Encrypts sign-in sessions. 32 or more random characters: `openssl rand -base64 32`."
-			},
 			"HISTORY_SECRET": {
 				"description": "Stable, dedicated 32+ character secret for browser history. Back up securely; changing it makes existing encrypted history unreadable."
+			},
+			"SESSION_SECRET": {
+				"description": "Encrypts sign-in sessions. 32 or more random characters: `openssl rand -base64 32`."
 			}
 		}
 	}

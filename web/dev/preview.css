@@ -1,0 +1,54 @@
+.preview-page {
+	display: flex;
+	flex-direction: column;
+	height: 100dvh;
+	overflow: hidden;
+}
+.preview-page #root {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+}
+.preview-page .app {
+	height: 100%;
+}
+.preview-page .history-session {
+	height: 100%;
+}
+.preview-controls {
+	display: grid;
+	gap: 10px;
+	padding: 12px 20px;
+	font: 0.875rem / 1.5 var(--sans);
+	color: var(--ink);
+	background: var(--card-2);
+	border-block-end: 1px solid var(--line-2);
+}
+.preview-caption,
+.preview-controls nav {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 12px;
+	align-items: center;
+}
+.preview-caption strong {
+	color: var(--heat-ink);
+}
+.preview-caption span,
+.preview-controls p {
+	color: var(--muted);
+}
+.preview-caption button {
+	margin-inline-start: auto;
+}
+.preview-controls nav .btn {
+	min-height: 36px;
+}
+.preview-controls nav [aria-current="page"] {
+	border-color: var(--heat-ink);
+}
+@media (max-width: 1080px) {
+	.preview-page .app {
+		height: auto;
+	}
+}

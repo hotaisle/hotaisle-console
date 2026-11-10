@@ -166,6 +166,10 @@ describe("stateless API keys", () => {
 });
 
 describe("the guard", () => {
+	it("never exposes development preview routes on a public origin", async () => {
+		const result = await worker.default.fetch(`${ORIGIN}/__preview/index.html`);
+		expect(result.status).toBe(404);
+	});
 	it("refuses calls without the custom header, from other origins, or without a session", async () => {
 		const b = browser();
 		b.authorize("tok-alice");

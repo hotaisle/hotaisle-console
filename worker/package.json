@@ -3,9 +3,9 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"build": "cf build",
-		"dev": "cf dev",
-		"deploy": "cf deploy --prebuilt"
+		"build": "bun run scripts/assert-assets.ts && cf build",
+		"deploy": "cf deploy --prebuilt",
+		"dev": "cf dev"
 	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "2.0.0-beta.v.13",
