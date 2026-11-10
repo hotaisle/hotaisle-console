@@ -35,18 +35,27 @@ local preview:
 bun run preview
 ```
 
-Open [the machine preview](http://preview.localhost:8787/__preview/). The toolbar offers Empty, Setting up,
-Booting, Running, Multiple machines, Ended, History (200 runs), and Launch failure scenarios using the actual app components.
-Choose Empty, then hold Launch to watch setup, booting, and SSH readiness over about nine seconds. Try
+Open [the machine preview](http://preview.localhost:8787/__preview/). The toolbar offers Empty, Assigned, Cloud-init,
+Booting, Running, Multiple machines, Bare metal, Ended, History (200 runs), and Launch failure scenarios using the actual app components.
+Choose Empty, then hold Launch to watch assignment and SSH readiness. Cloud-init adds a simulated booting phase. Try
 ending a machine to see the minimum-charge confirmation and receipt. Reload or Reset returns to the selected
 scenario; simulated changes are held only in memory.
 
+Open [the bare-metal example](http://preview.localhost:8787/__preview/?scenario=bare-metal) for an assigned
+8× MI300X server. Its More popup provides simulated bare-metal power operations and reinstall; End exercises
+the eight-hour minimum and release receipt. Console opens a local, read-only mock console in a new tab;
+its simulated API response never contains a real session URL.
+
 The dedicated `preview.localhost` origin isolates browser storage from the normal console. No login is needed.
 API calls are simulated in the browser, sockets are blocked, unknown operations fail locally, and checkout
-is disabled. Preview code is a separate build entry outside `web/src`; normal builds exclude it. Production builds
+is disabled. Its assets live in `web/preview-dist`, independently of production's `web/dist`, so normal builds
+cannot overwrite the preview. A local Vite middleware serves only this isolated origin; it never falls back
+to the real console or forwards real API requests. `bun run dev` prepares both outputs. Preview code is a
+separate build entry outside `web/src`; normal builds exclude it. Production builds
 and Worker packaging reject preview files or fixture code. Production requests to `/__preview/` return 404.
-Run `bun run build` to restore production assets before deployment, or `bun run build:web`
-to return the existing development process to its normal assets.
+Run `bun run preview` again after changing preview components, or use `bun run --cwd web watch:preview`
+in a development session when you want preview rebuilds on file changes. A missing preview shows build
+instructions instead of redirecting into the real account. The normal console stays at `localhost:8787`.
 
 ```sh
 bun run check             # Ultracite/Biome lint and formatting

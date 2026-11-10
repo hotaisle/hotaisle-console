@@ -81,7 +81,10 @@ Do not leave empty directories behind when moving source files.
 `bun run preview` builds a local-only scenario explorer for the already-running development process at
 `http://preview.localhost:8787/__preview/`. It uses the real app components with browser-only fixtures and no
 real API fallback. Keep preview imports outside production entry points. Its separate origin isolates browser
-storage; reload resets simulated state. Normal builds exclude the preview and Worker packaging must reject
+storage; reload resets simulated state. Preview assets use the independent `web/preview-dist` output, served
+only by local Vite middleware; production builds must not overwrite it. Missing preview assets must fail
+clearly, never use the normal SPA fallback. Reject real `/api` and `/auth` requests from the preview origin.
+Normal builds exclude the preview and Worker packaging must reject
 preview assets. Never deploy the preview build or use real credentials for it.
 
 ## Credentials and privacy
