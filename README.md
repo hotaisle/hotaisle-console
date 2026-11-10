@@ -4,152 +4,217 @@ Originally created by [StayLameBro](https://github.com/StayLameBro) as
 [hotaisle-ui](https://github.com/StayLameBro/hotaisle-ui), now maintained by Hot Aisle.
 The original Git history and MIT license are preserved.
 
-A web app for renting [Hot Aisle](https://hotaisle.xyz) AMD MI300X GPUs. Sign in with your email or an API key, pick a
-size, hold the launch button, SSH in, end it when you're done. Next to the controls is a live isometric drawing of the
-Dell XE9680 servers your GPUs are on.
+A web console for renting [Hot Aisle](https://hotaisle.ai) AMD MI300X GPUs. Sign in, choose a size and image,
+hold to launch, SSH in, and end the machine when you're done. The drawing shows your servers and GPU state.
 
-It runs on Cloudflare Workers: the Worker serves the app and is its backend. Built on the public
-[Hot Aisle API](https://admin.hotaisle.app/api/docs/).
+The React and TypeScript app uses TanStack Router for navigation and TanStack Query for server state.
+A Cloudflare Worker serves the frontend, proxies the [Hot Aisle API](https://admin.hotaisle.app/api/docs/),
+and saves launch details and run receipts as encrypted browser-local entries. Cloudflare does not persist
+console history or per-user history keys.
 
-![A running 4× MI300X machine with its SSH command and live meters, and its server's GPU tray pulled out](docs/machine.jpg)
+## Development
 
-## Try it
-
-Run it locally with sample data (Bun 1.4.4 and Node 26 LTS):
+Use Bun 1.4.4 and Node 26 LTS:
 
 ```sh
-git clone https://github.com/hotaisle/hotaisle-console && cd hotaisle-console
+git clone https://github.com/hotaisle/hotaisle-console
+cd hotaisle-console
 bun install --frozen-lockfile
-cp .dev.vars.example .dev.vars        # then put 32+ random characters in it: openssl rand -base64 32
-bun run dev                           # http://localhost:8787, then "Look around with sample data"
+cp .dev.vars.example .dev.vars
+# Set SESSION_SECRET and a separate HISTORY_SECRET in .dev.vars to 32+ random characters each.
+bun run dev
 ```
 
-`http://localhost:8787/?demo` opens straight into sample data. Nothing is billed; it all runs in the browser tab.
+The app is available at `http://localhost:8787`. It connects to the real API; launching, reserving, rebuilding,
+ending machines, and purchasing credits have real effects.
+
+To explore the machine UX without renting hardware, keep that development process running and build the
+local preview:
+
+```sh
+bun run preview
+```
+
+Open [the machine preview](http://preview.localhost:8787/__preview/). The toolbar offers Empty, Setting up,
+Booting, Running, Multiple machines, Ended, History (200 runs), and Launch failure scenarios using the actual app components.
+Choose Empty, then hold Launch to watch setup, booting, and SSH readiness over about nine seconds. Try
+ending a machine to see the minimum-charge confirmation and receipt. Reload or Reset returns to the selected
+scenario; simulated changes are held only in memory.
+
+The dedicated `preview.localhost` origin isolates browser storage from the normal console. No login is needed.
+API calls are simulated in the browser, sockets are blocked, unknown operations fail locally, and checkout
+is disabled. Preview code is a separate build entry outside `web/src`; normal builds exclude it. Production builds
+and Worker packaging reject preview files or fixture code. Production requests to `/__preview/` return 404.
+Run `bun run build` to restore production assets before deployment, or `bun run build:web`
+to return the existing development process to its normal assets.
+
+```sh
+bun run check             # Ultracite/Biome lint and formatting
+bun run fix               # Apply supported fixes, then resolve remaining findings
+bun run typecheck         # Tooling, Worker, app, and test types
+bun run test              # Component and Worker projects
+bun run test:components   # Vitest, Testing Library, jsdom
+bun run test:worker       # Cloudflare's isolated Workers runtime
+bun run build             # Frontend, then Worker packaging
+```
+
+Keep the existing development process running during browser verification. Frontend changes need
+`bun run build:web`, or an already-running `bun run --cwd web watch` process.
+
+Bun manages the root, `web`, and `worker` workspaces with one `bun.lock`. Frontend tools, type checks, and helper
+scripts run under Bun. Cloudflare's TypeScript configuration loader requires Node, so `cf`, the Worker bundler,
+and Vitest orchestration use Node. Do not force those commands to run with `--bun`.
+
+`web/dist/` is generated frontend output used by the Worker build. It is ignored by Git and can be deleted;
+`bun run build` recreates it. Do not check build output or dependency directories into the repository.
+Source, configuration, fixtures, and tests are TypeScript. Ultracite/Biome and EditorConfig use tabs; YAML uses
+spaces as required by its syntax.
+
+## Navigation
+
+Pages use URLs for bookmarks and browser navigation. History URLs reopen after signing in to the same account
+in the same browser. Encrypted history does not sync across devices or browser profiles.
+
+| URL | Page |
+| --- | --- |
+| `/sign-in` | Email sign-in |
+| `/sign-in/check-email` | Email approval |
+| `/sign-in/key` | Save an API key locally |
+| `/unlock` | Unlock the saved API key |
+| `/teams` | Team selection |
+| `/teams/new` | Create a team |
+| `/teams/:team/machines` | Machines |
+| `/teams/:team/machines/:machine` | Selected machine |
+| `/teams/:team/launch` | Launch a machine |
+| `/teams/:team/settings` | Preferences and account |
+| `/teams/:team/credits` | Credits checkout |
+| `/teams/:team/settings#ssh-keys` | SSH keys |
+| `/teams/:team/keys` | Redirects to SSH keys in Settings |
+| `/teams/:team/image` | Cloud-init URL |
+| `/teams/:team/history/:run` | An earlier run |
+| `/teams/:team/history?q=training&page=2` | Searchable machine history, ten runs per page |
+
+Launch options are validated URL search parameters: `gpus`, `image`, and `cloudInit`.
+The theme selector is available before and after sign-in. Light, Dark, and System apply to every view and the server drawing, and persist in browser preferences.
+
+Sign-in preserves the requested console destination. Worker assets use SPA fallback for direct page requests.
+
+## Credentials and records
+
+Availability refreshes every ten seconds while the browser is active, and on returning to it. Each browser makes
+authenticated requests through the stateless proxy. There are no server-side rooms, socket tickets, or stored
+team channels.
+
+**API keys:** The browser encrypts the saved key with AES-256-GCM and a passphrase-derived key
+(PBKDF2-HMAC-SHA-256, 600,000 iterations). Each saved copy gets a random salt and IV. Only ciphertext, salt,
+IV, and a format version are saved in local storage. The passphrase is never sent to the server. Reloading
+requires unlocking again; signing out clears the unlocked key from memory. Forgetting the saved key deletes
+its encrypted local copy. Lost passphrases cannot be recovered.
+
+After unlocking, each API request carries the key over HTTPS in its authorization header. The Worker forwards
+it to Hot Aisle for that request. It does not create an API-key session cookie or persist API keys in a database
+or application logs.
+This stateless proxy avoids requiring CORS changes on the upstream API.
+
+**Email sign-in:** The Worker handles Hot Aisle's email approval flow. Its claim ticket and resulting email-session
+token stay in an AES-GCM encrypted, HttpOnly, Secure, SameSite=Strict cookie. Email sessions renew using the
+upstream API's response headers. Legacy API-key session cookies are no longer accepted.
+
+**Browser history:** Launch details and receipts are saved as append-only AES-256-GCM encrypted entries in
+local storage, with a fresh random IV for each write. Entry IDs and account scope are authenticated with the
+ciphertext. No names, team handles, receipts, or decryption keys are stored in plaintext. Both sign-in methods
+unlock the same account's history automatically. The Worker verifies the credential with Hot Aisle before
+deriving the key with HKDF-SHA-256 from a dedicated `HISTORY_SECRET`, the origin, and the account's verified
+email and creation time. It returns the key in a non-cacheable response and never stores per-user keys.
+The browser imports a non-extractable key and retains it only in memory. This is login-gated encryption;
+the Worker can derive the key, and scripts executing in an unlocked session can access history.
+
+Sign-out clears decrypted history, keys, and private caches, and signals other open tabs to lock. It never
+clears encrypted history. Reload, account switches, and pruning of the active machine view do not delete
+saved entries either. There is no automatic history expiry or retention deletion. Full storage or damaged
+ciphertext produces a warning and preserves existing entries; unsaved new entries remain in memory.
+Browser-managed eviction, clearing site data, or private browsing can still remove local storage.
+Machines continue running in Hot Aisle independently of the browser. Notes are not a console feature.
+
+Back up `HISTORY_SECRET` securely and preserve it across deployments. Changing it makes saved history
+unreadable unless a key migration is implemented. Account email changes likewise require migration because
+the current upstream user response has no immutable user ID. Missing configuration disables persistent
+history with a visible warning; it never silently falls back to another key or replaces encrypted entries.
+
+All active `/auth` and `/api` requests require the console's custom request header and reject cross-origin
+requests. The proxy uses a configured upstream URL, forwards only the required headers, and does not follow
+upstream redirects. The Worker serves a Content Security Policy. Retired `/records/*` and `/live/*` endpoints
+return 410 without accessing data bindings. Worker observability is disabled. Cloudflare still processes
+proxied requests; this application does not write user data to Cloudflare storage.
+
+The next deployment permanently deletes the old `Account` and `Availability` Durable Object namespaces through
+explicit `state: "deleted"` exports. Keep these deletion entries until Cloudflare confirms the classes are gone.
+Do not re-export or bind the retired classes, or restore their data.
+
+## Billing
+
+Ending a virtual machine releases it with `DELETE`; powering it off does not stop billing. Releasing deletes its
+data. Minimum reservations are 30 minutes for virtual machines and eight hours for bare metal. The confirmation
+and estimated receipt account for the minimum. A failed release must never be displayed as a successful end.
+
+There is no automatic shutdown timer: the upstream API cannot schedule an end, and a browser timer could fail
+while the machine continues billing. Add-credit checkout uses Hot Aisle's Stripe checkout link; this app does
+not handle card details or claim a payment succeeded before confirmation.
+
+## Repository workflow
+
+Work on a descriptive branch and open a PR into `main`. Merging requires an approving review, signed commits,
+resolved review threads, and the passing `test` CI job. New pushes dismiss earlier approvals, and the final push
+needs approval from someone else. The default branch blocks direct pushes, force pushes, and deletion, with no
+administrator bypass. StayLameBro has write access and is requested to review PR #1.
+
+CI runs lint, builds, deployment dry-run, types, and both test projects on GitHub-hosted Ubuntu 24.04.
+Actions are pinned to exact commits. Fork workflows require approval and use a read-only repository token.
+Hot Aisle's private runner group is not used for this public repository. CI does not publish deployments.
 
 ## Deploy
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/hotaisle/hotaisle-console)
+Deploy `hotaisle-console` to the Hot Aisle Cloudflare account that owns the active `hotaisle.app` zone.
+The account ID is pinned in `worker/cloudflare.config.ts`.
+The Worker configuration declares `console.hotaisle.app` as its production custom domain. Cloudflare manages
+the domain's DNS record and TLS certificate; a separate CNAME to `workers.dev` is not needed.
+All requests pass through the Worker so frontend assets and SPA pages receive its security headers.
 
-Or from your machine, with a Cloudflare account:
-
-```sh
-openssl rand -base64 32 | bun run --cwd worker cf workers secrets update SESSION_SECRET --worker hotaisle-console --type secret_text --text @/dev/stdin
-bun run deploy
-```
-
-The Worker needs one secret, `SESSION_SECRET`, and uses one Durable Object class (`Account`). Workers Free is enough.
-Set the secret on the target Worker using the command above or the Cloudflare dashboard. Deployment builds the
-frontend, packages the Worker with the Cloudflare Vite plugin, then publishes that prebuilt output using `cf`.
-The `cf` CLI and its Vite integration are pinned beta releases.
-
-## Features
-
-- Sign in with an emailed link or an API key. Passkeys once Hot Aisle's API supports them.
-- Virtual machines with 1, 2 or 4 MI300X, or a whole 8-GPU server as bare metal, with live availability and prices.
-- Image choice: standard, Hot Aisle's vLLM template, or your own cloud-init URL.
-- Machine cards with boot progress, the SSH command (Copy, Open in Terminal), and running time and cost.
-- Receipts when a machine ends, and a history of past runs that you can open and launch again.
-- SSH keys: paste a public key, or remove one.
-- Balance, spend per hour and time remaining; add credits through Hot Aisle's Stripe checkout.
-- The drawing: your servers' GPU trays, with each GPU lit by state, every fan turning (WebGL), and labels on your
-  servers. Point at any part to see what it is.
-- Keyboard: `1` `2` `4` `8` pick a size, hold `L` to launch, `C` copies the newest SSH command, `Esc` goes back.
-- Light and dark themes, sounds you can turn off, and reduced motion respected.
-- Sample data: a built-in copy of the API that runs in the browser.
-
-![Choosing a new machine: sizes and prices, with the server it would go to](docs/order.jpg)
-
-## How it works
-
-```
-browser ── /auth, /api, /records ──▶ Worker ──▶ admin.hotaisle.app/api
-   │                                   │
-   └── everything else: static files   └── Account Durable Object (one per account): launch records and history
-```
-
-- **Sign-in.** An API key is checked against `GET /user/` and used as `Authorization: Token <key>`. Email sign-in uses
-  Hot Aisle's endpoints (below); its session token is used as `X-Session-Key: <token>`.
-- **The session** is one cookie: encrypted and authenticated with AES-GCM under a key derived from `SESSION_SECRET`,
-  `HttpOnly`, `Secure`, `SameSite=Strict`. The browser holds only ciphertext; the token is decrypted in the Worker for
-  the length of a request and never reaches the page.
-- **API calls.** The Hot Aisle API doesn't answer browsers directly, so the page calls `/api/*` and the Worker forwards
-  it with the session's token.
-- **Records.** Launch times and history live in a Durable Object per account, named by a hash of the account's
-  email. No logins are stored on the server.
-- **Staying signed in.** Email sessions last 20 minutes. With under a minute left, Hot Aisle answers any API call with
-  a new key, and the Worker switches the session to it, so you stay signed in while the app is open. The old key keeps
-  working until it expires, so requests already in flight finish.
-- **No auto-end.** Hot Aisle's API can't schedule a shutdown, and a timer kept by the app could miss one and leave a
-  machine billing, so the app doesn't offer one. Machines run until you end them; each card shows its running time
-  and cost.
-- **Guard.** `/auth`, `/api` and `/records` require `X-Requested-With: hotaisle-console` and refuse cross-origin requests;
-  with the `SameSite=Strict` cookie, other sites can't make these calls. Pages are served with a strict Content
-  Security Policy.
-
-## Email sign-in
-
-| Hot Aisle endpoint | |
-| --- | --- |
-| `POST /api/user/email/login/` `{email}` | sends the approval email; returns `{email, claim_ticket, expires_at}` |
-| `POST /api/user/email/wait/` `{claim_ticket}` | holds up to 20 s: `202` still waiting, `204` approved |
-| `POST /api/user/email/complete/` `{claim_ticket}` | `204` with the session in `X-New-Session-Key` and `X-Session-Key-Expires`; `401` if unapproved, expired or used |
-
-The claim ticket stays inside the encrypted session; the emailed link only approves the sign-in, in Hot Aisle's own
-page. The session cookie lasts as long as Hot Aisle's session (at most 30 days).
-
-`bun run dev:fake` runs the app against a local stand-in API that does the whole flow (the "email" is a link printed
-in the terminal) and knows two API keys, `tok-alice` and `tok-bob`.
-
-## Develop
-
-Push changes to a descriptive branch and open a pull request into `main`. Merging requires an approving review,
-passing `test` CI, signed commits, and resolved review threads. New commits dismiss earlier approvals; the final
-push must be approved by someone other than its author. Direct pushes, force pushes, and deletion of `main` are
-blocked, including for administrators.
-
-CI builds the app, checks types, and runs Worker tests on GitHub-hosted Ubuntu 24.04 runners. Workflows from
-external contributors' fork pull requests require approval before running. CI has a read-only repository token
-and does not deploy. Production deployment requires a separately configured Cloudflare target and credentials;
-the manual commands above remain available.
-
-Bun manages the root, `web`, and `worker` workspaces through one `bun.lock`, and runs the frontend build, type
-checks, and helper scripts. Cloudflare's `cloudflare.config.ts` loader requires Node, so `cf`, the Worker bundler,
-and Vitest's Worker orchestration use Node 26 LTS. Run the Worker suite with `bun run test`.
+Authenticate the CLI with a user who has access to that account before the first deployment:
 
 ```sh
-bun run dev          # build, then cf dev on http://localhost:8787
-bun run dev:fake     # the same against a local stand-in API, to try sign-in
-bun run test             # Worker tests, in the Workers runtime, against the stand-in API
-bun run typecheck    # Worker and app
-bun run test:ui      # layout and motion checks in headless Chrome, at three window sizes
-cd web && bun run watch   # rebuild the app on save while cf dev runs
+bun run --cwd worker cf auth login
 ```
 
-- `worker/src/index.ts`: routes, the guard, sign-in and the API proxy. `session.ts`: the encrypted cookie.
-  `account.ts`: the per-account Durable Object. `hotaisle.ts`: calls the Worker makes to Hot Aisle, including the
-  email sign-in adapter.
-- `shared/records.ts`: machine records and history, used by the Worker and by sample data.
-- `web/`: the React + TypeScript app, built with Vite. `web/src/demo/` is the sample-data API.
-- `web/src/iso/`: the drawing. `hall.ts` builds the racks and GPU trays, `chip.ts` the MI300X close-up, `fanGL.ts`
-  the WebGL fans; `Stage.tsx` animates them.
-- `web/tests/stability.mjs`: runs the app with `cf dev` in headless Chrome and fails on any layout shift,
-  overflow or console error. `SHOTS=dir` saves screenshots.
+For the first deployment, configure independent random `SESSION_SECRET` and `HISTORY_SECRET` values in
+the ignored `.dev.vars` file (32+ characters each), and back them up securely. Then upload them:
 
-See [AGENTS.md](AGENTS.md) for a guide to the code.
+```sh
+bun run build
+bun run --cwd worker cf deploy --prebuilt --secrets-file ../.dev.vars
+```
 
-## Not yet tested against a real account
+For an existing deployment, add `HISTORY_SECRET` once while preserving its current `SESSION_SECRET`.
+For later deployments, use `bun run deploy` to retain both secrets. Never generate a new history secret as
+part of routine deployment; saved browser history depends on it.
 
-Everything has been run against sample data and a stand-in API that follows Hot Aisle's documentation, including its
-email sign-in. Real accounts, the live email sign-in, bare metal (reserve, install, power, reinstall, release) and the
-deploy button haven't been tried yet.
+Deployment uses the `cf` CLI and Cloudflare Vite plugin to package and publish the prebuilt Worker. Their beta
+versions are pinned in the workspace. `bun run --cwd worker cf deploy --prebuilt --dry-run` validates packaging
+without publishing. Live account operations and production deployment still need separate verification.
+
+See [AGENTS.md](AGENTS.md) for the source layout and implementation rules.
 
 ## Credits
 
-Drawing kit: [Anatomy](https://github.com/wheresryan22/anatomy) by Ryan, MIT License (`web/src/iso/LICENSE-anatomy.txt`).
-Hardware references: Dell PowerEdge XE9680 Technical Guide and Installation and Service Manual, Hot Aisle's compute,
-pricing and data center pages, AMD's MI300X data sheet, and ServeTheHome's photographs of the MI300X OAM module.
-Seven-segment digits: [DSEG](https://github.com/keshikan/DSEG) by keshikan, SIL Open Font License 1.1
-(`web/src/fonts/DSEG-LICENSE.txt`). Type: Instrument Sans and IBM Plex Mono, both OFL.
+The original developer is [StayLameBro](https://github.com/StayLameBro). The imported commit history preserves
+GitHub authorship and contribution attribution.
+
+Drawing kit: [Anatomy](https://github.com/wheresryan22/anatomy) by Ryan, MIT License
+(`web/src/features/stage/iso/LICENSE-anatomy.txt`). Hardware references include Dell's PowerEdge XE9680 manuals,
+AMD's MI300X data sheet, Hot Aisle's data-center information, and ServeTheHome's module photographs.
+
+Digits: [DSEG](https://github.com/keshikan/DSEG) by keshikan, SIL Open Font License 1.1
+(`web/src/assets/fonts/DSEG-LICENSE.txt`). Instrument Sans and IBM Plex Mono are also OFL licensed.
 
 ## License
 
