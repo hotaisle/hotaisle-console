@@ -105,6 +105,7 @@ export interface MachineRecord {
 	name: string;
 	price_cents?: number;
 	team: string;
+	user_data_url?: string;
 }
 
 /** An ended machine saved as encrypted browser history for the signed-in account. */
@@ -200,7 +201,15 @@ function metalVM(b: Metal): VM {
 		status: "ready",
 	};
 }
-const POWER: Record<string, string> = {
+export type PowerAction =
+	| "start"
+	| "shutdown"
+	| "stop"
+	| "reboot"
+	| "hard-reset"
+	| "ac-reset";
+const POWER: Record<PowerAction, string> = {
+	"ac-reset": "ac_reset",
 	"hard-reset": "cold_reboot",
 	reboot: "warm_reboot",
 	shutdown: "graceful_shutdown",
@@ -214,6 +223,10 @@ export const api = {
 	addKey: (authorized_key: string) =>
 		call<SSHKey>("POST", "/api/user/ssh_keys/", { authorized_key }),
 	balance: (team: string) => call<Balance>("GET", `${t(team)}/balance/`),
+	bareMetalConsole: (team: string, server: string) =>
+		call<{ url: string }>("POST", `${m(team, server)}/console/`),
+	bareMetalPowerState: (team: string, server: string) =>
+		call<{ state: string }>("GET", `${m(team, server)}/power/`),
 	buyCredits: (team: string, cents: number) =>
 		call<{ checkout_url: string; expires_at: string }>(
 			"POST",
@@ -255,17 +268,20 @@ export const api = {
 			})),
 		];
 	},
-	power: (
-		team: string,
-		vm: string,
-		action: "start" | "shutdown" | "stop" | "reboot" | "hard-reset"
-	) =>
-		call<void>(
+	power: async (team: string, vm: string, action: PowerAction) => {
+		if (isMetal(vm)) {
+			return await call<void>("POST", `${m(team, vm)}/power/${POWER[action]}/`);
+		}
+		if (action === "shutdown" || action === "stop" || action === "ac-reset") {
+			throw new Error(
+				"This power operation is not available for virtual machines."
+			);
+		}
+		return await call<void>(
 			"POST",
-			isMetal(vm)
-				? `${m(team, vm)}/power/${POWER[action]}/`
-				: `${t(team)}/virtual_machines/${encodeURIComponent(vm)}/${action}/`
-		),
+			`${t(team)}/virtual_machines/${encodeURIComponent(vm)}/${action}/`
+		);
+	},
 	provision: (team: string, gpus: GPU[], user_data_url?: string) =>
 		call<VM>("POST", `${t(team)}/virtual_machines/`, {
 			gpus,
@@ -368,7 +384,7 @@ export const api = {
 			if (power?.state === "Off") {
 				return "off";
 			}
-			return "running";
+			return power?.state === "On" ? "running" : "unknown";
 		}
 		const state = resolveState();
 		return { host: vm, install, state };

@@ -9,12 +9,13 @@ import {
 } from "react";
 
 interface Toast {
+	detail?: string;
 	id: number;
 	leaving?: boolean;
 	text: string;
 	tone: "ok" | "err" | "info";
 }
-type Notify = (text: string, tone?: Toast["tone"]) => void;
+type Notify = (text: string, tone?: Toast["tone"], detail?: string) => void;
 const ToastContext = createContext<Notify | undefined>(undefined);
 export function useToast() {
 	const notify = useContext(ToastContext);
@@ -33,7 +34,17 @@ function ToastItem({
 	const dismiss = useCallback(() => onDismiss(toast.id), [onDismiss, toast.id]);
 	return (
 		<div className={`toast ${toast.tone} ${toast.leaving ? "leaving" : ""}`}>
-			{toast.text}
+			<div className="toast-content">
+				<span>{toast.text}</span>
+				{toast.detail ? (
+					<textarea
+						aria-label="Clipboard contents"
+						readOnly
+						rows={Math.min(7, Math.max(2, toast.detail.split("\n").length))}
+						value={toast.detail}
+					/>
+				) : null}
+			</div>
 			<button
 				aria-label="Dismiss"
 				className="toast-x"
@@ -79,10 +90,11 @@ export function ToastHost({ children }: { children: ReactNode }) {
 		[later]
 	);
 	const push = useCallback(
-		(text: string, tone: Toast["tone"] = "info") => {
+		(text: string, tone: Toast["tone"] = "info", detail?: string) => {
 			const id = Date.now() + Math.random();
-			setList((items) => [...items.slice(-3), { id, text, tone }]);
-			later(() => dismiss(id), tone === "err" ? 9000 : 4500);
+			setList((items) => [...items.slice(-3), { detail, id, text, tone }]);
+			const duration = tone === "err" ? 9000 : 4500;
+			later(() => dismiss(id), detail ? 12_000 : duration);
 		},
 		[dismiss, later]
 	);

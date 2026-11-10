@@ -39,6 +39,7 @@ const STRING_FIELDS = new Set([
 	"name",
 	"gpus",
 	"image",
+	"user_data_url",
 	"ended_at",
 	"ended_by",
 	"server",

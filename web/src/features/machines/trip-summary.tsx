@@ -18,22 +18,14 @@ export function TripSummary({ context }: { context: TripContext }) {
 		mode,
 		style,
 	} = context;
-	function resolveValue() {
-		if (vm.metal) {
-			return <span className="on-host">, the whole server</span>;
-		}
-		if (server) {
-			return <span className="on-host"> on {server}</span>;
-		}
-		return null;
-	}
+	const serverName = server || vm.name;
 	const _displayLabel =
 		ready && isPresent(ranMs) && isPresent(price)
 			? `${clock(ranMs)}, ${money((price * ranMs) / 3_600_000)}`
-			: gpus;
+			: head;
 	return (
 		<button
-			aria-label={`${vm.name}: ${head}. Show details`}
+			aria-label={`${vm.name}: ${gpus}, ${head}. Show details`}
 			className="trip-row vt"
 			onClick={onFocus}
 			style={style}
@@ -41,11 +33,8 @@ export function TripSummary({ context }: { context: TripContext }) {
 		>
 			<Chips mode={mode} n={g?.count ?? 1} />
 			<span className="tr-main">
-				<b>{head}</b>
-				<span className="mono">
-					{vm.name}
-					{resolveValue()}
-				</span>
+				<b>{gpus}</b>
+				<span className="mono">{serverName}</span>
 			</span>
 			<span className="tr-end">{_displayLabel}</span>
 		</button>

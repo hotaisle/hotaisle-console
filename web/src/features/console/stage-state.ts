@@ -2,7 +2,8 @@ import { isPresent } from "../../../../shared/present";
 import type { Ended, MachineRecord, Offer, VM, VMState } from "../../lib/api";
 import { duration, money, specRows } from "../../lib/format";
 import type { Order } from "../launch/types";
-import { phaseOf, stageModeOf } from "../machines/state";
+import { runTitle } from "../machines/formatting";
+import { phaseOf, stageModeOf, usesCloudInit } from "../machines/state";
 import type { StageMachine, StageState } from "../stage/model";
 
 export interface StageInput {
@@ -24,17 +25,21 @@ function machines(input: StageInput): StageMachine[] {
 	return [
 		...input.list.map((vm) => {
 			const launched = input.records[vm.name]?.launched_at;
+			const phase = phaseOf(vm, input.states[vm.name]);
 			return {
 				gpus: vm.gpus?.[0]?.count ?? 1,
 				host: input.serverOf(vm.name),
-				mode: stageModeOf(phaseOf(vm, input.states[vm.name])),
+				mode: stageModeOf(
+					phase,
+					vm.metal || usesCloudInit(phase, input.records[vm.name])
+				),
 				name: vm.name,
 				since: launched ? Date.parse(launched) : undefined,
 			};
 		}),
 		...input.receipts.map((receipt) => ({
 			gpus: Number(receipt.gpus.split("×")[0]) || 1,
-			host: input.serverOf(receipt.name),
+			host: receipt.server ?? input.serverOf(receipt.name),
 			mode: "ended" as const,
 			name: receipt.name,
 		})),
@@ -73,17 +78,29 @@ function preview(input: StageInput): Omit<StageState, "machines"> {
 		specTitle: title,
 	};
 }
-function machineReadout(vm: VM, states: StageInput["states"]) {
+function machineReadout(
+	vm: VM,
+	states: StageInput["states"],
+	record?: MachineRecord
+) {
 	const phase = phaseOf(vm, states[vm.name]);
-	const mode = stageModeOf(phase);
+	const mode = stageModeOf(phase, vm.metal || usesCloudInit(phase, record));
 	const count = vm.gpus?.[0]?.count ?? 1;
+	const server = states[vm.name]?.host ?? (vm.metal ? vm.name : "Server");
 	if (mode === "booting") {
-		return `${phase === "building" ? "Setting up" : "Booting"}. Your GPUs are warming up`;
+		return vm.metal
+			? "Installing your server's operating system."
+			: "Booting. Running your cloud-init file.";
+	}
+	if (mode === "claimed") {
+		return phase === "unknown"
+			? "Checking machine status."
+			: "Assigned. Waiting for Hot Aisle to confirm it is ready.";
 	}
 	if (mode === "ready") {
-		return `${vm.name} is ready. ${count} GPU${count > 1 ? "s" : ""} at work`;
+		return `${server} is ready. ${count} GPU${count > 1 ? "s" : ""} at work`;
 	}
-	return `${vm.name} is ${phase === "off" ? "powered off" : phase}`;
+	return `${server} is ${phase === "off" ? "powered off" : phase}`;
 }
 function activeMachine(
 	input: StageInput,
@@ -91,19 +108,6 @@ function activeMachine(
 ): Omit<StageState, "machines"> {
 	const spec = specRows(vm);
 	const host = input.serverOf(vm.name);
-	if (host) {
-		const neighbours = input.list
-			.filter(
-				(other) => other.name !== vm.name && input.serverOf(other.name) === host
-			)
-			.map((other) => other.name);
-		spec.push([
-			"Server",
-			neighbours.length
-				? `${host}, shared with ${neighbours.join(", ")}`
-				: host,
-		]);
-	}
 	const address = vm.ssh_access?.dns_name || vm.ssh_access?.ip_address;
 	if (address) {
 		spec.push(["Address", address]);
@@ -114,27 +118,24 @@ function activeMachine(
 	}
 	return {
 		focus: vm.name,
-		readout: machineReadout(vm, input.states),
+		readout: machineReadout(vm, input.states, input.records[vm.name]),
 		spec,
-		specTitle: vm.name,
+		specTitle: host ?? (vm.metal ? vm.name : "Server being assigned"),
 	};
 }
 function endedMachine(receipt: Ended): Omit<StageState, "machines"> {
 	return {
 		focus: receipt.name,
-		readout: `${receipt.name} has ended. Its GPUs are cooling down`,
+		readout: `Run on ${runTitle(receipt)} ended. Billing stopped.`,
 		spec: [
 			["GPUs", receipt.gpus],
 			[
 				"Ran for",
 				isPresent(receipt.ran_ms) ? duration(receipt.ran_ms) : "unknown",
 			],
-			[
-				"Total, about",
-				isPresent(receipt.cents) ? money(receipt.cents) : "unknown",
-			],
+			["Total", isPresent(receipt.cents) ? money(receipt.cents) : "unknown"],
 		],
-		specTitle: receipt.name,
+		specTitle: runTitle(receipt),
 	};
 }
 export function buildStage(input: StageInput): StageState {

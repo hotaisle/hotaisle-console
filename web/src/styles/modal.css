@@ -1,9 +1,17 @@
-/* modals are still used by nothing in the main flow, kept for the lone screens */
+/* Native dialogs supply the top layer and focus containment. */
+dialog:modal {
+	overscroll-behavior: contain;
+}
+dialog::backdrop {
+	overflow: hidden;
+	overscroll-behavior: contain;
+}
 .modal {
 	display: flex;
 	flex-direction: column;
+	gap: 20px;
 	width: min(520px, 100%);
-	max-height: calc(100vh - min(14vh, 128px) - 16px);
+	max-height: calc(100dvh - min(14dvh, 128px) - 16px);
 	padding: 4px 24px 22px;
 	overflow: auto;
 	background: var(--card);
@@ -11,22 +19,46 @@
 	box-shadow: var(--pop);
 	animation: rise-in var(--d-3) var(--ease);
 }
-@supports (scrollbar-width: none) {
-	.modal {
-		scrollbar-width: none;
-	}
-}
 .modal-h {
 	display: flex;
+	gap: 16px;
 	align-items: center;
 	justify-content: space-between;
-	padding: 16px 0 12px;
+	padding: 16px 0 0;
 }
 .scrim::backdrop {
 	background: transparent;
 }
 .modal-h h2 {
 	font-size: 19px;
+}
+.modal-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	justify-content: flex-end;
+}
+.modal-actions .btn {
+	min-inline-size: 112px;
+	min-block-size: 40px;
+}
+.modal-actions .destructive {
+	color: white;
+	background: var(--bad);
+	border-color: var(--bad);
+}
+.modal-actions .destructive:hover:not(:disabled) {
+	background: var(--bad-deep);
+	border-color: var(--bad-deep);
+}
+.remove-key-details {
+	display: grid;
+	gap: 6px;
+	padding: 12px;
+	overflow-wrap: anywhere;
+	background: var(--card-2);
+	border: 1px solid var(--line-2);
+	border-radius: 8px;
 }
 .scrim[open] {
 	position: fixed;

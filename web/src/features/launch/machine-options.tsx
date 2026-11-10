@@ -32,9 +32,9 @@ function availability(quantity: number) {
 		return " ";
 	}
 	if (!quantity) {
-		return "None free";
+		return "None left";
 	}
-	return `${quantity} ${quantity === 1 ? "left" : "free"}`;
+	return `${quantity} left`;
 }
 export function MachineOptions({
 	sizes,

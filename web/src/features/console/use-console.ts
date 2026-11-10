@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isPresent } from "../../../../shared/present";
 import type { Ended, Status, Team, VM } from "../../lib/api";
 import { usePrefs } from "../../lib/prefs";
 import { signal } from "../../lib/signal";
@@ -75,6 +76,7 @@ export function useConsole({
 				metal: !!vm.metal,
 				name: vm.name,
 				price_cents: meta.price,
+				user_data_url: meta.user_data_url,
 			});
 			await vms.setData((l) => [
 				...(l ?? []).filter((x) => x.name !== vm.name),
@@ -139,25 +141,22 @@ export function useConsole({
 		(offers.data !== undefined || offers.error);
 	const sizes = sizesOf(offers.data);
 	const offerFor = useCallback(
-		(n?: number, model?: string) =>
+		(n?: number, model?: string, metal?: boolean) =>
 			sizes.find(
 				(o) =>
 					o.Specs.gpus?.[0]?.count === n &&
-					(!model || o.Specs.gpus?.[0]?.model === model)
+					(!model || o.Specs.gpus?.[0]?.model === model) &&
+					(metal === undefined || !!o.metal === metal)
 			),
 		[sizes]
 	);
 	const priceOf = useCallback(
 		(vm: VM) =>
 			recByName[vm.name]?.price_cents ||
-			offerFor(vm.gpus?.[0]?.count, vm.gpus?.[0]?.model)?.OnDemandPrice,
+			offerFor(vm.gpus?.[0]?.count, vm.gpus?.[0]?.model, !!vm.metal)
+				?.OnDemandPrice,
 		[recByName, offerFor]
 	);
-	const shownNames = new Set([
-		...list.map((v) => v.name),
-		...receipts.map((r) => r.name),
-	]);
-	const earlier = history.filter((e) => !shownNames.has(e.name));
 
 	// ---------------------------------------------------------------- what the drawing shows
 	// Every machine on the server the API says it runs on. Ended ones keep theirs while their GPUs cool.
@@ -172,24 +171,29 @@ export function useConsole({
 		(name: string) => hostOf.current[name] ?? guessHost.current[name],
 		[guessHost]
 	);
-	const orderContext = rootIsOrder || stack.includes("order");
-	const focused =
-		list.find((v) => v.name === focus) ??
-		(receipts.some((r) => r.name === focus) ? undefined : list.at(-1));
-	const focusedReceipt = focused
+	const viewingRun = view === "run";
+	const orderContext = !viewingRun && (rootIsOrder || stack.includes("order"));
+	const focused = viewingRun
 		? undefined
-		: (receipts.find((r) => r.name === focus) ?? receipts[0]);
+		: (list.find((v) => v.name === focus) ??
+			(receipts.some((r) => r.name === focus) ? undefined : list.at(-1)));
+	let focusedReceipt = run;
+	if (!viewingRun) {
+		focusedReceipt = focused
+			? undefined
+			: (receipts.find((r) => r.name === focus) ?? receipts[0]);
+	}
 	const stage = buildStage({
 		focused,
 		focusedReceipt,
-		list,
+		list: viewingRun ? [] : list,
 		offerFor,
 		offers: offers.data,
 		offersError: offers.error,
 		order,
 		orderContext,
 		priceOf,
-		receipts,
+		receipts: viewingRun ? [run].filter(isPresent) : receipts,
 		records: recByName,
 		serverOf,
 		states,
@@ -222,7 +226,6 @@ export function useConsole({
 		back,
 		balance,
 		dismiss,
-		earlier,
 		entering,
 		focused,
 		focusMachine,

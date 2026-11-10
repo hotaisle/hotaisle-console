@@ -17,6 +17,7 @@ export interface Machine {
 	name: string;
 	price_cents?: number;
 	team: string;
+	user_data_url?: string;
 }
 
 export interface Ended {
@@ -52,6 +53,7 @@ export interface MachineUpdate {
 	name: string;
 	price_cents?: number;
 	team: string;
+	user_data_url?: string;
 }
 
 /** Records of machines launched this recently are kept whatever a machine list says (it may predate them). */
@@ -92,6 +94,9 @@ export function updateMachine(
 	}
 	if (u.image) {
 		m.image = u.image;
+	}
+	if (u.user_data_url) {
+		m.user_data_url = u.user_data_url;
 	}
 	if (u.price_cents && u.price_cents > 0) {
 		m.price_cents = Math.round(u.price_cents);

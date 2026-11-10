@@ -2,9 +2,19 @@ import { useCallback, useEffect, useRef } from "react";
 import { HoldButton } from "../../components/ui/hold-button";
 import { api } from "../../lib/api";
 import { hoursOr } from "../../lib/format";
+import { PowerActionConfirmation } from "./power-action-confirmation";
 
 import type { TripContext } from "./use-trip";
 export function TripConfirmation({ context }: { context: TripContext }) {
+	if (context.panel && typeof context.panel === "object") {
+		return (
+			<PowerActionConfirmation context={context} operation={context.panel} />
+		);
+	}
+	return <EndOrRebuildConfirmation context={context} />;
+}
+
+function EndOrRebuildConfirmation({ context }: { context: TripContext }) {
 	const cancel = useRef<HTMLButtonElement>(null);
 	const {
 		team,
@@ -58,7 +68,7 @@ export function TripConfirmation({ context }: { context: TripContext }) {
 				<dialog
 					aria-label={panel === "end" ? "End this machine" : "Rebuild"}
 					className="sheet"
-					key={panel}
+					key={typeof panel === "string" ? panel : undefined}
 					onKeyDown={onEscape}
 					open
 				>

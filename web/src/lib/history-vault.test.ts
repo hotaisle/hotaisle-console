@@ -26,6 +26,29 @@ beforeEach(() => {
 });
 
 describe("encrypted browser history", () => {
+	it("restores a launch's custom template URL only after authenticated unlock", async () => {
+		const vault = createHistoryVault();
+		await vault.unlock(async () => bundle());
+		const launch = {
+			image: "custom",
+			launched: true,
+			name: "custom-vm",
+			team: "lab",
+			user_data_url: "https://example.invalid/private-template.yaml",
+		};
+		vault.record(launch);
+		await vault.flush();
+		const saved = storageSnapshot();
+		expect(JSON.stringify(saved)).not.toContain(launch.user_data_url);
+		vault.lock();
+		expect(vault.getSnapshot().records.machines).toEqual({});
+		const reloaded = createHistoryVault();
+		await reloaded.unlock(async () => bundle());
+		expect(
+			reloaded.getSnapshot().records.machines["lab/custom-vm"]?.user_data_url
+		).toBe(launch.user_data_url);
+		expect(storageSnapshot()).toEqual(saved);
+	});
 	it("does not let a delayed cross-tab refresh replace a newer local receipt", async () => {
 		const vault = createHistoryVault();
 		await vault.unlock(async () => bundle());

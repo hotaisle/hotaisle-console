@@ -39,6 +39,9 @@ export const day = (t: string | number) => {
 export const machineLine = (cores?: number, ram?: number, disk?: number) =>
 	cores ? `${cores} cores, ${gb(ram ?? 0)} memory, ${gb(disk ?? 0)} disk` : "–";
 
+export const runTitle = (run?: Ended) =>
+	run ? run.server || "Server unavailable" : "Earlier run";
+
 export function runFacts(r: Ended): [string, string][] {
 	function resolveValue2() {
 		if (isPresent(r.cents) && r.price_cents) {

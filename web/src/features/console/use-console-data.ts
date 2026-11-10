@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useToast } from "../../components/ui/toast";
 import { usePoll } from "../../hooks/use-resource";
 import { api, type Ended, type VMState } from "../../lib/api";
+import { sshCommand } from "../../lib/format";
 import { phaseOf, settled } from "../machines/state";
 import type { StageMachine } from "../stage/model";
 import { useAvailability } from "./use-availability";
@@ -77,9 +78,9 @@ export function useConsoleData(h: string, notify: boolean) {
 			if (!vm?.ssh_access) {
 				return;
 			}
-			const cmd = `ssh -p ${vm.ssh_access.port} hotaisle@${vm.ssh_access.dns_name || vm.ssh_access.ip_address}`;
+			const cmd = sshCommand(vm.ssh_access);
 			navigator.clipboard.writeText(cmd).then(
-				() => toast(`Copied the SSH command for ${vm.name}.`),
+				() => toast("Copied the SSH command.", "info", cmd),
 				() => toast("Could not copy the SSH command.", "err")
 			);
 		};
@@ -105,9 +106,7 @@ export function useConsoleData(h: string, notify: boolean) {
 				"Notification" in window &&
 				Notification.permission === "granted"
 			) {
-				const cmd = vm.ssh_access
-					? `ssh -p ${vm.ssh_access.port} hotaisle@${vm.ssh_access.dns_name || vm.ssh_access.ip_address}`
-					: "";
+				const cmd = vm.ssh_access ? sshCommand(vm.ssh_access) : "";
 				const notification = new Notification(`${vm.name} is ready`, {
 					body: cmd,
 				});

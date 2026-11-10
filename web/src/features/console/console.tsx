@@ -1,4 +1,5 @@
 import type { View } from "../../app/route-state";
+import { runTitle } from "../machines/formatting";
 import { Stage } from "../stage/stage";
 import { ConsoleHeader } from "./console-header";
 import { ConsolePanel } from "./console-panel";
@@ -9,9 +10,9 @@ export function Console(props: Parameters<typeof useConsole>[0]) {
 		credits: "Add credits",
 		history: "Machine history",
 		home: context.rootIsOrder ? "Rent MI300x compute" : "Your machines",
-		image: "Your cloud-init file",
+		image: "Custom cloud-init file",
 		order: "New machine",
-		run: context.run?.name ?? "Earlier run",
+		run: runTitle(context.run),
 		settings: "Settings",
 	};
 	return (

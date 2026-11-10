@@ -1,4 +1,4 @@
-import type { VM, VMState } from "../../lib/api";
+import type { MachineRecord, VM, VMState } from "../../lib/api";
 import type { StageMode } from "../stage/model";
 
 export type Phase =
@@ -22,7 +22,7 @@ export function phaseOf(vm: VM, st?: VMState, releasing?: boolean): Phase {
 		return "unavailable";
 	}
 	const s = st?.state?.toLowerCase();
-	if (!s) {
+	if (!s || s === "unknown") {
 		return "unknown";
 	}
 	if (s === "running") {
@@ -43,7 +43,12 @@ export function phaseOf(vm: VM, st?: VMState, releasing?: boolean): Phase {
 	return "starting";
 }
 
-export function stageModeOf(phase: Phase): StageMode {
+export const usesCloudInit = (phase: Phase, record?: MachineRecord) =>
+	phase === "building" ||
+	record?.image === "vllm" ||
+	record?.image === "custom";
+
+export function stageModeOf(phase: Phase, cloudInit = true): StageMode {
 	if (phase === "running") {
 		return "ready";
 	}
@@ -53,21 +58,27 @@ export function stageModeOf(phase: Phase): StageMode {
 	if (phase === "releasing") {
 		return "ended";
 	}
+	if (phase === "unknown" || (phase === "starting" && !cloudInit)) {
+		return "claimed";
+	}
 	return "booting";
 }
 
 export const HEAD: Record<Phase, [string, string]> = {
-	building: [
-		"Setting up",
-		"Running your cloud-init file. This takes a few minutes.",
-	],
+	building: ["Booting", "Running your cloud-init file."],
 	off: ["Powered off", "Still yours, and still billed, until you end it."],
 	paused: ["Paused", "Still billed until you end it."],
 	releasing: ["Ending", "Billing stops in a moment."],
 	running: ["Ready", "Copy the command below to log in."],
-	starting: ["Booting", "Warming up. Usually under a minute."],
+	starting: [
+		"Assigned",
+		"Waiting for Hot Aisle to confirm this machine is ready.",
+	],
 	unavailable: ["Unavailable", "Hot Aisle can't reach this machine right now."],
-	unknown: ["Booting", "Warming up. Usually under a minute."],
+	unknown: [
+		"Checking status",
+		"Waiting for Hot Aisle to report this machine's status.",
+	],
 };
 
 export const settled = (p: Phase) =>

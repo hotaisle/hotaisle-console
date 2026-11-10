@@ -5,23 +5,17 @@ import { duration, money } from "../../lib/format";
 import { vtName } from "../../lib/motion";
 import { Chips } from "./chips";
 import { Facts } from "./facts";
-import { at, dollars, meter, runFacts } from "./formatting";
+import { at, dollars, meter, runFacts, runTitle } from "./formatting";
 import { Timeline } from "./timeline";
 
 export function ReceiptCard({ r, onDone }: { r: Ended; onDone?: () => void }) {
-	function resolveValue() {
-		if (r.minimum_applied) {
-			return "Includes the minimum charge.";
-		}
-		if (isPresent(r.cents)) {
-			return "Billed by the minute.";
-		}
-		return "Launched outside this app, so the run time and cost are unknown.";
-	}
+	const summary = isPresent(r.cents)
+		? ""
+		: "Launched outside this app, so the run time and cost are unknown.";
 	const _displayLabel = r.started_at ? Date.parse(r.started_at) : undefined;
 	return (
 		<article
-			aria-label={`${r.name} ended`}
+			aria-label={`${runTitle(r)} ended`}
 			className="trip receipt vt"
 			style={{ ["--vt" as string]: vtName("vm", r.name) }}
 		>
@@ -50,7 +44,7 @@ export function ReceiptCard({ r, onDone }: { r: Ended; onDone?: () => void }) {
 					</span>
 				</div>
 				<div className="meter-cell">
-					<span className="meter-l">Total, about</span>
+					<span className="meter-l">Total</span>
 					<span className="meter-v">
 						<span className="cur">$</span>
 						<Lcd
@@ -62,7 +56,7 @@ export function ReceiptCard({ r, onDone }: { r: Ended; onDone?: () => void }) {
 					</span>
 				</div>
 			</div>
-			<div className="summary">{resolveValue()}</div>
+			{summary ? <div className="summary">{summary}</div> : null}
 			<div className="run">
 				<Timeline
 					end={Date.parse(r.ended_at)}
@@ -72,16 +66,13 @@ export function ReceiptCard({ r, onDone }: { r: Ended; onDone?: () => void }) {
 				/>
 				<Facts rows={runFacts(r)} />
 			</div>
-			<div className="card-foot">
-				<span className="card-name">
-					<span className="mono">{r.name}</span>
-				</span>
-				{!!onDone && (
+			{onDone ? (
+				<div className="card-foot">
 					<button className="btn" onClick={onDone} type="button">
 						Done
 					</button>
-				)}
-			</div>
+				</div>
+			) : null}
 		</article>
 	);
 }

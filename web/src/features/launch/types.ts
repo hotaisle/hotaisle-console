@@ -9,4 +9,5 @@ export interface Order {
 export interface LaunchMeta {
 	image: Image;
 	price?: number;
+	user_data_url?: string;
 }

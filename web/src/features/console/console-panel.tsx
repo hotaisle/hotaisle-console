@@ -3,12 +3,11 @@ import { useCallback } from "react";
 import { isPresent } from "../../../../shared/present";
 import { BuildDate } from "../../components/build-date";
 import { PanelScroll } from "../../components/panel-scroll";
-import { money } from "../../lib/format";
 import { ImageView } from "../launch/image-view";
 import { OrderView } from "../launch/order-view";
+import { runTitle } from "../machines/formatting";
 import { History } from "../machines/history";
 import { HistoryView } from "../machines/history-view";
-import { phaseOf } from "../machines/state";
 import { SettingsView } from "../settings/settings";
 import { AccountInstruments } from "./account-instruments";
 import { CreditsView } from "./credits-view";
@@ -35,7 +34,6 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 		back,
 		balance,
 		dismiss,
-		earlier,
 		focusMachine,
 		focused,
 		gpusAtWork,
@@ -85,14 +83,11 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 		credits: "Add credits",
 		history: "Machine history",
 		home: homeTitle,
-		image: "Your cloud-init file",
+		image: "Custom cloud-init file",
 		order: "New machine",
-		run: run?.name ?? "Earlier run",
+		run: runTitle(run),
 		settings: "Settings",
 	};
-	const running = list.filter(
-		(v) => phaseOf(v, states[v.name]) === "running"
-	).length;
 	const router = useRouter();
 	const search = useSearch({ from: "__root__" });
 	const showImage = useCallback(() => push("image"), [push]);
@@ -128,7 +123,7 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 			team={team}
 			vmCount={list.length}
 		>
-			{view === "home" && <History items={earlier.slice(0, 3)} />}
+			{view === "home" && <History items={history} />}
 		</OrderView>
 	);
 	let body: React.ReactNode;
@@ -138,15 +133,9 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 		sub = "Pick a size, hold the button, and SSH in a minute later.";
 		body = orderView;
 	} else if (view === "home") {
-		function resolveValue() {
-			if (list.length === 0) {
-				return "Nothing running.";
-			}
-			return `${running} of ${list.length} ready${b && b.hourly_rate > 0 ? `, ${money(b.hourly_rate)} an hour in all` : ""}.`;
-		}
-		sub = resolveValue();
 		body = (
 			<>
+				<AccountInstruments balance={b} gpus={gpusAtWork} />
 				<MachineList
 					focused={focused?.name}
 					launchedNow={launchedNow}
@@ -163,10 +152,8 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 					states={states}
 					team={team}
 				/>
-				<History items={earlier} />
+				<History items={history} />
 				<div className="foot">
-					{/* the account at a glance, in the same instruments as the cards: fixed widths, so nothing shifts as they change */}
-					<AccountInstruments balance={b} gpus={gpusAtWork} />
 					<button
 						className="btn primary big new"
 						onClick={showOrder}

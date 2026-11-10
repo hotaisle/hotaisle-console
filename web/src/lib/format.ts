@@ -107,9 +107,12 @@ export function duration(ms: number) {
 	return u(Math.max(mm, 1), "minute");
 }
 
+export const sshPortOption = (port: number) =>
+	port === 22 ? "" : ` -p ${port}`;
+
 export function sshCommand(a: SSHAccess, user = "hotaisle") {
 	const host = a.dns_name || a.ip_address;
-	return `ssh -p ${a.port} ${user}@${host}`;
+	return `ssh${sshPortOption(a.port)} ${user}@${host}`;
 }
 
 export function sshURL(a: SSHAccess, user = "hotaisle") {
@@ -133,4 +136,4 @@ export const keyLabel = (k: {
 export const hoursOr = (min: number) =>
 	min >= 60 && min % 60 === 0
 		? `${min / 60} hour${min === 60 ? "" : "s"}`
-		: `${min} minutes`;
+		: `${min} minute${min === 1 ? "" : "s"}`;

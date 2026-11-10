@@ -163,7 +163,11 @@ export function OrderView({
 						[{ count: g.count, manufacturer: g.manufacturer, model: g.model }],
 						userData || undefined
 					);
-			await onLaunched(vm, { image: offer.metal ? "standard" : image, price });
+			await onLaunched(vm, {
+				image: offer.metal ? "standard" : image,
+				price,
+				user_data_url: offer.metal ? undefined : userData || undefined,
+			});
 		} catch (e) {
 			const err = e as APIError;
 			const known: Record<number, string> = {
@@ -193,14 +197,7 @@ export function OrderView({
 			return `A whole server. Billed for at least ${hoursOr(offer.MinimumReservationMinutes)} (${money(minCharge)}), even if you end it sooner.`;
 		}
 		if (offer) {
-			return (
-				<>
-					Billed by the minute. Billing starts once the machine is yours.
-					<span className="fine-min">
-						{isPresent(minCharge) ? ` At least ${money(minCharge)}.` : ""}
-					</span>
-				</>
-			);
+			return "Billed by the minute. Billing starts once the machine is yours.";
 		}
 		return " ";
 	}

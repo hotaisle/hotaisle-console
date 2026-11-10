@@ -13,7 +13,8 @@ import {
 import { money } from "../../lib/format";
 import { vtName } from "../../lib/motion";
 import { sound } from "../../lib/sound";
-import { HEAD, type Phase, phaseOf, stageModeOf } from "./state";
+import type { PowerOperation } from "./power-actions";
+import { HEAD, type Phase, phaseOf, stageModeOf, usesCloudInit } from "./state";
 import { useNow } from "./use-now";
 
 export interface TripProps {
@@ -49,13 +50,13 @@ export function useTrip(props: TripProps) {
 	} = props;
 	const toast = useToast();
 	const [ending, setEnding] = useState(false);
-	const [panel, setPanel] = useState<null | "end" | "rebuild">(null);
-	const [menu, setMenu] = useState(false);
+	const [panel, setPanel] = useState<null | "end" | "rebuild" | PowerOperation>(
+		null
+	);
 	const [force, setForce] = useState(false);
 	const [busy, setBusy] = useState("");
 	const phase = phaseOf(vm, state, ending);
 	const prev = useRef<Phase>(phase);
-	const menuRef = useRef<HTMLDivElement>(null);
 	const now = useNow(1000);
 	const launched = record?.launched_at
 		? new Date(record.launched_at).getTime()
@@ -76,33 +77,12 @@ export function useTrip(props: TripProps) {
 		prev.current = phase;
 	}, [phase]);
 	useEffect(() => {
-		if (!menu) {
-			return;
-		}
-		const close = (e: MouseEvent) =>
-			!menuRef.current?.contains(e.target as Node) && setMenu(false);
-		const esc = (e: KeyboardEvent) => {
-			if (e.key !== "Escape") {
-				return;
-			}
-			e.preventDefault(); // this Escape closed the menu; it doesn't also go back
-			setMenu(false);
-		};
-		document.addEventListener("mousedown", close);
-		document.addEventListener("keydown", esc);
-		return () => {
-			document.removeEventListener("mousedown", close);
-			document.removeEventListener("keydown", esc);
-		};
-	}, [menu]);
-	useEffect(() => {
 		if (!expanded) {
 			setPanel(null);
 		}
 	}, [expanded]);
 
 	const act = async (label: string, fn: () => Promise<void>, ok: string) => {
-		setMenu(false);
 		setBusy(label);
 		try {
 			await fn();
@@ -167,11 +147,10 @@ export function useTrip(props: TripProps) {
 	};
 
 	const copy = async (text: string, what: string) => {
-		setMenu(false);
 		try {
 			await navigator.clipboard.writeText(text);
 			sound.tick();
-			toast(`Copied ${what}.`);
+			toast(`Copied ${what}.`, "info", text);
 		} catch {
 			toast(
 				`Could not copy ${what}. Select and copy the text manually.`,
@@ -183,10 +162,7 @@ export function useTrip(props: TripProps) {
 	const ssh = vm.ssh_access;
 	const ready = phase === "running";
 	const host = ssh ? ssh.dns_name || ssh.ip_address : "";
-	const cloudInit =
-		phase === "building" ||
-		record?.image === "vllm" ||
-		record?.image === "custom";
+	const cloudInit = usesCloudInit(phase, record);
 	// a bare-metal server installs its operating system before its first boot
 	const install = state?.install;
 	function resolveMetalStep() {
@@ -213,10 +189,7 @@ export function useTrip(props: TripProps) {
 		if (vm.metal) {
 			return ["Assigned", "Installing", "First boot", "Ready"];
 		}
-		if (cloudInit) {
-			return ["Assigned", "Setting up", "Booting", "Ready"];
-		}
-		return ["Assigned", "Booting", "Ready"];
+		return cloudInit ? ["Assigned", "Booting", "Ready"] : ["Assigned", "Ready"];
 	}
 	const steps = resolveSteps();
 	function resolveCurrent() {
@@ -226,21 +199,24 @@ export function useTrip(props: TripProps) {
 		if (vm.metal) {
 			return metalStep;
 		}
-		if (phase === "building") {
-			return 1;
-		}
-		return steps.indexOf("Booting");
+		return cloudInit ? 1 : 0;
 	}
 	const current = resolveCurrent();
-	const [head, sub] =
-		vm.metal && phase === "building"
-			? ([
-					"Installing",
-					"Hot Aisle is installing the operating system on your server. This takes a while.",
-				] as const)
-			: HEAD[phase];
+	function resolveHeading() {
+		if (vm.metal && phase === "building") {
+			return [
+				"Installing",
+				"Hot Aisle is installing the operating system on your server. This takes a while.",
+			];
+		}
+		if (!vm.metal && cloudInit && phase === "starting") {
+			return HEAD.building;
+		}
+		return HEAD[phase];
+	}
+	const [head, sub] = resolveHeading();
 	const ranMs = launched ? now - launched : undefined;
-	const mode = stageModeOf(phase);
+	const mode = stageModeOf(phase, vm.metal || cloudInit);
 	const style = {
 		["--vt" as string]: morph ? "launcher" : vtName("vm", vm.name),
 	};
@@ -259,8 +235,6 @@ export function useTrip(props: TripProps) {
 		head,
 		host,
 		launched,
-		menu,
-		menuRef,
 		minCost,
 		minimumMin,
 		mode,
@@ -277,7 +251,6 @@ export function useTrip(props: TripProps) {
 		record,
 		server,
 		setForce,
-		setMenu,
 		setPanel,
 		ssh,
 		state,

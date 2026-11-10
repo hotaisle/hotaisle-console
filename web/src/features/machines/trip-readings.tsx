@@ -5,13 +5,12 @@ import { dollars, meter } from "./formatting";
 
 import type { TripContext } from "./use-trip";
 export function TripReadings({ context }: { context: TripContext }) {
-	const { price, ready, steps, current, ranMs } = context;
-	const stepFill = isPresent(ranMs) ? 1 - Math.exp(-ranMs / 1000 / 22) : 0.3;
+	const { price, ready, steps, current, ranMs, mode, phase } = context;
 	function resolveValue() {
 		if (ready) {
 			return (
 				<div className="meter-cell in">
-					<span className="meter-l">So far</span>
+					<span className="meter-l">Cost</span>
 					<span className="meter-v">
 						<span className="cur">$</span>
 						<Lcd
@@ -32,10 +31,13 @@ export function TripReadings({ context }: { context: TripContext }) {
 				</div>
 			);
 		}
+		if (phase !== "building" && phase !== "starting") {
+			return null;
+		}
 		return (
 			<ol
 				aria-label={`Step ${Math.min(current + 1, steps.length)} of ${steps.length}: ${steps[Math.min(current, steps.length - 1)]}`}
-				className="track"
+				className={mode === "booting" ? "track is-active" : "track"}
 				style={{ ["--n" as string]: steps.length }}
 			>
 				{steps.map((s, i) => (
@@ -45,9 +47,8 @@ export function TripReadings({ context }: { context: TripContext }) {
 							.filter(Boolean)
 							.join(" ")}
 						key={s}
-						style={i === current ? { ["--f" as string]: stepFill } : undefined}
 					>
-						<span className="bar" />
+						<span aria-hidden="true" className="bar" />
 						<span className="lbl">{s}</span>
 					</li>
 				))}

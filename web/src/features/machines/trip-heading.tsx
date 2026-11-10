@@ -1,6 +1,7 @@
 import { isPresent } from "../../../../shared/present";
 import { money } from "../../lib/format";
 import { Chips } from "./chips";
+import { CloudInitLink } from "./cloud-init-link";
 
 import type { TripContext } from "./use-trip";
 export function TripHeading({ context }: { context: TripContext }) {
@@ -14,7 +15,19 @@ export function TripHeading({ context }: { context: TripContext }) {
 					<Chips mode={mode} n={g?.count ?? 1} />
 					{_displayLabel}
 				</h3>
-				<p>{sub}</p>
+				<p>
+					{head === "Booting" ? (
+						<>
+							Running your{" "}
+							<CloudInitLink record={context.record}>
+								cloud-init file
+							</CloudInitLink>
+							.
+						</>
+					) : (
+						sub
+					)}
+				</p>
 			</div>
 			<div className="card-what">
 				<b>{gpus}</b>

@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { minimumReservationMinutes } from "../../../../shared/availability";
 import type {
 	Ended,
 	MachineRecord,
@@ -17,7 +18,11 @@ interface MachineListProps {
 	focused?: string;
 	launchedNow?: string;
 	list: VM[];
-	offerFor: (count?: number, model?: string) => Offer | undefined;
+	offerFor: (
+		count?: number,
+		model?: string,
+		metal?: boolean
+	) => Offer | undefined;
 	onChanged: () => void;
 	onDismiss: (name: string) => void;
 	onEnded: (ended: Ended) => void;
@@ -34,12 +39,19 @@ function MachineItem({ vm, context }: { vm: VM; context: MachineListProps }) {
 		() => context.onFocus(vm.name),
 		[context.onFocus, vm.name]
 	);
-	const offer = context.offerFor(vm.gpus?.[0]?.count, vm.gpus?.[0]?.model);
+	const offer = context.offerFor(
+		vm.gpus?.[0]?.count,
+		vm.gpus?.[0]?.model,
+		!!vm.metal
+	);
 	return (
 		<Trip
 			expanded={context.focused === vm.name}
 			host={context.serverOf(vm.name)}
-			minimumMin={offer?.MinimumReservationMinutes ?? 30}
+			minimumMin={
+				offer?.MinimumReservationMinutes ??
+				minimumReservationMinutes(vm, vm.metal)
+			}
 			morph={context.launchedNow === vm.name}
 			onChanged={context.onChanged}
 			onEnded={context.onEnded}
