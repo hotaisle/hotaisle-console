@@ -1,38 +1,42 @@
 {
-  "name": "hotaisle-console",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "build": "bun run build:web && bun run build:worker",
-    "dev": "bun run build:web && bun run --cwd worker dev",
-    "dev:fake": "bun run build:web && bun worker/dev/fake-api.mjs",
-    "deploy": "bun run build && bun run --cwd worker deploy",
-    "typecheck": "bun run --bun tsc -p tsconfig.tools.json && bun run --bun tsc -p worker && bun run --cwd web typecheck",
-    "test": "vitest run",
-    "test:ui": "bun run build && bun web/tests/stability.mjs",
-    "build:web": "bun run --cwd web build",
-    "build:worker": "bun run --cwd worker build"
-  },
-  "devDependencies": {
-    "@cloudflare/vitest-plugin": "1.6.1",
-    "@cloudflare/workers-types": "5.20261109.1",
-    "typescript": "7.0.2",
-    "vitest": "5.1.0",
-    "@types/node": "26.6.6"
-  },
-  "cloudflare": {
-    "bindings": {
-      "SESSION_SECRET": {
-        "description": "Encrypts sign-in sessions. 32 or more random characters: `openssl rand -base64 32`."
-      }
-    }
-  },
-  "packageManager": "bun@1.4.4",
-  "workspaces": [
-    "web",
-    "worker"
-  ],
-  "engines": {
-    "node": "^26.13.0"
-  }
+	"name": "hotaisle-console",
+	"private": true,
+	"type": "module",
+	"workspaces": [
+		"web",
+		"worker"
+	],
+	"scripts": {
+		"build": "bun run build:web && bun run build:worker",
+		"dev": "bun run build:web && bun run --cwd worker dev",
+		"dev:fake": "bun run build:web && bun worker/dev/fake-api.mjs",
+		"deploy": "bun run build && bun run --cwd worker deploy",
+		"typecheck": "bun run --bun tsc -p tsconfig.tools.json && bun run --bun tsc -p worker && bun run --cwd web typecheck",
+		"test": "vitest run",
+		"test:ui": "bun run build && bun web/tests/stability.mjs",
+		"build:web": "bun run --cwd web build",
+		"build:worker": "bun run --cwd worker build",
+		"check": "bun run --bun ultracite check",
+		"fix": "bun run --bun ultracite fix"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.6.6",
+		"@cloudflare/vitest-plugin": "1.6.1",
+		"@cloudflare/workers-types": "5.20261109.1",
+		"@types/node": "26.6.6",
+		"typescript": "7.0.2",
+		"ultracite": "8.1.1",
+		"vitest": "5.1.0"
+	},
+	"packageManager": "bun@1.4.4",
+	"engines": {
+		"node": "^26.13.0"
+	},
+	"cloudflare": {
+		"bindings": {
+			"SESSION_SECRET": {
+				"description": "Encrypts sign-in sessions. 32 or more random characters: `openssl rand -base64 32`."
+			}
+		}
+	}
 }
