@@ -1,0 +1,41 @@
+.ssh-key-help {
+	display: grid;
+	gap: 20px;
+	font-size: 0.875rem;
+	line-height: 1.6;
+	color: var(--ink-2);
+}
+.ssh-key-help ol {
+	display: grid;
+	gap: 24px;
+	padding-inline-start: 22px;
+	margin: 0;
+}
+.ssh-key-help h3 {
+	font-size: 0.875rem;
+	font-weight: 500;
+	line-height: 1.5;
+	color: var(--ink);
+}
+.ssh-key-command {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	justify-content: space-between;
+	min-block-size: 64px;
+	padding: 12px;
+	margin-block: 10px;
+	background: var(--card-2);
+	border: 1px solid var(--line-2);
+	border-radius: 8px;
+}
+.ssh-key-command > span {
+	display: grid;
+	flex: none;
+}
+.ssh-key-command code {
+	min-width: 0;
+	overflow-x: auto;
+	font-size: 0.8125rem;
+	white-space: nowrap;
+}
