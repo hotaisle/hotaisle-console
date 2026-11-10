@@ -1,0 +1,127 @@
+.team-form {
+	max-width: 560px;
+}
+.auth-content p.team-intro {
+	max-width: 100%;
+}
+.team-form input {
+	height: 56px;
+	padding-inline: 16px;
+	font-size: 18px;
+	background: var(--card);
+	border: 1px solid var(--muted);
+	border-radius: 6px;
+}
+.team-form .btn {
+	align-self: start;
+	min-height: 52px;
+	padding-inline: 24px;
+	font-size: 17px;
+	border-radius: 6px;
+}
+.team-sections {
+	display: grid;
+	gap: 32px;
+	max-width: 640px;
+}
+.team-list {
+	display: grid;
+	gap: 12px;
+	padding: 0;
+	margin-block: 12px 0;
+	list-style: none;
+}
+.team-row {
+	display: flex;
+	gap: 20px;
+	align-items: center;
+	justify-content: space-between;
+	min-height: 88px;
+	padding-block: 20px;
+	color: var(--ink);
+	border-bottom: 1px solid var(--line-2);
+}
+.team-link {
+	padding: 20px;
+	text-decoration: none;
+	background: var(--card);
+	border: 1px solid var(--line-2);
+	border-radius: 8px;
+	transition:
+		background var(--d-1),
+		border-color var(--d-1);
+}
+.team-link:hover {
+	color: var(--heat-ink);
+	background: var(--card-2);
+	border-color: var(--heat-ink);
+}
+.team-open {
+	display: inline-flex;
+	flex: none;
+	gap: 10px;
+	align-items: center;
+	padding: 8px 12px;
+	font-size: 0.875rem;
+	font-weight: 500;
+	border: 1px solid var(--line-2);
+	border-radius: 6px;
+}
+.team-identity {
+	display: grid;
+	gap: 5px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+.team-identity strong {
+	font-size: 21px;
+	font-weight: 500;
+}
+.team-identity .mono {
+	font-size: 13px;
+}
+.team-invitation .btn {
+	min-height: 48px;
+}
+.team-create-link {
+	justify-self: start;
+	min-height: 52px;
+	padding-inline: 24px;
+	font-size: 17px;
+	border-radius: 6px;
+}
+.team-back {
+	display: inline-flex;
+	align-items: center;
+	min-height: 48px;
+	margin-top: 20px;
+}
+.team-join-hint {
+	max-width: 560px;
+	padding-top: 20px;
+	overflow-wrap: anywhere;
+}
+.team-footer {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px 28px;
+	align-items: center;
+}
+.team-footer > span {
+	flex-basis: 100%;
+	overflow-wrap: anywhere;
+}
+.team-notice {
+	padding: 16px;
+	margin-block: 24px;
+	background: var(--card-2);
+	border-inline-start: 2px solid var(--amber);
+}
+@media (max-width: 600px) {
+	.team-link {
+		flex-wrap: wrap;
+	}
+	.team-invitation .team-row {
+		flex-wrap: wrap;
+	}
+}
