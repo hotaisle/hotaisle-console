@@ -12,7 +12,10 @@ export function History({ items }: { items: Ended[] }) {
 		<Link className="history-link" params={{ team }} to="/teams/$team/history">
 			<span>
 				<strong>Machine history</strong>
-				<span className="small muted">Search and browse ended runs</span>
+				<span className="small muted">
+					{items.length.toLocaleString()}{" "}
+					{items.length === 1 ? "machine" : "machines"} ended
+				</span>
 			</span>
 			<span aria-hidden="true">→</span>
 		</Link>

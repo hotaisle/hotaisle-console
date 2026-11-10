@@ -26,26 +26,24 @@
 	border-color: var(--muted);
 }
 .history-view {
-	display: grid;
-	gap: 16px;
-}
-.history-search {
 	display: flex;
-	gap: 8px;
-}
-.history-search .form-field {
 	flex: 1;
-	min-inline-size: 0;
-}
-.history-search input {
-	inline-size: 100%;
+	flex-direction: column;
+	gap: 16px;
+	min-block-size: 0;
 }
 .history-results {
 	display: grid;
+	flex: 1;
 	gap: 8px;
+	align-content: start;
+	min-block-size: 0;
 	padding: 0;
 	margin: 0;
 	list-style: none;
+}
+.panel-content:has(> .history-view) {
+	padding-block-end: 16px;
 }
 .history-run-title {
 	display: flex;

@@ -12,7 +12,7 @@ export interface ConsoleSearch {
 	gpus?: number;
 	image?: Image;
 	page?: number;
-	q?: string;
+	pageSize?: number;
 	returnTo?: string;
 }
 export function safeReturnTo(value: unknown): string | undefined {
@@ -42,9 +42,11 @@ export function validateSearch(search: Record<string, unknown>): ConsoleSearch {
 			Number.isSafeInteger(Number(search.page)) && Number(search.page) > 0
 				? Number(search.page)
 				: undefined,
-		q:
-			typeof search.q === "string"
-				? search.q.trim().slice(0, 200) || undefined
+		pageSize:
+			Number.isSafeInteger(Number(search.pageSize)) &&
+			Number(search.pageSize) > 0 &&
+			Number(search.pageSize) <= 100
+				? Number(search.pageSize)
 				: undefined,
 		returnTo: safeReturnTo(search.returnTo),
 	};
