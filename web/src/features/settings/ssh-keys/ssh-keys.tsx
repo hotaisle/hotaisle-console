@@ -7,6 +7,7 @@ import { APIError, api, type SSHKey } from "../../../lib/api";
 import { keyLabel } from "../../../lib/format";
 import { sound } from "../../../lib/sound";
 import { KeyRow } from "./key-row";
+import { RemoveKeyDialog } from "./remove-key-dialog";
 import { SshKeyHelp } from "./ssh-key-help";
 
 function keyError(error: Error) {
@@ -71,16 +72,32 @@ export function SshKeys({
 		mutationFn: (key: SSHKey) => api.removeKey(key.fingerprint),
 		onSuccess: async (_, key) => {
 			setRemoving("");
-			await refresh();
 			toast(`Removed ${keyLabel(key)}.`);
+			try {
+				await refresh();
+			} catch {
+				toast(
+					"The key was removed, but the key list couldn't be refreshed. Try refreshing Settings.",
+					"err"
+				);
+			}
 		},
 	});
 	const cancel = useCallback(() => setRemoving(""), []);
-	const remove = useCallback(
-		(key: SSHKey) => removal.mutate(key),
-		[removal.mutate]
+	const selectedKey = keys?.find((key) => key.fingerprint === removing);
+	const confirm = useCallback(
+		(fingerprint: string) => {
+			removal.reset();
+			setRemoving(fingerprint);
+		},
+		[removal.reset]
 	);
-	const error = add.error ?? removal.error ?? queryError ?? reload.error;
+	const remove = useCallback(() => {
+		if (selectedKey && !removal.isPending) {
+			removal.mutate(selectedKey);
+		}
+	}, [removal.mutate, removal.isPending, selectedKey]);
+	const error = add.error ?? queryError ?? reload.error;
 	return (
 		<section
 			aria-labelledby="ssh-keys-title"
@@ -91,17 +108,16 @@ export function SshKeys({
 				SSH keys
 			</h2>
 			<div className="group">
-				<h3 className="group-h">On your account</h3>
+				{keys && keys.length > 0 ? (
+					<h3 className="group-h">On your account</h3>
+				) : null}
 				{keys && keys.length > 0 ? (
 					<ul className="rows">
 						{keys.map((key) => (
 							<KeyRow
 								busy={removal.isPending}
-								confirming={removing === key.fingerprint}
 								key={key.fingerprint}
-								onCancel={cancel}
-								onConfirm={setRemoving}
-								onRemove={remove}
+								onConfirm={confirm}
 								sshKey={key}
 							/>
 						))}
@@ -160,6 +176,15 @@ export function SshKeys({
 				) : null}
 				{keys?.length === 0 ? <SshKeyHelp /> : null}
 			</div>
+			{selectedKey ? (
+				<RemoveKeyDialog
+					busy={removal.isPending}
+					error={removal.error ? keyError(removal.error) : undefined}
+					onClose={cancel}
+					onRemove={remove}
+					sshKey={selectedKey}
+				/>
+			) : null}
 		</section>
 	);
 }
