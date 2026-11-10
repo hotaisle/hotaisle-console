@@ -201,11 +201,11 @@ export const PARTS: Record<string, string> = {
 	lift: "Lifting handle on the baseboard",
 	patch:
 		"Fiber patch panel: MPO connectors with green boots, carrying the 400G GPU network (eight NICs per server)",
-	pdu: "Power distribution unit. Hot Aisle runs six per rack",
+	pdu: "Horizontal rack-mounted power distribution unit. Hot Aisle runs six per rack",
 	retimer:
 		"PCIe retimer under its own small heatsink, one of the links between the GPUs and the CPUs",
 	server:
-		"Dell PowerEdge XE9680, seen from the rear: six power supplies over ten GPU fans. Inside: 8 MI300X, 2 Xeon CPUs, 2 TB of memory",
+		"Dell PowerEdge XE9680, seen from the Hot Aisle: six power supplies over ten GPU fans. Inside: 8 MI300X, 2 Xeon CPUs, 2 TB of memory",
 	switch: "Top-of-rack network switch",
 	tray: "GPU tray, pulled out of the rear of the server with its fan wall. It weighs about 30 kg; Dell has two people lift it",
 };

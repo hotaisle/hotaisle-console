@@ -1,15 +1,11 @@
 import { type MouseEvent, useCallback } from "react";
-import { TAG_STATE, type Tag } from "./model";
+import { NEW, TAG_STATE, type Tag } from "./model";
 
 function tagName(tag: Tag) {
 	if (tag.mode === "new") {
 		return "Your new machine";
 	}
-	const first = tag.names.at(0) ?? "Your server";
-	if (tag.names.length > 1) {
-		return `${first} and ${tag.names.length - 1} more`;
-	}
-	return first;
+	return tag.host === NEW ? "Server being assigned" : tag.host;
 }
 function TagContent({
 	name,
@@ -73,7 +69,6 @@ export function ServerTag({ tag }: { tag: Tag }) {
 			data-shown="false"
 			data-tag={tag.host}
 			onClick={select}
-			title={tag.names.join(", ")}
 			type="button"
 		>
 			<TagContent

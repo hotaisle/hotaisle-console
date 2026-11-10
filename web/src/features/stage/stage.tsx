@@ -81,9 +81,9 @@ export function Stage({
 		>()
 	);
 	// Each server keeps the place it was first given, so nothing jumps between racks as machines come and go.
-	// The next free server (NEW) holds the free place nearest yours. When the API names a server new to the
+	// The next available server (NEW) holds the available place nearest yours. When the API names a server new to the
 	// drawing (a machine you just launched, or your machines' servers as the page loads), that server takes
-	// over NEW's place, drawer and all, and NEW moves to the next free place: the machine stays where you
+	// over NEW's place, drawer and all, and NEW moves to the next available place: the machine stays where you
 	// watched it go, and nothing slides out twice.
 	const slots = useRef(new Map<string, number>());
 	const hostKey = JSON.stringify(lay.hosts);
@@ -95,7 +95,7 @@ export function Stage({
 				map.delete(h);
 			}
 		}
-		const free = () => {
+		const availableSlot = () => {
 			const used = new Set(map.values());
 			const i = SLOT_ORDER.findIndex((_, j) => !used.has(j));
 			return i < 0 ? map.size % SLOT_ORDER.length : i;
@@ -111,11 +111,11 @@ export function Stage({
 				transferPreviewMotion(kept.current, h);
 				kept.current.delete(NEW);
 			} else {
-				map.set(h, free());
+				map.set(h, availableSlot());
 			}
 		}
 		if (hosts.includes(NEW) && !map.has(NEW)) {
-			map.set(NEW, free());
+			map.set(NEW, availableSlot());
 		}
 		return hosts.map((h) => ({
 			host: h,
@@ -134,13 +134,13 @@ export function Stage({
 					bottom: 40,
 					left: 12,
 					right: 12,
-					top: 12,
+					top: Math.min(96, size.h * 0.16),
 				}
 			: {
 					bottom: 56,
 					left: 336,
 					right: 28,
-					top: 28,
+					top: Math.min(240, size.h * 0.3),
 				};
 		return buildHall(size.w, size.h, inset, trays);
 	}, [size, trays, narrow]);
@@ -310,7 +310,7 @@ export function Stage({
 				{hall && (
 					<>
 						<SvgMarkup
-							aria-label={`A row of Dell PowerEdge XE9680 servers seen from the hot aisle, with a GPU tray pulled out. ${state.readout}`}
+							aria-label={`A row of Dell PowerEdge XE9680 servers seen from the Hot Aisle, with a GPU tray pulled out. ${state.readout}`}
 							className="iso-svg fig"
 							elementRef={svg}
 							markup={`<defs>${hall.defs}</defs>${hall.svg}`}
@@ -398,5 +398,5 @@ function describeGpu(
 	if (el.dataset.who === "preview") {
 		return `Would be one of your GPUs once you launch. ${PARTS.gpu}`;
 	}
-	return "MI300X. Not yours: another customer's, or free";
+	return "MI300X. Not yours: another customer's, or available";
 }

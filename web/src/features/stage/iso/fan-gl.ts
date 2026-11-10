@@ -121,13 +121,13 @@ void main() {
 }`;
 
 const COLORS = {
-	blade: "--anatomy-shade-2",
-	bladeHi: "--anatomy-shade-3",
-	duct: "--anatomy-shade-0",
-	edge: "--anatomy-lo",
-	grille: "--anatomy-mid",
-	grilleShade: "--anatomy-faint",
-	hub: "--anatomy-top",
+	blade: "--fan-blade",
+	bladeHi: "--fan-blade-hi",
+	duct: "--fan-duct",
+	edge: "--fan-edge",
+	grille: "--fan-metal",
+	grilleShade: "--fan-edge",
+	hub: "--fan-hub",
 } as const;
 
 export class FanLayer {

@@ -5,6 +5,12 @@
 }
 .plate {
 	--vf: 96px;
+	--fan-duct: #101513;
+	--fan-blade: #29312c;
+	--fan-blade-hi: #455048;
+	--fan-metal: #a3ada5;
+	--fan-edge: #626d65;
+	--fan-hub: #343e36;
 	position: relative;
 	flex: 1;
 	min-height: 0;
@@ -249,7 +255,7 @@
 	vector-effect: non-scaling-stroke;
 }
 .fig .psu-face {
-	fill: var(--anatomy-shade-2);
+	fill: color-mix(in srgb, var(--fan-metal) 36%, var(--anatomy-shade-2));
 	stroke: var(--anatomy-lo);
 	stroke-width: var(--anatomy-weight);
 	vector-effect: non-scaling-stroke;
@@ -273,8 +279,8 @@
 	vector-effect: non-scaling-stroke;
 }
 .fig .fan-face {
-	fill: var(--anatomy-shade-3);
-	stroke: var(--anatomy-lo);
+	fill: color-mix(in srgb, var(--fan-metal) 55%, var(--anatomy-shade-3));
+	stroke: var(--fan-edge);
 	stroke-width: var(--anatomy-weight);
 	vector-effect: non-scaling-stroke;
 }
@@ -315,7 +321,27 @@
 	stroke: none;
 }
 .fig .fan-hole {
-	fill: var(--anatomy-shade-0);
+	fill: var(--fan-duct);
+	stroke: none;
+}
+.fig .fan-void,
+.fig .vent-perforation {
+	fill: var(--fan-duct);
+	stroke: none;
+}
+.fig .fan-grid {
+	fill: var(--fan-metal);
+	stroke: none;
+}
+.fig .metal-detail {
+	fill: none;
+	stroke: var(--fan-metal);
+	stroke-width: 0.14;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+.fig .hardware-led {
+	fill: #56b46b;
 	stroke: none;
 }
 .fig .idled {
