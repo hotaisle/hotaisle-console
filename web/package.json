@@ -6,7 +6,8 @@
 		"build": "bun run --bun tsc --noEmit && bun run --bun vite build && bun ../worker/scripts/assert-assets.ts",
 		"build:preview": "bun run --bun tsc --noEmit && bun run --bun vite build --mode preview",
 		"typecheck": "bun run --bun tsc --noEmit",
-		"watch": "bun run --bun vite build --watch"
+		"watch": "bun run --bun vite build --watch",
+		"watch:preview": "bun run --bun vite build --mode preview --watch"
 	},
 	"dependencies": {
 		"@fontsource-variable/instrument-sans": "5.3.0",

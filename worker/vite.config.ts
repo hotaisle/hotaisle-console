@@ -1,9 +1,11 @@
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { defineConfig } from "vite";
+import { localPreview } from "../web/dev/serve-preview.ts";
 
 export default defineConfig({
 	envDir: "..",
 	plugins: [
+		localPreview(),
 		cloudflare({
 			types: { generate: false },
 		}),

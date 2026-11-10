@@ -113,6 +113,15 @@ export default {
 			return fail(404, "not found");
 		}
 		const [, area] = url.pathname.split("/");
+		if (
+			url.hostname === "preview.localhost" &&
+			(area === "api" || area === "auth")
+		) {
+			return fail(
+				403,
+				"The preview origin cannot call the real API. Open /__preview/ for simulated machines."
+			);
+		}
 		if (area === "records" || area === "live") {
 			return fail(
 				410,

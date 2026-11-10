@@ -8,12 +8,13 @@ export default defineConfig(({ mode }) => ({
 	build: {
 		assetsInlineLimit: 0,
 		emptyOutDir: true,
-		outDir: "dist",
+		outDir: mode === "preview" ? "preview-dist" : "dist",
 		rolldownOptions:
 			mode === "preview"
 				? {
 						input: {
 							app: resolve(import.meta.dirname, "index.html"),
+							console: resolve(import.meta.dirname, "__preview/console.html"),
 							preview: resolve(import.meta.dirname, "__preview/index.html"),
 						},
 					}

@@ -1,7 +1,9 @@
+import { minimumReservationMinutes } from "../../shared/availability";
 import type { Offer, Specs, VM, VMState } from "../src/lib/api";
 
-export type PreviewPhase = "setting-up" | "booting" | "running" | "off";
+export type PreviewPhase = "assigned" | "setting-up" | "booting" | "running";
 export interface PreviewMachine {
+	cloudInit: boolean;
 	createdAt: number;
 	mode: PreviewPhase | "live";
 	startedAt: number;
@@ -21,30 +23,33 @@ export function phase(machine: PreviewMachine, now: number): PreviewPhase {
 		return machine.mode;
 	}
 	const age = now - machine.startedAt;
-	if (age < 3000) {
-		return "setting-up";
+	if (age < 1500) {
+		return "assigned";
 	}
-	return age < 8000 ? "booting" : "running";
+	return machine.cloudInit && age < 8000 ? "booting" : "running";
 }
 export function machineView(machine: PreviewMachine, now: number): VM {
 	const current = phase(machine, now);
 	return {
 		...machine.vm,
 		ssh_access:
-			current === "running" || current === "off"
+			current === "running"
 				? {
 						dns_name: `${machine.vm.name}.invalid`,
 						ip_address: "192.0.2.42",
 						port: 22,
 					}
 				: undefined,
-		status: current === "setting-up" ? "rebuilding" : "ready",
+		status:
+			current === "setting-up" || current === "booting"
+				? "rebuilding"
+				: "ready",
 	};
 }
 export function powerView(machine: PreviewMachine, now: number): VMState {
 	const states: Record<PreviewPhase, string> = {
+		assigned: "starting",
 		booting: "starting",
-		off: "shut off",
 		running: "running",
 		"setting-up": "installing",
 	};
@@ -53,7 +58,7 @@ export function powerView(machine: PreviewMachine, now: number): VMState {
 export function available(machines: Iterable<PreviewMachine>): Offer[] {
 	const counts = [...machines].map((machine) => machine.vm.gpus?.[0]?.count);
 	return [1, 2, 4].map((count) => ({
-		MinimumReservationMinutes: 60,
+		MinimumReservationMinutes: minimumReservationMinutes(specs(count)),
 		OnDemandPrice: count * 299,
 		Quantity: Math.max(0, 4 - counts.filter((owned) => owned === count).length),
 		Specs: specs(count),
@@ -63,9 +68,11 @@ export function newMachine(
 	name: string,
 	count: number,
 	mode: PreviewMachine["mode"],
-	startedAt: number
+	startedAt: number,
+	cloudInit = true
 ): PreviewMachine {
 	return {
+		cloudInit,
 		createdAt: startedAt,
 		mode,
 		startedAt,

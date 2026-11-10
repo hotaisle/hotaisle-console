@@ -36,8 +36,8 @@ export function PreviewControls({ scenario }: { scenario: Scenario }) {
 				))}
 			</nav>
 			<p>
-				Choose Empty, then hold Launch to watch setup → boot → ready. Reload or
-				Reset restores the selected scenario.
+				Choose Empty, then hold Launch to watch assigned → ready. Cloud-init
+				adds a booting step. Reload or Reset restores the selected scenario.
 			</p>
 		</aside>
 	);

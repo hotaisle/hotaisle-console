@@ -95,6 +95,18 @@ export interface Specs {
 	gpus?: GPU[];
 	ram_capacity: number;
 }
+
+/** Fallback matching HotManager's resource rules; prefer the API offer's minimum. */
+export function minimumReservationMinutes(
+	specs: Pick<Specs, "gpus">,
+	metal = false
+) {
+	if (metal) {
+		return 480;
+	}
+	const count = specs.gpus?.reduce((sum, gpu) => sum + gpu.count, 0) ?? 1;
+	return count <= 1 ? 1 : count * 30;
+}
 export interface Offer {
 	MinimumReservationMinutes: number;
 	/** A whole server, reserved as bare metal, rather than a virtual machine. */

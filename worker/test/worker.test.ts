@@ -166,6 +166,14 @@ describe("stateless API keys", () => {
 });
 
 describe("the guard", () => {
+	it("blocks real account requests from the preview origin", async () => {
+		const response = await worker.default.fetch(
+			"http://preview.localhost:8787/api/user/",
+			{ headers: { ...H, Authorization: "Token tok-alice" } }
+		);
+		expect(response.status).toBe(403);
+		expect(await response.text()).toContain("cannot call the real API");
+	});
 	it("never exposes development preview routes on a public origin", async () => {
 		const result = await worker.default.fetch(`${ORIGIN}/__preview/index.html`);
 		expect(result.status).toBe(404);

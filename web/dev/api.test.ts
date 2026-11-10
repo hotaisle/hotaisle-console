@@ -18,22 +18,81 @@ function request(
 	);
 }
 describe("development preview machine lifecycle", () => {
-	it("shows setup, booting and SSH readiness after a simulated launch", async () => {
+	it.each([
+		[1, 1],
+		[2, 60],
+		[4, 120],
+	])(
+		"uses HotManager's minimum for %s GPU(s): %s minutes",
+		async (count, minimum) => {
+			let now = Date.parse("2026-11-09T12:00:00Z");
+			const api = new PreviewAPI("empty", () => now);
+			const offers = await (
+				await request(api, "GET", `${MACHINES}available/`)
+			).json();
+			expect(
+				offers.find(
+					(offer: { Specs: { gpus: { count: number }[] } }) =>
+						offer.Specs.gpus[0].count === count
+				).MinimumReservationMinutes
+			).toBe(minimum);
+			const machine = (await (
+				await request(api, "POST", MACHINES, { gpus: [{ count }] })
+			).json()) as VM;
+			now += minimum * 60_000 - 1000;
+			expect(
+				(await request(api, "DELETE", `${MACHINES}${machine.name}/`)).status
+			).toBe(409);
+			now += 2000;
+			expect(
+				(await request(api, "DELETE", `${MACHINES}${machine.name}/`)).status
+			).toBe(204);
+		}
+	);
+	it("assigns a hot-staged VM without simulating a boot or rebuild", async () => {
+		let now = Date.parse("2026-11-09T12:00:00Z");
+		const api = new PreviewAPI("empty", () => now);
+		const response = await request(api, "POST", MACHINES, {
+			gpus: [{ count: 1 }],
+		});
+		const machine = (await response.json()) as VM;
+		expect(machine.status).toBe("ready");
+		expect(
+			(
+				await (
+					await request(api, "GET", `${MACHINES}${machine.name}/state/`)
+				).json()
+			).state
+		).toBe("starting");
+		now += 2000;
+		expect(
+			(
+				await (
+					await request(api, "GET", `${MACHINES}${machine.name}/state/`)
+				).json()
+			).state
+		).toBe("running");
+		expect((await (await request(api, "GET", MACHINES)).json())[0].status).toBe(
+			"ready"
+		);
+	});
+	it("shows assignment, cloud-init booting and SSH readiness after a simulated launch", async () => {
 		let now = Date.parse("2026-11-09T12:00:00Z");
 		const api = new PreviewAPI("empty", () => now);
 		expect(await (await request(api, "GET", MACHINES)).json()).toEqual([]);
 		const response = await request(api, "POST", MACHINES, {
 			gpus: [{ count: 2 }],
+			user_data_url: "https://example.invalid/cloud-init.yaml",
 		});
 		const machine = (await response.json()) as VM;
-		expect(machine.status).toBe("rebuilding");
+		expect(machine.status).toBe("ready");
 		expect(machine.ssh_access).toBeUndefined();
 		now += 3500;
 		let machines = (await (await request(api, "GET", MACHINES)).json()) as VM[];
 		let power = (await (
 			await request(api, "GET", `${MACHINES}${machine.name}/state/`)
 		).json()) as VMState;
-		expect(machines[0].status).toBe("ready");
+		expect(machines[0].status).toBe("rebuilding");
 		expect(power.state).toBe("starting");
 		now += 5000;
 		machines = (await (await request(api, "GET", MACHINES)).json()) as VM[];
@@ -43,7 +102,7 @@ describe("development preview machine lifecycle", () => {
 		expect(power.state).toBe("running");
 		expect(machines[0].ssh_access?.dns_name).toBe("preview-001.invalid");
 	});
-	it("seeds a mixed machine list with ready, booting and powered-off machines", async () => {
+	it("seeds a mixed VM list with ready, cloud-init and assigned machines", async () => {
 		const api = new PreviewAPI("multiple");
 		const machines = (await (
 			await request(api, "GET", MACHINES)
@@ -60,8 +119,12 @@ describe("development preview machine lifecycle", () => {
 		expect(power.map((item) => item.state)).toEqual([
 			"running",
 			"starting",
-			"shut off",
+			"starting",
 		]);
+		expect(machines[2].ssh_access).toBeUndefined();
+		expect(api.initialRecords().machines["preview/preview-003"]?.image).toBe(
+			"standard"
+		);
 	});
 	it("requires minimum-charge confirmation to release a new machine", async () => {
 		const api = new PreviewAPI("running");

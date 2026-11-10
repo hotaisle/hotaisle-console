@@ -1,9 +1,11 @@
 export const SCENARIOS = [
 	{ id: "empty", label: "Empty" },
-	{ id: "setting-up", label: "Setting up" },
+	{ id: "assigned", label: "Assigned" },
+	{ id: "setting-up", label: "Cloud-init" },
 	{ id: "booting", label: "Booting" },
 	{ id: "running", label: "Running" },
 	{ id: "multiple", label: "Multiple machines" },
+	{ id: "bare-metal", label: "Bare metal" },
 	{ id: "ended", label: "Ended" },
 	{ id: "history", label: "History (200 runs)" },
 	{ id: "launch-error", label: "Launch failure" },

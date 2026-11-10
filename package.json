@@ -12,7 +12,7 @@
 		"build:worker": "bun run --cwd worker build",
 		"check": "bun run --bun ultracite check",
 		"deploy": "bun run build && bun run --cwd worker deploy",
-		"dev": "bun run build:web && bun run --cwd worker dev",
+		"dev": "bun run build:web && bun run preview && bun run --cwd worker dev",
 		"fix": "bun run --bun ultracite fix",
 		"preview": "bun run --cwd web build:preview",
 		"test": "vitest run",

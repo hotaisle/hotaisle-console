@@ -1,9 +1,11 @@
+import { minimumReservationMinutes } from "../../shared/availability";
 import {
 	addEnded,
 	emptyRecords,
 	removeMachine,
 	updateMachine,
 } from "../../shared/records";
+import { BareMetalPreview } from "./bare-metal";
 import {
 	available,
 	machineView,
@@ -29,16 +31,34 @@ function object(value: unknown): value is Record<string, unknown> {
 
 /** Browser-only simulator. Unknown endpoints fail; there is no upstream fallback. */
 export class PreviewAPI {
+	private readonly team = { ...TEAM, description: "" };
 	private readonly machines = new Map<string, PreviewMachine>();
 	private readonly records = emptyRecords();
 	private readonly now: () => number;
 	private readonly scenario: Scenario;
 	private serial = 0;
+	private readonly metal?: BareMetalPreview;
 
 	constructor(scenario: Scenario, now = Date.now) {
 		this.scenario = scenario;
 		this.now = now;
+		if (scenario === "bare-metal") {
+			this.metal = new BareMetalPreview(now);
+			updateMachine(
+				this.records,
+				{
+					image: "standard",
+					launched: true,
+					metal: true,
+					name: this.metal.name,
+					price_cents: 2392,
+					team: "preview",
+				},
+				now() - 38 * 60_000
+			);
+		}
 		if (
+			scenario === "assigned" ||
 			scenario === "setting-up" ||
 			scenario === "booting" ||
 			scenario === "running"
@@ -48,7 +68,7 @@ export class PreviewAPI {
 		if (scenario === "multiple") {
 			this.seed(2, "running");
 			this.seed(4, "booting");
-			this.seed(1, "off");
+			this.seed(1, "assigned");
 		}
 		if (scenario === "ended") {
 			addEnded(this.records, {
@@ -96,7 +116,7 @@ export class PreviewAPI {
 		updateMachine(
 			this.records,
 			{
-				image: "vllm",
+				image: mode === "assigned" ? "standard" : "vllm",
 				launched: true,
 				name,
 				price_cents: count * 299,
@@ -120,7 +140,7 @@ export class PreviewAPI {
 		}
 		if (method === "GET" && path === "/api/user/") {
 			return json({
-				teams: [TEAM],
+				teams: [this.team],
 				user: {
 					created: "2026-01-01",
 					email: "preview@example.invalid",
@@ -146,11 +166,14 @@ export class PreviewAPI {
 			);
 		}
 		const parts = path.slice(PREFIX.length).split("/").filter(Boolean);
+		if (parts.length === 0) {
+			return this.teamRequest(request);
+		}
 		if (method === "GET" && parts[0] === "balance") {
 			return this.balance();
 		}
-		if (method === "GET" && parts[0] === "bare_metal") {
-			return json([]);
+		if (parts[0] === "bare_metal") {
+			return this.metal ? this.metal.request(request, url, parts) : json([]);
 		}
 		if (method === "GET" && parts[1] === "available") {
 			return json(available(this.machines.values()));
@@ -163,14 +186,48 @@ export class PreviewAPI {
 		}
 		return await this.machineRequest(request, url, parts);
 	}
+	private async teamRequest(request: Request) {
+		if (request.method === "GET") {
+			return json(this.team);
+		}
+		if (request.method !== "PATCH") {
+			return fail(405, "Method not allowed");
+		}
+		const body: unknown = await request.json();
+		if (!object(body)) {
+			return fail(422, "Invalid team details.");
+		}
+		if (
+			body.name !== undefined &&
+			(typeof body.name !== "string" ||
+				!body.name.trim() ||
+				new TextEncoder().encode(body.name).length > 100)
+		) {
+			return fail(422, "Enter a valid team name.");
+		}
+		if (
+			body.description !== undefined &&
+			(typeof body.description !== "string" ||
+				new TextEncoder().encode(body.description).length > 200)
+		) {
+			return fail(422, "Enter a valid team description.");
+		}
+		if (typeof body.name === "string") {
+			this.team.name = body.name;
+		}
+		if (typeof body.description === "string") {
+			this.team.description = body.description;
+		}
+		return json(this.team);
+	}
 	private balance() {
 		const hourlyRate = [...this.machines.values()].reduce(
 			(sum, machine) => sum + (machine.vm.gpus?.[0]?.count ?? 0) * 299,
-			0
+			this.metal?.assigned ? 2392 : 0
 		);
 		return json({
 			available_balance: 50_000,
-			bare_metal_server_count: 0,
+			bare_metal_server_count: this.metal?.assigned ? 1 : 0,
 			estimated_runout_time: hourlyRate
 				? new Date(this.now() + (49_000 / hourlyRate) * 3_600_000).toISOString()
 				: undefined,
@@ -192,8 +249,9 @@ export class PreviewAPI {
 			return json(powerView(machine, this.now()));
 		}
 		if (request.method === "DELETE" && !action) {
+			const minimumMs = minimumReservationMinutes(machine.vm) * 60_000;
 			if (
-				this.now() - machine.createdAt < 3_600_000 &&
+				this.now() - machine.createdAt < minimumMs &&
 				url.searchParams.get("force") !== "true"
 			) {
 				return fail(
@@ -223,11 +281,18 @@ export class PreviewAPI {
 			: fail(405, "Method not allowed");
 	}
 	private powerAction(machine: PreviewMachine, action: string) {
-		if (action === "shutdown" || action === "stop") {
-			machine.mode = "off";
-		} else if (["start", "reboot", "hard-reset", "rebuild"].includes(action)) {
+		if (action === "rebuild") {
+			machine.cloudInit = true;
 			machine.mode = "live";
-			machine.startedAt = this.now() - (action === "rebuild" ? 0 : 3000);
+			machine.startedAt = this.now();
+		} else if (
+			action === "start" ||
+			action === "reboot" ||
+			action === "hard-reset"
+		) {
+			machine.cloudInit = false;
+			machine.mode = "live";
+			machine.startedAt = this.now();
 		} else {
 			return fail(501, "This action is not simulated.");
 		}
@@ -258,7 +323,13 @@ export class PreviewAPI {
 		}
 		this.serial += 1;
 		const name = `preview-${String(this.serial).padStart(3, "0")}`;
-		const machine = newMachine(name, gpu.count, "live", this.now());
+		const machine = newMachine(
+			name,
+			gpu.count,
+			"live",
+			this.now(),
+			object(body) && typeof body.user_data_url === "string"
+		);
 		this.machines.set(name, machine);
 		return json(machineView(machine, this.now()));
 	}
