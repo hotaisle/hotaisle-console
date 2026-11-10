@@ -1,12 +1,14 @@
 import { bindings, defineConfig, exports } from "cf/config";
 
 export default defineConfig({
+	accountId: "d90ac67a53e9492aafbd0c3e13ffa25f",
 	worker: {
 		assets: {
 			notFoundHandling: "single-page-application",
 			runWorkerFirst: true,
 		},
 		compatibilityDate: "2026-10-01",
+		domains: ["console.hotaisle.app"],
 		entrypoint: "./src/index.ts",
 		env: {
 			API_BASE: bindings.text("https://admin.hotaisle.app/api"),
