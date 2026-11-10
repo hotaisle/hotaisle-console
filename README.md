@@ -83,6 +83,8 @@ spaces as required by its syntax.
 
 Pages use URLs for bookmarks and browser navigation. History URLs reopen after signing in to the same account
 in the same browser. Encrypted history does not sync across devices or browser profiles.
+The team chooser refreshes memberships and invitations every 30 seconds while active, and on returning to
+the tab. Failed background updates keep the current list visible and offer a retry beside it.
 
 | URL | Page |
 | --- | --- |
