@@ -58,8 +58,8 @@ Use TanStack Router for every page. Team, selected machine, history run, and lau
 URL parameters, so links, reloads, and browser back/forward work. Do not reintroduce an in-memory page stack.
 A protected link must retain its destination through sign-in. Unknown machines and missing history must not
 silently display another machine or an unrelated page.
-Keep ended runs in the dedicated history view, with search and pagination in URL parameters. Render ten runs
-per page. Persist launch records and receipts only as AES-GCM encrypted, append-only browser entries.
+Keep ended runs in the dedicated history view, with pagination and page size in URL parameters and no search UI.
+Fit each page to the panel's visible height, keeping text fully readable. Persist launch records and receipts only as AES-GCM encrypted, append-only browser entries.
 Never automatically delete or overwrite saved entries on logout, account changes, retention limits, quota
 errors, decryption errors, or upgrades. Clear only decrypted memory and keys on logout and authentication
 failure. Do not persist plaintext or history keys. Never persist history to Cloudflare. There is no notes feature.

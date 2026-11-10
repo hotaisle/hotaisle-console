@@ -101,7 +101,7 @@ in the same browser. Encrypted history does not sync across devices or browser p
 | `/teams/:team/keys` | Redirects to SSH keys in Settings |
 | `/teams/:team/image` | Cloud-init URL |
 | `/teams/:team/history/:run` | An earlier run |
-| `/teams/:team/history?q=training&page=2` | Searchable machine history, ten runs per page |
+| `/teams/:team/history?page=2&pageSize=12` | Machine history, entries per page adapt to the panel's visible height |
 
 Launch options are validated URL search parameters: `gpus`, `image`, and `cloudInit`.
 The theme selector is available before and after sign-in. Light, Dark, and System apply to every view and the server drawing, and persist in browser preferences.
