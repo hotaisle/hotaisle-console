@@ -118,7 +118,8 @@ the later expiry so an older response cannot replace a newer session.
 ## Money and behavior
 
 - End must release the machine through `DELETE`; shutdown does not stop billing. Explain that release deletes data.
-- Preserve the minimum charges: 30 minutes for virtual machines and eight hours for bare metal.
+- Prefer the API's `MinimumReservationMinutes`. HotManager's current fallback is one minute for a 1-GPU VM,
+  30 minutes per GPU for larger VMs, and eight hours for bare metal.
 - Failed releases, launches, and purchases must stay failures in the UI. Never synthesize successful results.
 - There is no browser-managed auto-end timer. The API must support scheduled shutdown before one can be promised.
 - Keep instrument widths stable and respect reduced motion. The drawing sleeps while idle and writes only changed values.

@@ -164,9 +164,13 @@ Do not re-export or bind the retired classes, or restore their data.
 
 ## Billing
 
-Ending a virtual machine releases it with `DELETE`; powering it off does not stop billing. Releasing deletes its
-data. Minimum reservations are 30 minutes for virtual machines and eight hours for bare metal. The confirmation
-and estimated receipt account for the minimum. A failed release must never be displayed as a successful end.
+Ending a virtual machine releases it with `DELETE` and deletes its data. VM actions follow HotManager's TUI:
+state, start, graceful reboot, hard reset, rebuild, and delete. VM serial console access remains in the TUI.
+Bare-metal actions include power state, a one-time console link, power on, graceful/forced shutdown,
+warm/cold reboot, AC reset, reinstall, and release. Shutdown does not stop billing.
+Minimum reservations come from the API: currently one minute
+for 1-GPU VMs, 30 minutes per GPU for larger VMs, and eight hours for bare metal. The confirmation and estimated receipt account for the minimum. A failed release
+must never be displayed as a successful end.
 
 There is no automatic shutdown timer: the upstream API cannot schedule an end, and a browser timer could fail
 while the machine continues billing. Add-credit checkout uses Hot Aisle's Stripe checkout link; this app does
