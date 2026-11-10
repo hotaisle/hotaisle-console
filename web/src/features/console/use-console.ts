@@ -1,0 +1,263 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Ended, Status, Team, VM } from "../../lib/api";
+import { usePrefs } from "../../lib/prefs";
+import { signal } from "../../lib/signal";
+import { sizesOf } from "../launch/offers";
+import type { LaunchMeta } from "../launch/types";
+import { useOrder } from "../launch/use-order";
+import { NEW, placeNew } from "../stage/model";
+import { buildStage } from "./stage-state";
+import { useConsoleData } from "./use-console-data";
+import { useNavigation } from "./use-navigation";
+
+export function useConsole({
+	status,
+	teams,
+	team,
+	onTeam,
+}: {
+	status: Status;
+	teams: Team[];
+	team: Team;
+	onTeam: (h: string) => void;
+}) {
+	const h = team.handle;
+	const [prefs] = usePrefs();
+	const {
+		vms,
+		offers,
+		balance,
+		keys,
+		record,
+		rememberEnd,
+		history,
+		states,
+		launchedNow,
+		setLaunchedNow,
+		receipts,
+		setReceipts,
+		wasReady,
+		guessHost,
+		machinesRef,
+		recByName,
+		list,
+	} = useConsoleData(h, prefs.notify);
+
+	const rootIsOrder = list.length === 0 && receipts.length === 0;
+	const { stack, view, go, push, back, focusMachine, focus, runName } =
+		useNavigation(h);
+	const run = history.find((item) => item.name === runName);
+	// ---------------------------------------------------------------- the order, kept while you look at keys or settings
+	const { order, setOrder } = useOrder();
+	// an earlier run, opened from the history to look back at it
+
+	const hold = useMemo(() => signal(0), []);
+
+	// ---------------------------------------------------------------- the panel: one view at a time, pushed and popped
+
+	const refreshAll = useCallback(async () => {
+		await Promise.all([vms.refresh(), balance.refresh(), offers.refresh()]);
+	}, [vms, balance, offers]);
+
+	// The order card becomes the new machine's card.
+	const onLaunched = useCallback(
+		async (vm: VM, meta: LaunchMeta) => {
+			wasReady.current[vm.name] = false;
+			// Until the API names its server, draw the new machine where it was previewed: next to your others.
+			const guess = placeNew(machinesRef.current, vm.gpus?.[0]?.count ?? 1);
+			if (guess !== NEW) {
+				guessHost.current[vm.name] = guess;
+			}
+			record({
+				gpus: `${vm.gpus?.[0]?.count ?? 1}× ${vm.gpus?.[0]?.model ?? "MI300X"}`,
+				image: meta.image,
+				launched: true,
+				metal: !!vm.metal,
+				name: vm.name,
+				price_cents: meta.price,
+			});
+			await vms.setData((l) => [
+				...(l ?? []).filter((x) => x.name !== vm.name),
+				vm,
+			]);
+			go("none", () => {
+				setLaunchedNow(vm.name);
+				focusMachine(vm.name);
+				hold.set(0);
+			});
+			window.setTimeout(() => setLaunchedNow(undefined), 900);
+			refreshAll();
+		},
+		[
+			wasReady,
+			machinesRef,
+			guessHost,
+			record,
+			go,
+			vms,
+			setLaunchedNow,
+			focusMachine,
+			hold,
+			refreshAll,
+		]
+	);
+	// Ending a machine turns its card into a receipt, and the receipt joins the history.
+	const onEnded = useCallback(
+		async (e: Ended) => {
+			// the receipt takes the ended card's place in the list, so nothing around it moves
+			const at = (vms.data ?? []).findIndex((x) => x.name === e.name);
+			await vms.setData((l) => (l ?? []).filter((x) => x.name !== e.name));
+			go("none", () => {
+				setReceipts((rs) => [
+					...rs.filter((x) => x.name !== e.name),
+					{
+						...e,
+						at: at < 0 ? 0 : at + rs.length,
+					},
+				]);
+			});
+			rememberEnd(e);
+			refreshAll();
+		},
+		[vms, go, setReceipts, rememberEnd, refreshAll]
+	);
+	const dismiss = useCallback(
+		(name: string) =>
+			go("none", () => {
+				setReceipts((rs) => rs.filter((x) => x.name !== name));
+				if (focus === name) {
+					focusMachine(undefined, true);
+				}
+			}),
+		[go, setReceipts, focus, focusMachine]
+	);
+
+	const b = balance.data;
+	const gpusAtWork = list.reduce((n, v) => n + (v.gpus?.[0]?.count ?? 0), 0);
+	const loaded =
+		(vms.data !== undefined || vms.error) &&
+		(offers.data !== undefined || offers.error);
+	const sizes = sizesOf(offers.data);
+	const offerFor = useCallback(
+		(n?: number, model?: string) =>
+			sizes.find(
+				(o) =>
+					o.Specs.gpus?.[0]?.count === n &&
+					(!model || o.Specs.gpus?.[0]?.model === model)
+			),
+		[sizes]
+	);
+	const priceOf = useCallback(
+		(vm: VM) =>
+			recByName[vm.name]?.price_cents ||
+			offerFor(vm.gpus?.[0]?.count, vm.gpus?.[0]?.model)?.OnDemandPrice,
+		[recByName, offerFor]
+	);
+	const shownNames = new Set([
+		...list.map((v) => v.name),
+		...receipts.map((r) => r.name),
+	]);
+	const earlier = history.filter((e) => !shownNames.has(e.name));
+
+	// ---------------------------------------------------------------- what the drawing shows
+	// Every machine on the server the API says it runs on. Ended ones keep theirs while their GPUs cool.
+	const hostOf = useRef<Record<string, string>>({});
+	for (const vm of list) {
+		const host = states[vm.name]?.host;
+		if (host) {
+			hostOf.current[vm.name] = host;
+		}
+	}
+	const serverOf = useCallback(
+		(name: string) => hostOf.current[name] ?? guessHost.current[name],
+		[guessHost]
+	);
+	const orderContext = rootIsOrder || stack.includes("order");
+	const focused =
+		list.find((v) => v.name === focus) ??
+		(receipts.some((r) => r.name === focus) ? undefined : list.at(-1));
+	const focusedReceipt = focused
+		? undefined
+		: (receipts.find((r) => r.name === focus) ?? receipts[0]);
+	const stage = buildStage({
+		focused,
+		focusedReceipt,
+		list,
+		offerFor,
+		offers: offers.data,
+		offersError: offers.error,
+		order,
+		orderContext,
+		priceOf,
+		receipts,
+		records: recByName,
+		serverOf,
+		states,
+	});
+	machinesRef.current = stage.machines;
+
+	// Clicking one of your servers in the drawing brings its machine into focus.
+	useEffect(() => {
+		const onFocus = (e: Event) => {
+			const name = (e as CustomEvent<string>).detail;
+			go(stack.length > 1 ? "back" : "none", () => {
+				focusMachine(name);
+			});
+		};
+		window.addEventListener("stage-focus", onFocus);
+		return () => window.removeEventListener("stage-focus", onFocus);
+	}, [go, stack.length, focusMachine]);
+	// The page arrives once, in one sequence; after that, things move only when you act.
+	const [entering, setEntering] = useState(true);
+	useEffect(() => {
+		if (!loaded) {
+			return;
+		}
+		const id = window.setTimeout(() => setEntering(false), 1600);
+		return () => window.clearTimeout(id);
+	}, [loaded]);
+
+	return {
+		b,
+		back,
+		balance,
+		dismiss,
+		earlier,
+		entering,
+		focused,
+		focusMachine,
+		gpusAtWork,
+		h,
+		history,
+		hold,
+		keys,
+		launchedNow,
+		list,
+		loaded,
+		offerFor,
+		offers,
+		onEnded,
+		onLaunched,
+		onTeam,
+		order,
+		priceOf,
+		push,
+		recByName,
+		receipts,
+		refreshAll,
+		rootIsOrder,
+		run,
+		serverOf,
+		setOrder,
+		sizes,
+		stack,
+		stage,
+		states,
+		status,
+		team,
+		teams,
+		view,
+		vms,
+	};
+}
+export type ConsoleContext = ReturnType<typeof useConsole>;

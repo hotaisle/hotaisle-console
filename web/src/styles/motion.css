@@ -1,0 +1,115 @@
+/* ---------------------------------------------------------------- motion: one curve, three durations */
+::view-transition-group(*) {
+	animation-duration: var(--d-3);
+	animation-timing-function: var(--ease);
+}
+::view-transition-old(*) {
+	width: 100%;
+	height: 100%;
+	object-fit: none;
+	object-position: 0 0;
+}
+::view-transition-new(*) {
+	width: 100%;
+	height: 100%;
+	object-fit: none;
+	object-position: 0 0;
+}
+::view-transition-image-pair(*) {
+	isolation: isolate;
+}
+::view-transition-old(root) {
+	animation: none;
+}
+::view-transition-new(root) {
+	animation: none;
+}
+::view-transition-group(launcher) {
+	overflow: clip;
+	border-radius: 20px;
+}
+::view-transition-old(launcher) {
+	animation: fade-out var(--d-2) var(--ease) both;
+}
+::view-transition-new(launcher) {
+	animation: fade-in var(--d-3) var(--ease) 60ms both;
+}
+@supports (view-transition-name: var(--vt)) {
+	.vt {
+		view-transition-name: var(--vt);
+	}
+}
+html[data-nav="forward"]::view-transition-old(panel) {
+	animation: out-left var(--d-3) var(--ease) both;
+}
+html[data-nav="forward"]::view-transition-new(panel) {
+	animation: in-right var(--d-3) var(--ease) both;
+}
+html[data-nav="back"]::view-transition-old(panel) {
+	animation: out-right var(--d-3) var(--ease) both;
+}
+html[data-nav="back"]::view-transition-new(panel) {
+	animation: in-left var(--d-3) var(--ease) both;
+}
+html[data-nav="none"]::view-transition-old(panel) {
+	animation: fade-out var(--d-2) var(--ease) both;
+}
+html[data-nav="none"]::view-transition-new(panel) {
+	animation: fade-in var(--d-3) var(--ease) both;
+}
+@supports (view-transition-name: none) {
+	html[data-nav="forward"] .vt {
+		view-transition-name: none;
+	}
+}
+@supports (view-transition-name: none) {
+	html[data-nav="back"] .vt {
+		view-transition-name: none;
+	}
+}
+@keyframes out-left {
+	to {
+		opacity: 0;
+		transform: translateX(-28px);
+	}
+}
+@keyframes in-right {
+	from {
+		opacity: 0;
+		transform: translateX(28px);
+	}
+}
+@keyframes out-right {
+	to {
+		opacity: 0;
+		transform: translateX(28px);
+	}
+}
+@keyframes in-left {
+	from {
+		opacity: 0;
+		transform: translateX(-28px);
+	}
+}
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+}
+@keyframes fade-out {
+	to {
+		opacity: 0;
+	}
+}
+@keyframes rise-in {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+}
+@keyframes pop {
+	from {
+		opacity: 0;
+		transform: scale(0.96);
+	}
+}

@@ -1,0 +1,245 @@
+/* ---------------------------------------------------------------- order: options, details, the button */
+.order {
+	display: flex;
+	flex: none;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.options {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.opt {
+	display: grid;
+	grid-template-columns: 20px minmax(0, 1fr) auto;
+	gap: 0 14px;
+	align-items: center;
+	height: 60px;
+	padding: 0 16px;
+	color: var(--ink);
+	text-align: left;
+	appearance: none;
+	cursor: pointer;
+	background: transparent;
+	border: 0;
+	border-radius: 14px;
+	box-shadow: inset 0 0 0 1px transparent;
+	transition:
+		background var(--d-1),
+		box-shadow var(--d-2) var(--ease);
+}
+.opt-radio {
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	box-shadow: inset 0 0 0 1.5px var(--line-2);
+	transition: box-shadow var(--d-2) var(--ease);
+}
+.opt-main {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	min-width: 0;
+}
+.opt-end {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	align-items: flex-end;
+	min-width: 0;
+}
+.opt-name {
+	font-size: 16.5px;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+.opt-sub {
+	min-height: 20px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-size: 13.5px;
+	color: var(--muted);
+	white-space: nowrap;
+}
+.opt-price {
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+.opt-avail {
+	min-height: 19px;
+	font-size: 13px;
+	font-variant-numeric: tabular-nums;
+	color: var(--muted);
+}
+.details {
+	display: flex;
+	flex-direction: column;
+	border-top: 1px solid var(--line);
+	border-bottom: 1px solid var(--line);
+}
+.missing-ssh-key {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	justify-content: space-between;
+	min-height: 48px;
+	padding: 16px 0;
+	font-size: 0.90625rem;
+	color: var(--heat-ink);
+	text-underline-offset: 4px;
+	border-top: 1px solid var(--line);
+}
+.picker {
+	position: relative;
+}
+.picker-btn {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	width: 100%;
+	height: 46px;
+	padding: 0 4px 0 8px;
+	font-size: 14.5px;
+	text-align: left;
+	appearance: none;
+	cursor: pointer;
+	background: none;
+	border: 0;
+	border-bottom: 1px solid var(--line);
+	border-radius: 0;
+	transition: background var(--d-1);
+}
+.picker-l {
+	flex: none;
+	width: 72px;
+	color: var(--muted);
+}
+.picker-v {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-weight: 500;
+	white-space: nowrap;
+}
+.chev {
+	flex: none;
+	margin-right: 6px;
+	color: var(--muted);
+}
+.picker-menu {
+	position: absolute;
+	top: calc(100% + 4px);
+	right: 0;
+	z-index: 15;
+	display: flex;
+	flex-direction: column;
+	width: 280px;
+	padding: 6px;
+	background: var(--card);
+	border-radius: 14px;
+	box-shadow: var(--pop);
+	transform-origin: top right;
+	animation: pop var(--d-2) var(--ease);
+}
+.pm-l {
+	font-size: 14px;
+	font-weight: 500;
+}
+.pm-h {
+	font-size: 12.5px;
+	color: var(--muted);
+}
+.pm-foot {
+	padding: 10px 12px 4px;
+	margin-top: 4px;
+	font-size: 13.5px;
+	border-top: 1px solid var(--line);
+}
+.go {
+	gap: 10px;
+}
+.fine {
+	padding: 0 2px;
+	font-size: 13px;
+	line-height: 20px;
+	color: var(--muted);
+}
+.opt-price b {
+	font-size: 16.5px;
+	font-weight: 600;
+}
+.opt-price span {
+	font-size: 13.5px;
+	color: var(--muted);
+}
+.picker-menu > button {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	padding: 8px 12px;
+	text-align: left;
+	appearance: none;
+	cursor: pointer;
+	background: none;
+	border: 0;
+	border-radius: 9px;
+}
+.opt.on {
+	background: var(--card-2);
+	box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+.opt.out {
+	color: var(--faint);
+	cursor: default;
+}
+.opt-price .dash {
+	color: var(--faint);
+}
+.opt-avail.low {
+	color: var(--amber);
+}
+.picker-btn:hover {
+	background: var(--card-2);
+}
+.picker-btn.open {
+	background: var(--card-2);
+}
+.fine.blocked {
+	color: var(--amber);
+}
+.picker-menu > button:hover {
+	background: var(--card-2);
+}
+.picker-menu > button.on {
+	background: var(--card-2);
+}
+.opt:hover:not(.out) {
+	background: var(--card-2);
+}
+.opt.on .opt-radio {
+	box-shadow: inset 0 0 0 5.5px var(--ink);
+}
+.details > :last-child .picker-btn {
+	border-bottom: 0;
+}
+.details > .picker-btn:last-child {
+	border-bottom: 0;
+}
+.picker-btn.attention .picker-v {
+	color: var(--amber);
+}
+.picker-menu > button.on .pm-l::after {
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	margin-left: 8px;
+	vertical-align: 2px;
+	content: "";
+	background: var(--ink);
+	border-radius: 50%;
+}
+
+/* details: one row per setting, label left, value right */

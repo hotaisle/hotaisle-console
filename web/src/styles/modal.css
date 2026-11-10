@@ -1,0 +1,52 @@
+/* modals are still used by nothing in the main flow, kept for the lone screens */
+.modal {
+	display: flex;
+	flex-direction: column;
+	width: min(520px, 100%);
+	max-height: calc(100vh - min(14vh, 128px) - 16px);
+	padding: 4px 24px 22px;
+	overflow: auto;
+	background: var(--card);
+	border-radius: 20px;
+	box-shadow: var(--pop);
+	animation: rise-in var(--d-3) var(--ease);
+}
+@supports (scrollbar-width: none) {
+	.modal {
+		scrollbar-width: none;
+	}
+}
+.modal-h {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16px 0 12px;
+}
+.scrim::backdrop {
+	background: transparent;
+}
+.modal-h h2 {
+	font-size: 19px;
+}
+.scrim[open] {
+	position: fixed;
+	inset: 0;
+	z-index: 20;
+	display: grid;
+	place-items: start center;
+	width: 100%;
+	max-width: none;
+	height: 100%;
+	max-height: none;
+	padding: min(14vh, 128px) 16px 16px;
+	margin: 0;
+	background: rgb(10 10 9 / 45%);
+	border: 0;
+	animation: fade-in var(--d-2) ease-out;
+}
+.scrim.closing {
+	animation: fade-out 0.17s ease-in forwards;
+}
+.scrim.closing .modal {
+	animation: sink 0.17s ease-in forwards;
+}

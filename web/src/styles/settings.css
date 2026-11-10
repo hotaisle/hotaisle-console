@@ -1,0 +1,107 @@
+/* settings and credits */
+.settings {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	padding-block-end: 24px;
+}
+.settings > section {
+	gap: 16px;
+	padding-block: 28px;
+}
+.settings > section:first-child {
+	padding-block-start: 8px;
+}
+.settings > section + section {
+	border-top: 1px solid var(--line-2);
+}
+.settings > section > .group-h {
+	margin-block-end: 4px;
+}
+.settings-ssh > .group + .group {
+	margin-block-start: 8px;
+}
+.settings-ssh {
+	scroll-margin-block-start: 16px;
+}
+.field {
+	display: grid;
+	grid-template-columns: 84px minmax(0, 1fr);
+	gap: 12px;
+	align-items: center;
+}
+.field-l {
+	font-size: 14px;
+	color: var(--muted);
+}
+.keys-list {
+	display: grid;
+	grid-template-columns: 96px 1fr;
+	gap: 8px 12px;
+	align-items: center;
+	margin: 0;
+	font-size: 14px;
+}
+.amounts {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+}
+.dollar {
+	display: inline-flex;
+	gap: 4px;
+	align-items: center;
+	width: fit-content;
+	height: 38px;
+	padding: 0 12px;
+	background: var(--card);
+	border: 1px solid var(--line-2);
+	border-radius: 10px;
+}
+.keys-list dt {
+	color: var(--muted);
+	white-space: nowrap;
+}
+.keys-list dd {
+	margin: 0;
+}
+.amounts label {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	align-items: flex-start;
+	padding: 14px 16px;
+	appearance: none;
+	cursor: pointer;
+	background: var(--card);
+	border: 0;
+	border-radius: 14px;
+	box-shadow: inset 0 0 0 1px var(--line-2);
+	transition:
+		box-shadow var(--d-2) var(--ease),
+		background var(--d-1);
+}
+.amounts b {
+	font-size: 20px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+.amounts span {
+	font-size: 12.5px;
+	color: var(--muted);
+}
+.dollar input {
+	width: 10ch;
+	height: 36px;
+	padding: 0;
+	outline: none;
+	background: none;
+	border: 0;
+}
+.amounts label:hover {
+	background: var(--card-2);
+}
+.amounts label.on {
+	background: var(--card-2);
+	box-shadow: inset 0 0 0 1.5px var(--ink);
+}

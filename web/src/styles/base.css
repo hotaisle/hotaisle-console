@@ -1,0 +1,286 @@
+/* Hot Aisle Console
+   Two panes, no page scroll. On the left, the panel: one view at a time (rent, your machines, settings),
+   pushed and popped like a phone app. On the right, the plate: a drawing of the server you are renting,
+   which answers everything you do. One easing curve and three durations for all motion. Cards keep
+   one size in every state, so nothing jumps. Orange is Hot Aisle's: the button that spends money,
+   and the heat of GPUs that are yours. */
+
+* {
+	box-sizing: border-box;
+}
+html {
+	margin: 0;
+}
+body {
+	margin: 0;
+	font: 15px / 1.5 var(--sans);
+	-webkit-font-smoothing: antialiased;
+	color: var(--ink);
+	background: var(--page);
+}
+h1 {
+	margin: 0;
+	font-weight: 600;
+	letter-spacing: -0.015em;
+}
+h2 {
+	margin: 0;
+	font-weight: 600;
+	letter-spacing: -0.015em;
+}
+h3 {
+	margin: 0;
+	font-weight: 600;
+	letter-spacing: -0.015em;
+}
+p {
+	margin: 0;
+}
+@supports (text-wrap: balance) {
+	h1 {
+		text-wrap: balance;
+	}
+}
+@supports (text-wrap: balance) {
+	h2 {
+		text-wrap: balance;
+	}
+}
+@supports (text-wrap: balance) {
+	h3 {
+		text-wrap: balance;
+	}
+}
+button {
+	font: inherit;
+	color: inherit;
+}
+:is(
+	a[href],
+	button,
+	select,
+	summary,
+	label[for],
+	[role="button"],
+	input[type="radio"],
+	input[type="checkbox"]
+):not(:disabled):not([aria-disabled="true"]):not(:has(input:disabled)) {
+	cursor: pointer;
+}
+input {
+	font: inherit;
+	color: inherit;
+}
+select {
+	font: inherit;
+	color: inherit;
+}
+code {
+	font-family: var(--mono);
+	font-size: 0.9em;
+}
+kbd {
+	font-family: var(--mono);
+	font-size: 0.9em;
+}
+:root {
+	--page: #efefeb;
+	--panel: #efefeb;
+	--card: #fbfbf9;
+	--card-2: #f3f3f0;
+	--line: rgb(20 20 18 / 9%);
+	--line-2: rgb(20 20 18 / 16%);
+	--ink: #191917;
+	--ink-2: #484844;
+	--muted: #62625c;
+	--faint: #b1b1a9;
+	--signal: #c04712;
+	--signal-press: #a33b0e;
+	--signal-deep: #8a3210;
+	--bad-deep: #85251a;
+	--heat: #e2601f;
+	--heat-ink: #b84412;
+	--heat-alpha: 0.82;
+	--on: #1d713d;
+	--amber: #946000;
+	--bad: #b3341f;
+	--shadow: 0 1px 2px rgb(20 20 18 / 5%), 0 8px 24px -16px rgb(20 20 18 / 24%);
+	--pop: 0 0 0 1px var(--line), 0 18px 40px -16px rgb(20 20 18 / 35%);
+	--lcd-1: #c6cdbc;
+	--lcd-2: #cfd6c5;
+	--lcd-ink: #1c2219;
+	--lcd-dim: #50594a;
+	--lcd-ghost: rgb(28 34 25 / 8%);
+	--ease: cubic-bezier(0.32, 0.72, 0, 1);
+	--d-1: 120ms;
+	--d-2: 200ms;
+	--d-3: 340ms;
+	--sans:
+		"Instrument Sans Variable", "Instrument Sans", system-ui, -apple-system,
+		"Segoe UI", sans-serif;
+	--mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+	/* the plate */
+	--plate: #f8f8f5;
+	--copper: #b47a52;
+	--anatomy-paper: #f8f8f5;
+	--anatomy-face: #ffffff;
+	--anatomy-top: #ffffff;
+	--anatomy-shade-0: #d9d9d5;
+	--anatomy-shade-1: #e3e3df;
+	--anatomy-shade-2: #ebebe7;
+	--anatomy-shade-3: #f3f3ef;
+	--anatomy-lit-top: #ffffff;
+	--anatomy-lit-shade: #f1f1ed;
+	--anatomy-hi: #2a2a27;
+	--anatomy-mid: #8b8a84;
+	--anatomy-lo: #b5b4ae;
+	--anatomy-faint: #d6d5cf;
+	--anatomy-lit: #000000;
+	--anatomy-dot: #3a3a36;
+	--anatomy-halo: #8a8a80;
+	--anatomy-halo-opacity: 0.3;
+	--anatomy-weight: 0.6px;
+	--anatomy-mono: var(--mono);
+	color-scheme: light dark;
+}
+:root[data-theme="light"] {
+	color-scheme: light;
+}
+.mono {
+	font-family: var(--mono);
+	font-size: 0.9em;
+}
+:focus {
+	outline: none;
+}
+.grow {
+	flex: 1;
+}
+.row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+.stack {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+.muted {
+	color: var(--muted);
+}
+.small {
+	font-size: 13.5px;
+}
+.warn {
+	color: var(--amber);
+}
+.num {
+	font-variant-numeric: tabular-nums;
+}
+:root[data-theme="dark"] {
+	--copper: #a8714b;
+	--page: #121210;
+	--panel: #121210;
+	--card: #1c1b19;
+	--card-2: #242320;
+	--line: rgb(255 255 250 / 7%);
+	--line-2: rgb(255 255 250 / 13%);
+	--ink: #edece7;
+	--ink-2: #c4c2bb;
+	--muted: #8f8d86;
+	--faint: #57554f;
+	--signal: #d4561b;
+	--signal-press: #b9481a;
+	--signal-deep: #7a2c0e;
+	--bad-deep: #8e2a1e;
+	--heat: #ff7a2e;
+	--heat-ink: #ff7a2e;
+	--heat-alpha: 0.6;
+	--on: #4fbd6b;
+	--amber: #e0a23a;
+	--bad: #e2634c;
+	--shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 10px 28px -16px rgb(0 0 0 / 80%);
+	--pop: 0 0 0 1px var(--line-2), 0 20px 44px -16px rgb(0 0 0 / 80%);
+	--lcd-1: #1d1a11;
+	--lcd-2: #17140d;
+	--lcd-ink: #ffb54a;
+	--lcd-dim: #b0874a;
+	--lcd-ghost: rgb(255 181 74 / 7%);
+	--plate: #181816;
+	--anatomy-paper: #181816;
+	--anatomy-face: #262622;
+	--anatomy-top: #2a2a26;
+	--anatomy-shade-0: #111110;
+	--anatomy-shade-1: #191917;
+	--anatomy-shade-2: #1e1e1b;
+	--anatomy-shade-3: #232320;
+	--anatomy-lit-top: #3a3934;
+	--anatomy-lit-shade: #2c2b27;
+	--anatomy-hi: #dedcd4;
+	--anatomy-mid: #7b7a72;
+	--anatomy-lo: #4d4c46;
+	--anatomy-faint: #33322e;
+	--anatomy-lit: #ffffff;
+	--anatomy-dot: #e6e5df;
+	--anatomy-halo: #050505;
+	--anatomy-halo-opacity: 0.9;
+	color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme="light"]) {
+		--page: #121210;
+		--panel: #121210;
+		--card: #1c1b19;
+		--card-2: #242320;
+		--line: rgb(255 255 250 / 7%);
+		--line-2: rgb(255 255 250 / 13%);
+		--ink: #edece7;
+		--ink-2: #c4c2bb;
+		--muted: #8f8d86;
+		--faint: #57554f;
+		--signal: #d4561b;
+		--signal-press: #b9481a;
+		--signal-deep: #7a2c0e;
+		--bad-deep: #8e2a1e;
+		--heat: #ff7a2e;
+		--heat-ink: #ff7a2e;
+		--heat-alpha: 0.6;
+		--on: #4fbd6b;
+		--amber: #e0a23a;
+		--bad: #e2634c;
+		--shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 10px 28px -16px rgb(0 0 0 / 80%);
+		--pop: 0 0 0 1px var(--line-2), 0 20px 44px -16px rgb(0 0 0 / 80%);
+		--lcd-1: #1d1a11;
+		--lcd-2: #17140d;
+		--lcd-ink: #ffb54a;
+		--lcd-dim: #b0874a;
+		--lcd-ghost: rgb(255 181 74 / 7%);
+		--plate: #181816;
+		--copper: #a8714b;
+		--anatomy-paper: #181816;
+		--anatomy-face: #262622;
+		--anatomy-top: #2a2a26;
+		--anatomy-shade-0: #111110;
+		--anatomy-shade-1: #191917;
+		--anatomy-shade-2: #1e1e1b;
+		--anatomy-shade-3: #232320;
+		--anatomy-lit-top: #3a3934;
+		--anatomy-lit-shade: #2c2b27;
+		--anatomy-hi: #dedcd4;
+		--anatomy-mid: #7b7a72;
+		--anatomy-lo: #4d4c46;
+		--anatomy-faint: #33322e;
+		--anatomy-lit: #ffffff;
+		--anatomy-dot: #e6e5df;
+		--anatomy-halo: #050505;
+		--anatomy-halo-opacity: 0.9;
+		color-scheme: dark;
+	}
+}
+
+@font-face {
+	font-family: "DSEG7";
+	src: url("../assets/fonts/DSEG7Classic-Regular.woff2") format("woff2");
+	font-display: block;
+}

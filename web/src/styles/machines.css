@@ -1,0 +1,542 @@
+/* ---------------------------------------------------------------- machines: one card frame for every state */
+.cards {
+	display: flex;
+	flex: none;
+	flex-direction: column;
+	gap: 10px;
+}
+.trip {
+	position: relative;
+	display: flex;
+	flex: none;
+	flex-direction: column;
+	gap: 16px;
+	min-inline-size: 0;
+	padding: 20px 20px 16px;
+	background: var(--card);
+	border-radius: 20px;
+	box-shadow:
+		var(--shadow),
+		inset 0 0 0 1px var(--line);
+}
+.tl {
+	display: grid;
+	gap: 8px;
+}
+.tl-bar {
+	position: relative;
+	height: 4px;
+	overflow: hidden;
+	background: var(--line-2);
+	border-radius: 2px;
+}
+.tl-l {
+	display: flex;
+	gap: 12px;
+	justify-content: space-between;
+	font-size: 12.5px;
+	color: var(--muted);
+	white-space: nowrap;
+}
+.facts {
+	display: grid;
+	gap: 7px;
+	align-content: start;
+	margin: 0;
+}
+.card-head {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 16px;
+	align-items: start;
+}
+.card-title {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	min-width: 0;
+}
+.card-what {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	align-items: flex-end;
+	padding-top: 3px;
+	font-variant-numeric: tabular-nums;
+}
+.card-foot {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	min-width: 0;
+}
+
+.card-name {
+	display: flex;
+	flex: 1 0 100%;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: baseline;
+	min-width: 0;
+	font-size: 13.5px;
+	color: var(--muted);
+}
+
+.chips {
+	display: inline-flex;
+	flex: none;
+	gap: 3px;
+}
+.inst {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12px;
+	align-items: end;
+	min-width: 0;
+}
+.inst:has(.track) {
+	grid-template-columns: minmax(0, 1fr);
+}
+.meter-cell {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+}
+.meter-l {
+	font-size: 12.5px;
+	line-height: 16px;
+	color: var(--muted);
+}
+.meter-v {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+	height: 58px;
+	padding: 0 16px;
+	color: var(--lcd-ink);
+	background: linear-gradient(180deg, var(--lcd-1), var(--lcd-2));
+	border-radius: 12px;
+	box-shadow:
+		inset 0 1px 2px rgb(0 0 0 / 18%),
+		inset 0 0 0 1px rgb(0 0 0 / 6%);
+}
+.in {
+	animation: rise-in var(--d-3) var(--ease) both;
+}
+.track {
+	display: grid;
+	grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+	gap: 12px;
+	align-items: start;
+	min-block-size: 58px;
+	padding: 8px 0 0;
+	margin: 0;
+	list-style: none;
+}
+.lcd {
+	position: relative;
+	display: inline-block;
+	font-family: "DSEG7", var(--mono);
+	font-style: normal;
+	line-height: 1;
+	letter-spacing: 0.04em;
+	white-space: pre;
+}
+.lcd-ghost {
+	color: var(--lcd-ghost);
+}
+.lcd-val {
+	position: absolute;
+	inset: 0;
+	color: var(--lcd-ink);
+}
+.cluster {
+	display: grid;
+	grid-template-columns: 0.7fr 1fr 1.15fr;
+	gap: 10px;
+	min-inline-size: 0;
+	padding: 0;
+	margin: 0;
+	border: 0;
+}
+.lcd-panel {
+	color: var(--lcd-ink);
+	background: linear-gradient(180deg, var(--lcd-1), var(--lcd-2));
+	box-shadow:
+		inset 0 1px 2px rgb(0 0 0 / 18%),
+		inset 0 0 0 1px rgb(0 0 0 / 6%);
+}
+.connection {
+	display: grid;
+	gap: 8px;
+}
+.ssh {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 12px;
+	align-items: center;
+	padding: 10px 10px 10px 16px;
+	border-radius: 12px;
+}
+.ssh-wait {
+	flex: 1;
+	font-size: 14px;
+	color: var(--lcd-dim);
+}
+.trip-row {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	gap: 14px;
+	align-items: center;
+	width: 100%;
+	min-block-size: 64px;
+	padding: 12px 18px;
+	color: var(--ink);
+	text-align: left;
+	appearance: none;
+	cursor: pointer;
+	background: var(--card);
+	border: 0;
+	border-radius: 16px;
+	box-shadow:
+		var(--shadow),
+		inset 0 0 0 1px var(--line);
+	transition: background var(--d-1);
+}
+.tr-main {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	line-height: 1.3;
+}
+.tr-end {
+	font-size: 13.5px;
+	font-variant-numeric: tabular-nums;
+	color: var(--ink-2);
+}
+.sheet {
+	position: static;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	inline-size: 100%;
+	max-inline-size: none;
+	padding: 16px;
+	margin: 0;
+	color: inherit;
+	background: var(--card-2);
+	border: 1px solid var(--line-2);
+	border-radius: 14px;
+}
+.sheet-t {
+	font-size: 15px;
+	font-weight: 600;
+}
+.sheet-x {
+	align-self: center;
+	min-block-size: 36px;
+	font-size: 13.5px;
+}
+.menu-wrap {
+	position: relative;
+	margin-inline-start: auto;
+}
+.menu {
+	position: absolute;
+	right: 0;
+	bottom: calc(100% + 6px);
+	z-index: 10;
+	display: flex;
+	flex-direction: column;
+	min-width: 232px;
+	padding: 6px;
+	background: var(--card);
+	border-radius: 14px;
+	box-shadow: var(--pop);
+	transform-origin: bottom right;
+	animation: pop var(--d-2) var(--ease);
+}
+.menu-sep {
+	height: 1px;
+	margin: 6px 8px;
+	background: var(--line);
+}
+.tl-bar > span {
+	position: absolute;
+	inset: 0;
+	background: var(--heat);
+	border-radius: inherit;
+	transform: scaleX(var(--f, 0));
+	transform-origin: left;
+	transition: transform 1s linear;
+}
+.facts > div {
+	display: grid;
+	grid-template-columns: 76px minmax(0, 1fr);
+	gap: 10px;
+	font-size: 13px;
+	line-height: 18px;
+}
+.facts dt {
+	color: var(--muted);
+}
+.facts dd {
+	min-inline-size: 0;
+	margin: 0;
+	color: var(--ink-2);
+	overflow-wrap: anywhere;
+}
+.card-title h3 {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	font-size: 19px;
+	line-height: 1.3;
+}
+.card-title p {
+	font-size: 13.5px;
+	color: var(--muted);
+}
+.sub-act > span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.card-what b {
+	font-size: 15px;
+	font-weight: 600;
+}
+.card-what span {
+	font-size: 13px;
+	color: var(--muted);
+}
+.chips i {
+	width: 8px;
+	height: 8px;
+	border-radius: 2px;
+	box-shadow: inset 0 0 0 1.5px var(--faint);
+	transition:
+		background 0.6s var(--ease),
+		box-shadow 0.6s var(--ease);
+}
+.c-booting i {
+	box-shadow: inset 0 0 0 1.5px var(--heat);
+	animation: warm 1.8s ease-in-out infinite alternate;
+	animation-delay: calc(var(--i) * 0.15s);
+}
+.c-claimed i {
+	box-shadow: inset 0 0 0 1.5px var(--heat);
+	animation: warm 1.8s ease-in-out infinite alternate;
+	animation-delay: calc(var(--i) * 0.15s);
+}
+.c-ready i {
+	background: var(--on);
+	box-shadow: inset 0 0 0 1.5px var(--on);
+}
+.c-off i {
+	background: var(--line-2);
+}
+.track li {
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+}
+.ssh code {
+	min-inline-size: 0;
+	font-size: 14px;
+	color: var(--lcd-dim);
+	overflow-wrap: anywhere;
+	white-space: pre-wrap;
+	transition: color var(--d-3);
+}
+
+.tr-main b {
+	font-size: 15px;
+	font-weight: 600;
+}
+.menu button {
+	height: 36px;
+	padding: 0 12px;
+	font-size: 14px;
+	text-align: left;
+	appearance: none;
+	cursor: pointer;
+	background: none;
+	border: 0;
+	border-radius: 9px;
+}
+.trip:has(.menu) {
+	z-index: 5;
+}
+.trip .run {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+.tl-bar.open {
+	background: repeating-linear-gradient(
+		90deg,
+		var(--line-2) 0 6px,
+		transparent 6px 10px
+	);
+}
+.receipt .summary {
+	display: flex;
+	align-items: center;
+	min-height: 0;
+	padding: 0 16px;
+	font-size: 13.5px;
+	color: var(--ink-2);
+	background: var(--card-2);
+	border-radius: 12px;
+}
+.sub-act > .btn-text {
+	flex: none;
+}
+.meter-v .cur {
+	font-size: 19px;
+	font-weight: 500;
+	line-height: 1;
+}
+.track .bar {
+	position: relative;
+	height: 4px;
+	overflow: hidden;
+	background: var(--line-2);
+	border-radius: 2px;
+}
+.track .lbl {
+	font-size: 12.5px;
+	line-height: 1.4;
+	color: var(--muted);
+	white-space: normal;
+}
+.card-name .mono {
+	min-inline-size: 0;
+	overflow-wrap: anywhere;
+}
+.lcd-val.changed {
+	animation: lcd-on 0.2s linear;
+}
+.lcd.md {
+	font-size: 28px;
+}
+.lcd.sm {
+	font-size: 19px;
+}
+.cluster .meter-v {
+	gap: 4px;
+	justify-content: flex-start;
+	height: 44px;
+	padding: 0 12px;
+	border-radius: 10px;
+}
+.cluster .unit {
+	margin-left: 2px;
+	font-size: 15px;
+	font-weight: 500;
+	color: var(--lcd-ink);
+	opacity: 0.7;
+}
+.trip-row:hover {
+	background: var(--card-2);
+}
+.tr-main .mono {
+	font-size: 12px;
+	color: var(--muted);
+	overflow-wrap: anywhere;
+}
+.sheet .choice {
+	margin: 2px 0;
+}
+.tl-bar.open > span {
+	background: linear-gradient(
+		90deg,
+		var(--heat),
+		color-mix(in srgb, var(--heat) 0%, transparent)
+	);
+}
+.card-title p.sub-act {
+	display: flex;
+	gap: 8px;
+	min-width: 0;
+}
+.track .bar::after {
+	position: absolute;
+	inset: 0;
+	content: "";
+	background: var(--ink-2);
+	border-radius: inherit;
+	transform: scaleX(0);
+	transform-origin: left;
+	transition: transform 0.9s var(--ease);
+}
+.ssh.ready code {
+	color: var(--lcd-ink);
+}
+.menu button:disabled {
+	color: var(--faint);
+	cursor: not-allowed;
+}
+.menu button.danger {
+	color: var(--bad);
+}
+
+.cluster .meter-v .cur {
+	font-size: 15px;
+	font-weight: 500;
+}
+.track li.done .lbl {
+	color: var(--ink-2);
+}
+.track li.now .lbl {
+	font-weight: 500;
+	color: var(--ink);
+}
+.menu button:hover:not(:disabled) {
+	background: var(--card-2);
+}
+.track li.done .bar::after {
+	transform: scaleX(1);
+}
+.track li.now .bar::after {
+	background: var(--heat);
+	transform: scaleX(var(--f, 0.2));
+}
+
+/* the GPUs of a machine, warming with it */
+@keyframes warm {
+	from {
+		background: transparent;
+	}
+	to {
+		background: color-mix(in srgb, var(--heat) 75%, transparent);
+	}
+}
+
+/* instrument row: the same height booting and running, and the clock never moves */
+/* Startup steps get a full row, with natural wrapping for every label. */
+
+/* LCD */
+@keyframes lcd-on {
+	0% {
+		opacity: 0.12;
+	}
+	40% {
+		opacity: 0.55;
+	}
+	100% {
+		opacity: 1;
+	}
+}
+/* the account at the foot of your machines: three small instruments */
+
+/* a collapsed machine: one row */
+
+/* receipt: the same frame, with what it ran and cost */
+
+/* Confirmations replace the details within the card and take only the space they need. */
+
+/* menus */
