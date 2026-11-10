@@ -16,6 +16,8 @@
 		"vitest.config.ts",
 		"worker/cloudflare.config.ts",
 		"worker/vite.config.ts",
-		"worker/vitest.config.ts"
+		"worker/vitest.config.ts",
+		"web/vite.config.ts",
+		"web/vitest.config.ts"
 	]
 }

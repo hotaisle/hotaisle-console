@@ -17,7 +17,8 @@
 		"build:worker": "bun run --cwd worker build",
 		"check": "bun run --bun ultracite check",
 		"fix": "bun run --bun ultracite fix",
-		"test:worker": "vitest run --project worker"
+		"test:worker": "vitest run --project worker",
+		"test:components": "vitest run --project components"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.6.6",

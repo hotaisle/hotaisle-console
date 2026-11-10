@@ -1,9 +1,9 @@
 name: ci
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -28,11 +28,13 @@ jobs:
         with:
           node-version-file: package.json
       - run: bun install --frozen-lockfile
+      - name: Lint and formatting (tabs)
+        run: bun run check
       - name: Build the app
         run: bun run build
       - name: Validate deployment bundle (no upload)
         run: bun run --cwd worker cf deploy --prebuilt --dry-run
       - name: Type checks (Worker and app)
         run: bun run typecheck
-      - name: Worker tests (in the Workers runtime, against a stand-in Hot Aisle API)
+      - name: Component and isolated Worker tests
         run: bun run test
