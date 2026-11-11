@@ -23,7 +23,22 @@ The review used `rg`, `git status/log/ls-files`, direct file reads, local Cloudf
 
 Target-controlled tests, builds, fixture execution, browser flows, and `cf` deployment dry-runs were **not run** during the source audit. The available local sandbox was not shown to enforce all controls required by the audit skill: no external network, empty allowlisted environment, read-only source/toolchain, scratch-only writes, and explicit CPU, memory, process, file-size, disk, and wall-time limits. The skill therefore requires source-only review. No production request endpoint, real credential, purchase, or machine was probed. The later Cloudflare dashboard settings change was operational work, not a security test. Prior CI runs are not counted as security-audit reproduction.
 
-The current dashboard observability toggles were observed after the source audit. The actual deployed Worker code, Cloudflare zone and WAF/rate limits, Issues payload and access control, upstream API authorization/naming/throttling, and live machine/payment behavior remain unverified. The audit report must not be read as a certification of those external controls.
+At the end of the original source audit, only the dashboard observability toggles had been observed. The later owner-authorized deployment and ordinary regression checks are recorded separately below. The audit report must not be read as a certification of external controls or live machine/payment behavior.
+
+## Operational follow-up: 2026-11-11
+
+The owner requested grouped commits, a production deployment, and reconciliation of completed validation.
+Source `40fb99f` was deployed as Worker version `c5ece2fd-9f9a-45bd-9e47-fdede99c6312` after ordinary
+component/Worker tests, type checks, lint, a production build, and deployment dry-run passed. Read-only
+Chrome verification confirmed the public sign-in links and production settings, including all five rate
+limiters, Logs/Issues, disabled invocation logs/traces, persisted logs, and the CPU cap. No real sign-in,
+email delivery, purchase, machine action, diagnostic error, or rate-limit exhaustion was exercised.
+
+The new fixture checks were removed from the current work queue once their source fixes and regression
+results were reviewed. Broader cross-kind naming, upstream mail policy, and Issues retention/access and
+effective query redaction remain unresolved. [VALIDATION-2026-11-11.md](VALIDATION-2026-11-11.md) records
+the evidence and limits. This operational evidence does not retroactively change the original source
+audit's sandbox limitations or historical JSON verdicts.
 
 ## Relevant vendor documentation
 
