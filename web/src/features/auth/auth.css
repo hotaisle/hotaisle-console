@@ -36,6 +36,7 @@
 	padding-left: 24px;
 	font: 13px var(--mono);
 	color: var(--muted);
+	text-decoration: none;
 	border-left: 1px solid var(--line-2);
 }
 .auth-content {

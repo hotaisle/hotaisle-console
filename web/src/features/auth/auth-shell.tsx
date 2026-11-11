@@ -23,7 +23,14 @@ export function AuthShell({
 				>
 					<Brand />
 				</a>
-				<span className="auth-product">Console</span>
+				<a
+					className="auth-product"
+					href="https://github.com/hotaisle/hotaisle-console"
+					rel="noopener noreferrer"
+					target="_blank"
+				>
+					Console
+				</a>
 				<span className="grow" />
 				<ThemeControl />
 			</header>
