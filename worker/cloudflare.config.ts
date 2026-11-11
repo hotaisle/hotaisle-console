@@ -12,7 +12,27 @@ export default defineConfig({
 		entrypoint: "./src/index.ts",
 		env: {
 			API_BASE: bindings.text("https://admin.hotaisle.app/api"),
+			API_READ_RATE_LIMITER: bindings.rateLimit({
+				namespace: "173240203",
+				simple: { limit: 120, period: 60 },
+			}),
+			API_WRITE_RATE_LIMITER: bindings.rateLimit({
+				namespace: "173240204",
+				simple: { limit: 30, period: 60 },
+			}),
 			ASSETS: bindings.assets(),
+			AUTH_RATE_LIMITER: bindings.rateLimit({
+				namespace: "173240205",
+				simple: { limit: 60, period: 60 },
+			}),
+			EMAIL_LOGIN_EMAIL_RATE_LIMITER: bindings.rateLimit({
+				namespace: "173240201",
+				simple: { limit: 3, period: 60 },
+			}),
+			EMAIL_LOGIN_IP_RATE_LIMITER: bindings.rateLimit({
+				namespace: "173240202",
+				simple: { limit: 10, period: 60 },
+			}),
 			HISTORY_SECRET: bindings.secret(),
 			SESSION_SECRET: bindings.secret(),
 		},

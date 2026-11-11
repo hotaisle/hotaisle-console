@@ -21,10 +21,13 @@ import {
 	waitEmailLogin,
 	whoIs,
 } from "./hotaisle";
+import { allowRate, requestIp } from "./rate-limit";
 import { readSession, type Session, sessionCookie } from "./session";
 
 const TOKEN_SCHEME_PATTERN = /^Token\s+/iu;
 const WHITESPACE_PATTERN = /\s/u;
+const MAX_EMAIL_START_BYTES = 1024;
+const MAX_API_BODY_BYTES = 1024 * 1024;
 
 const SECURITY_HEADERS: Record<string, string> = {
 	"Content-Security-Policy":
@@ -73,19 +76,51 @@ const fail = (
 		})
 	);
 
-async function readJSON<T>(
+async function rateLimitResponse(
+	limiter: RateLimit,
+	secret: string,
+	scope: string,
+	actor: string
+): Promise<Response | undefined> {
+	try {
+		if (await allowRate(limiter, secret, scope, actor)) {
+			return undefined;
+		}
+		return fail(429, "Too many requests. Try again shortly.", {
+			"Retry-After": "60",
+		});
+	} catch {
+		return fail(503, "Request limiting is temporarily unavailable.");
+	}
+}
+
+async function readBody(
 	req: Request,
 	limit: number
-): Promise<T | undefined> {
-	const text = await req.text();
-	if (text.length > limit) {
-		return undefined;
+): Promise<Uint8Array | null> {
+	const declaredLength = Number(req.headers.get("Content-Length"));
+	if (Number.isFinite(declaredLength) && declaredLength > limit) {
+		return null;
 	}
-	try {
-		return JSON.parse(text) as T;
-	} catch {
-		return undefined;
+	if (!req.body) {
+		return new Uint8Array();
 	}
+	const chunks: Uint8Array[] = [];
+	let length = 0;
+	for await (const chunk of req.body) {
+		length += chunk.byteLength;
+		if (length > limit) {
+			return null;
+		}
+		chunks.push(chunk);
+	}
+	const body = new Uint8Array(length);
+	let offset = 0;
+	for (const chunk of chunks) {
+		body.set(chunk, offset);
+		offset += chunk.byteLength;
+	}
+	return body;
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
@@ -194,7 +229,7 @@ async function auth(
 		case "POST /auth/email/start":
 			return await authPostAuthEmailStart(req, env);
 		case "POST /auth/email/wait":
-			return await authPostAuthEmailWait(env, session);
+			return await authPostAuthEmailWait(req, env, session);
 		case "POST /auth/signout":
 			return await authPostAuthSignout(env);
 		default:
@@ -217,6 +252,15 @@ async function authPostHistoryKey(
 	}
 	if (!credential) {
 		return fail(401, "Sign in to unlock browser history.");
+	}
+	const limited = await rateLimitResponse(
+		env.AUTH_RATE_LIMITER,
+		env.SESSION_SECRET,
+		"auth-verify",
+		requestIp(req)
+	);
+	if (limited) {
+		return limited;
 	}
 	const who = await whoIs(env, credential);
 	if (!who.ok) {
@@ -263,6 +307,15 @@ async function authGetAuthKey(req: Request, env: Env) {
 	if (!credential) {
 		return fail(401, "An API key is required for this request.");
 	}
+	const limited = await rateLimitResponse(
+		env.AUTH_RATE_LIMITER,
+		env.SESSION_SECRET,
+		"auth-verify",
+		requestIp(req)
+	);
+	if (limited) {
+		return limited;
+	}
 	const who = await whoIs(env, credential);
 	if (!who.ok) {
 		return fail(who.status, "Hot Aisle did not accept this API key.");
@@ -271,10 +324,41 @@ async function authGetAuthKey(req: Request, env: Env) {
 }
 
 async function authPostAuthEmailStart(req: Request, env: Env) {
-	const b = await readJSON<{ email?: string }>(req, 1024);
-	const email = (b?.email ?? "").trim();
+	const ipLimit = await rateLimitResponse(
+		env.EMAIL_LOGIN_IP_RATE_LIMITER,
+		env.SESSION_SECRET,
+		"email-start-ip",
+		requestIp(req)
+	);
+	if (ipLimit) {
+		return ipLimit;
+	}
+	const body = await readBody(req, MAX_EMAIL_START_BYTES);
+	if (!body) {
+		return fail(413, "Email sign-in request is too large.");
+	}
+	let email = "";
+	try {
+		const parsed = JSON.parse(
+			new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(body)
+		) as {
+			email?: string;
+		};
+		email = (parsed.email ?? "").trim();
+	} catch {
+		return fail(400, "That doesn't look like an email address.");
+	}
 	if (!EMAIL.test(email) || email.length > 254) {
 		return fail(400, "That doesn't look like an email address.");
+	}
+	const emailLimit = await rateLimitResponse(
+		env.EMAIL_LOGIN_EMAIL_RATE_LIMITER,
+		env.SESSION_SECRET,
+		"email-start-address",
+		email.toLowerCase()
+	);
+	if (emailLimit) {
+		return emailLimit;
 	}
 	const r = await startEmailLogin(env, email);
 	if (!r.ok) {
@@ -294,13 +378,26 @@ async function authPostAuthEmailStart(req: Request, env: Env) {
 	});
 }
 
-async function authPostAuthEmailWait(env: Env, session: Session | undefined) {
+async function authPostAuthEmailWait(
+	req: Request,
+	env: Env,
+	session: Session | undefined
+) {
 	const p = session?.pending;
 	if (!p) {
 		return fail(400, "No email sign-in in progress.");
 	}
 	if (Date.parse(p.expires_at) <= Date.now()) {
 		return fail(410, "That link has expired. Send a new one.");
+	}
+	const limited = await rateLimitResponse(
+		env.AUTH_RATE_LIMITER,
+		env.SESSION_SECRET,
+		"email-wait",
+		requestIp(req)
+	);
+	if (limited) {
+		return limited;
 	}
 	// Hot Aisle holds this request for up to 20 seconds while the link isn't approved yet
 	const w = await waitEmailLogin(env, p.ticket);
@@ -350,6 +447,18 @@ async function proxy(
 ): Promise<Response> {
 	const cred = credentialOf(session);
 	const path = url.pathname.slice("/api".length) + url.search;
+	const read = req.method === "GET" || req.method === "HEAD";
+	const limited = await rateLimitResponse(
+		read ? env.API_READ_RATE_LIMITER : env.API_WRITE_RATE_LIMITER,
+		env.SESSION_SECRET,
+		read ? "api-read" : "api-write",
+		read
+			? `${cred.kind}\0${cred.token}\0${url.pathname}`
+			: `${cred.kind}\0${cred.token}`
+	);
+	if (limited) {
+		return limited;
+	}
 	const headers = new Headers();
 	for (const h of FORWARD_HEADERS) {
 		const v = req.headers.get(h);
@@ -363,11 +472,12 @@ async function proxy(
 	headers.set("User-Agent", `hotaisle-console/${env.VERSION ?? "dev"}`);
 	let r: Response;
 	try {
+		const body = read ? undefined : await readBody(req, MAX_API_BODY_BYTES);
+		if (body === null) {
+			return fail(413, "API request body is too large.");
+		}
 		r = await send(env, apiBase(env) + path, {
-			body:
-				req.method === "GET" || req.method === "HEAD"
-					? undefined
-					: await req.arrayBuffer(),
+			body,
 			headers,
 			method: req.method,
 			redirect: "manual",

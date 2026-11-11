@@ -52,6 +52,21 @@ function browser() {
 	};
 }
 
+async function sequentialStatuses(
+	count: number,
+	request: (index: number) => Promise<{ status: number }>
+): Promise<number[]> {
+	const statuses: number[] = [];
+	await Array.from({ length: count }, (_, index) => index).reduce(
+		async (previous, index) => {
+			await previous;
+			statuses.push((await request(index)).status);
+		},
+		Promise.resolve()
+	);
+	return statuses;
+}
+
 const upstreamCalls = async (): Promise<string[]> =>
 	(await (
 		await env.UPSTREAM.fetch("https://api.test/api/__calls")
@@ -166,6 +181,115 @@ describe("stateless API keys", () => {
 });
 
 describe("the guard", () => {
+	it("limits email starts by address and by client IP", async () => {
+		const visitor = browser();
+		const addressHeaders = {
+			...H,
+			"CF-Connecting-IP": "198.51.100.41",
+		};
+		expect(
+			await sequentialStatuses(3, () =>
+				visitor.call(
+					"POST",
+					"/auth/email/start",
+					{ email: "limit-address@example.com" },
+					addressHeaders
+				)
+			)
+		).toEqual([200, 200, 200]);
+		const addressLimit = await visitor.call(
+			"POST",
+			"/auth/email/start",
+			{ email: "limit-address@example.com" },
+			addressHeaders
+		);
+		expect(addressLimit.status).toBe(429);
+		expect(addressLimit.headers.get("Retry-After")).toBe("60");
+
+		const ipHeaders = { ...H, "CF-Connecting-IP": "198.51.100.42" };
+		expect(
+			await sequentialStatuses(10, (attempt) =>
+				visitor.call(
+					"POST",
+					"/auth/email/start",
+					{ email: `limit-ip-${attempt}@example.com` },
+					ipHeaders
+				)
+			)
+		).toEqual(Array.from({ length: 10 }, () => 200));
+		expect(
+			(
+				await visitor.call(
+					"POST",
+					"/auth/email/start",
+					{ email: "limit-ip-eleven@example.com" },
+					ipHeaders
+				)
+			).status
+		).toBe(429);
+	});
+	it("limits repeated API mutations without forwarding the blocked call", async () => {
+		const visitor = browser();
+		visitor.authorize("tok-bob");
+		const before = (await upstreamCalls()).filter((call) =>
+			call.startsWith("POST /limit-test/")
+		).length;
+		await sequentialStatuses(30, () =>
+			visitor.call("POST", "/api/limit-test/")
+		);
+		const blocked = await visitor.call("POST", "/api/limit-test/");
+		expect(blocked.status).toBe(429);
+		expect(blocked.headers.get("Retry-After")).toBe("60");
+		expect(
+			(await upstreamCalls()).filter((call) =>
+				call.startsWith("POST /limit-test/")
+			).length
+		).toBe(before + 30);
+	});
+	it("limits repeated API reads per credential and path", async () => {
+		const visitor = browser();
+		visitor.authorize("tok-bob");
+		const read = () => visitor.call("GET", "/api/limit-test/read/");
+		expect(await sequentialStatuses(120, read)).toEqual(
+			Array.from({ length: 120 }, () => 200)
+		);
+		const blocked = await read();
+		expect(blocked.status).toBe(429);
+		expect(blocked.headers.get("Retry-After")).toBe("60");
+	});
+	it("limits repeated upstream credential checks by client IP", async () => {
+		const visitor = browser();
+		const headers = { ...H, "CF-Connecting-IP": "198.51.100.43" };
+		visitor.authorize("tok-alice");
+		expect(
+			await sequentialStatuses(60, () =>
+				visitor.call("GET", "/auth/key", undefined, headers)
+			)
+		).toEqual(Array.from({ length: 60 }, () => 200));
+		expect(
+			(await visitor.call("GET", "/auth/key", undefined, headers)).status
+		).toBe(429);
+	});
+	it("rejects oversized JSON before calling the upstream API", async () => {
+		const visitor = browser();
+		const attemptedWrites = (calls: string[]) =>
+			calls.filter(
+				(call) =>
+					call.startsWith("POST /user/email/login/") ||
+					call.startsWith("POST /teams/")
+			).length;
+		const before = attemptedWrites(await upstreamCalls());
+		const login = await visitor.call("POST", "/auth/email/start", {
+			email: "a".repeat(1024),
+		});
+		expect(login.status).toBe(413);
+		visitor.authorize("tok-alice");
+		const api = await visitor.call("POST", "/api/teams/", {
+			payload: "x".repeat(1024 * 1024),
+		});
+		expect(api.status).toBe(413);
+		expect(attemptedWrites(await upstreamCalls())).toBe(before);
+	});
 	it("blocks real account requests from the preview origin", async () => {
 		const response = await worker.default.fetch(
 			"http://preview.localhost:8787/api/user/",

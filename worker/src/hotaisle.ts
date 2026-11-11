@@ -5,7 +5,12 @@ const TRAILING_SLASH_PATTERN = /\/+$/u;
 export interface Env {
 	/** Default https://admin.hotaisle.app/api */
 	API_BASE?: string;
+	API_READ_RATE_LIMITER: RateLimit;
+	API_WRITE_RATE_LIMITER: RateLimit;
 	ASSETS: Fetcher;
+	AUTH_RATE_LIMITER: RateLimit;
+	EMAIL_LOGIN_EMAIL_RATE_LIMITER: RateLimit;
+	EMAIL_LOGIN_IP_RATE_LIMITER: RateLimit;
 	/** Dedicated, stable secret for browser-history keys. Never rotate without a recovery plan. */
 	HISTORY_SECRET?: string;
 	/** At least 32 random characters. Encrypts session cookies. A Worker secret. */
