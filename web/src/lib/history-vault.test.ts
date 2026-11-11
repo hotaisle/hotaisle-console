@@ -1,5 +1,6 @@
 import { webcrypto } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { machineKey } from "../../../shared/machine-identity";
 import { createHistoryVault, type HistoryKey } from "./history-vault";
 
 const receipt = {
@@ -26,6 +27,70 @@ beforeEach(() => {
 });
 
 describe("encrypted browser history", () => {
+	it("replays existing journal entries by machine kind without rewriting ciphertext", async () => {
+		const vault = createHistoryVault();
+		await vault.unlock(async () => bundle());
+		const vm = {
+			launched: true,
+			name: "shared",
+			price_cents: 299,
+			team: "lab",
+		};
+		const metal = { ...vm, metal: true, price_cents: 2392 };
+		vault.record(vm);
+		vault.record(metal);
+		await vault.flush();
+		const saved = storageSnapshot();
+		vault.lock();
+		const reloaded = createHistoryVault();
+		await reloaded.unlock(async () => bundle());
+		expect(
+			reloaded.getSnapshot().records.machines[machineKey("lab", vm)]
+				?.price_cents
+		).toBe(299);
+		expect(
+			reloaded.getSnapshot().records.machines[machineKey("lab", metal)]
+				?.price_cents
+		).toBe(2392);
+		expect(storageSnapshot()).toEqual(saved);
+		reloaded.rememberEnd({ ...vm, ended_at: "2030-01-01", gpus: "1×" });
+		expect(
+			reloaded.getSnapshot().records.machines[machineKey("lab", metal)]
+		).toBeDefined();
+		reloaded.rememberEnd({ ...metal, ended_at: "2030-01-01", gpus: "8×" });
+		await reloaded.flush();
+		const final = createHistoryVault();
+		await final.unlock(async () => bundle());
+		expect(final.getSnapshot().records.history).toHaveLength(2);
+		expect(storageSnapshot()).toMatchObject(saved);
+	});
+	it("keeps repeated same-name deployments through encrypted reload and ending one preserves the other", async () => {
+		const vault = createHistoryVault();
+		await vault.unlock(async () => bundle());
+		const first = {
+			deployment_id: "first",
+			name: "reused",
+			price_cents: 299,
+			team: "lab",
+		};
+		const second = { ...first, deployment_id: "second", price_cents: 598 };
+		vault.record(first);
+		vault.record(second);
+		vault.rememberEnd({ ...first, ended_at: "2030-01-01", gpus: "1×" });
+		expect(
+			vault.getSnapshot().records.machines[machineKey("lab", second)]
+				?.price_cents
+		).toBe(598);
+		vault.rememberEnd({ ...second, ended_at: "2030-01-02", gpus: "2×" });
+		await vault.flush();
+		const saved = storageSnapshot();
+		vault.lock();
+		await vault.unlock(async () => bundle());
+		expect(
+			vault.getSnapshot().records.history.map((entry) => entry.deployment_id)
+		).toEqual(["second", "first"]);
+		expect(storageSnapshot()).toEqual(saved);
+	});
 	it("restores a launch's custom template URL only after authenticated unlock", async () => {
 		const vault = createHistoryVault();
 		await vault.unlock(async () => bundle());
@@ -45,7 +110,9 @@ describe("encrypted browser history", () => {
 		const reloaded = createHistoryVault();
 		await reloaded.unlock(async () => bundle());
 		expect(
-			reloaded.getSnapshot().records.machines["lab/custom-vm"]?.user_data_url
+			reloaded.getSnapshot().records.machines[
+				machineKey("lab", { name: "custom-vm" })
+			]?.user_data_url
 		).toBe(launch.user_data_url);
 		expect(storageSnapshot()).toEqual(saved);
 	});

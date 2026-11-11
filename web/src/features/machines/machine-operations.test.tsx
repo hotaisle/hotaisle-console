@@ -269,7 +269,7 @@ describe("machine operations", () => {
 		expect(await confirmation.findByRole("alert")).toHaveTextContent(
 			"Power off the server before an AC reset."
 		);
-		expect(inspect).toHaveBeenCalledWith("lab", "fixture");
+		expect(inspect).toHaveBeenCalledWith("lab", "fixture-id");
 		expect(power).not.toHaveBeenCalled();
 	});
 	it("keeps a generated bare-metal console URL out of storage", async () => {

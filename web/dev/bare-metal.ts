@@ -6,6 +6,7 @@ const fail = (status: number, message: string) => json({ message }, status);
 
 /** Memory-only hardware fixture. This never opens a real console or contacts a BMC. */
 export class BareMetalPreview {
+	readonly deployment_id = "preview-metal-deployment";
 	readonly name = "preview-bare-metal";
 	private releasedAt?: number;
 	private power = "On";
@@ -24,7 +25,7 @@ export class BareMetalPreview {
 		return {
 			...machine,
 			cpus: [machine.cpus],
-			deployment_id: "preview-metal-deployment",
+			deployment_id: this.deployment_id,
 			name: this.name,
 			os_status: {
 				os_install_status:
@@ -45,7 +46,7 @@ export class BareMetalPreview {
 		if (request.method === "GET") {
 			return this.read(name, area);
 		}
-		if (name !== this.name || !this.assigned) {
+		if ((name !== this.name && name !== this.deployment_id) || !this.assigned) {
 			return fail(404, "This preview server no longer exists.");
 		}
 		if (request.method === "DELETE" && !area) {
@@ -86,7 +87,7 @@ export class BareMetalPreview {
 		if (name === "available") {
 			return json([]);
 		}
-		if (name !== this.name || !this.assigned) {
+		if ((name !== this.name && name !== this.deployment_id) || !this.assigned) {
 			return fail(404, "This preview server no longer exists.");
 		}
 		if (area === "power") {

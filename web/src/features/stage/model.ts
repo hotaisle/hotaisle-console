@@ -11,6 +11,7 @@ export type StageMode =
 export interface StageMachine {
 	gpus: number;
 	host?: string;
+	id: string;
 	mode: StageMode;
 	name: string;
 	since?: number;
@@ -58,6 +59,7 @@ export interface Tag {
 	focus: boolean;
 	gpus: number;
 	host: string;
+	ids: string[];
 	mode: TagMode;
 	names: string[];
 }
@@ -124,9 +126,10 @@ function serverTags(
 			adding: host === previewHost ? (state.preview ?? 0) : 0,
 			focus:
 				previewHost === undefined &&
-				live.some((machine) => machine.name === state.focus),
+				live.some((machine) => machine.id === state.focus),
 			gpus: live.reduce((sum, machine) => sum + machine.gpus, 0),
 			host,
+			ids: live.map((machine) => machine.id),
 			mode: tagMode(live),
 			names: live.map((machine) => machine.name),
 		});
@@ -137,6 +140,7 @@ function serverTags(
 			focus: true,
 			gpus: 0,
 			host: previewHost,
+			ids: [],
 			mode: "new",
 			names: [],
 		});
@@ -154,7 +158,7 @@ export function layout(state: StageState) {
 	}
 	const owned = assignSlots(hosts);
 	const focusMachine = state.machines.find(
-		(machine) => machine.name === state.focus
+		(machine) => machine.id === state.focus
 	);
 	const focusHost = focusMachine
 		? (focusMachine.host ?? NEW)

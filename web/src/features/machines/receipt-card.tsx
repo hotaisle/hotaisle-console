@@ -1,3 +1,4 @@
+import { machineKey } from "../../../../shared/machine-identity";
 import { isPresent } from "../../../../shared/present";
 import { Lcd } from "../../components/lcd";
 import type { Ended } from "../../lib/api";
@@ -17,7 +18,7 @@ export function ReceiptCard({ r, onDone }: { r: Ended; onDone?: () => void }) {
 		<article
 			aria-label={`${runTitle(r)} ended`}
 			className="trip receipt vt"
-			style={{ ["--vt" as string]: vtName("vm", r.name) }}
+			style={{ ["--vt" as string]: vtName("vm", machineKey(r.team, r)) }}
 		>
 			<div className="card-head">
 				<div className="card-title">

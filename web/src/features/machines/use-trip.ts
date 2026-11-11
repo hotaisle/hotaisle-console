@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { machineKey } from "../../../../shared/machine-identity";
 import { isPresent } from "../../../../shared/present";
 import { useToast } from "../../components/ui/toast";
 import {
@@ -112,6 +113,7 @@ export function useTrip(props: TripProps) {
 								? (price * billedMs) / 3_600_000
 								: undefined,
 						cpu_cores: vm.cpu_cores,
+						deployment_id: vm.deployment_id,
 						disk_capacity: vm.disk_capacity,
 						ended_at: new Date().toISOString(),
 						ended_by: "you",
@@ -218,7 +220,9 @@ export function useTrip(props: TripProps) {
 	const ranMs = launched ? now - launched : undefined;
 	const mode = stageModeOf(phase, vm.metal || cloudInit);
 	const style = {
-		["--vt" as string]: morph ? "launcher" : vtName("vm", vm.name),
+		["--vt" as string]: morph
+			? "launcher"
+			: vtName("vm", machineKey(team.handle, vm)),
 	};
 
 	return {

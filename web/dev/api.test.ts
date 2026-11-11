@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { machineKey } from "../../shared/machine-identity";
 import type { VM, VMState } from "../src/lib/api";
 import { PreviewAPI } from "./api";
 
@@ -122,9 +123,9 @@ describe("development preview machine lifecycle", () => {
 			"starting",
 		]);
 		expect(machines[2].ssh_access).toBeUndefined();
-		expect(api.initialRecords().machines["preview/preview-003"]?.image).toBe(
-			"standard"
-		);
+		expect(
+			api.initialRecords().machines[machineKey("preview", machines[2])]?.image
+		).toBe("standard");
 	});
 	it("requires minimum-charge confirmation to release a new machine", async () => {
 		const api = new PreviewAPI("running");

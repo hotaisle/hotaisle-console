@@ -5,6 +5,7 @@ import {
 	useSearch,
 } from "@tanstack/react-router";
 import { useCallback, useEffect } from "react";
+import { machineKey } from "../../../../shared/machine-identity";
 import { type View, viewFromPath, viewPath } from "../../app/route-state";
 import { transition } from "../../lib/motion";
 
@@ -67,11 +68,24 @@ export function useNavigation(team: string) {
 	}, [back, view]);
 	return {
 		back,
-		focus: params.machine,
+		focus:
+			params.machine && params.kind
+				? machineKey(team, {
+						metal: params.kind === "bare_metal",
+						name: params.machine,
+					})
+				: params.machine,
 		focusMachine,
 		go,
+		legacy: !params.kind,
 		push,
-		runName: params.run,
+		runName:
+			params.run && params.kind
+				? machineKey(team, {
+						metal: params.kind === "bare_metal",
+						name: params.run,
+					})
+				: params.run,
 		search,
 		stack,
 		view,

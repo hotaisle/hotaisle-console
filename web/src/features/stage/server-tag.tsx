@@ -41,14 +41,14 @@ export function ServerTag({ tag }: { tag: Tag }) {
 	const select = useCallback(
 		(event: MouseEvent<HTMLButtonElement>) => {
 			event.stopPropagation();
-			const [machine] = tag.names;
+			const [machine] = tag.ids;
 			if (machine) {
 				window.dispatchEvent(
 					new CustomEvent("stage-focus", { detail: machine })
 				);
 			}
 		},
-		[tag.names]
+		[tag.ids]
 	);
 	if (tag.mode === "new" || tag.focus) {
 		return (

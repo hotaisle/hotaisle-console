@@ -1,4 +1,5 @@
 import { type RefObject, useCallback, useId } from "react";
+import { machineAddress } from "../../../../shared/machine-identity";
 import { AnchoredPopover } from "../../components/ui/anchored-popover";
 import { ConnectionActions } from "./connection-actions";
 import { ConsoleLink } from "./console-link";
@@ -107,7 +108,7 @@ export function MachineOperations({
 						{vm.metal ? (
 							<ConsoleLink
 								onOpen={onClose}
-								server={vm.name}
+								server={machineAddress(vm)}
 								team={team.handle}
 							/>
 						) : null}

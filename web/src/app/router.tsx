@@ -2,32 +2,25 @@ import {
 	createRootRoute,
 	createRoute,
 	createRouter,
-	Link,
+	notFound,
 	type RouterHistory,
 	redirect,
 } from "@tanstack/react-router";
 import { App } from "./app";
+import { NotFound } from "./not-found";
 import { validateSearch } from "./route-state";
 
-function NotFound() {
-	return (
-		<main className="center">
-			<div className="lone">
-				<h1>Page not found</h1>
-				<p className="lede">That console address does not exist.</p>
-				<Link className="btn" to="/teams">
-					Choose a team
-				</Link>
-			</div>
-		</main>
-	);
-}
 const rootRoute = createRootRoute({
 	component: App,
 	notFoundComponent: NotFound,
 	validateSearch,
 });
 const parent = () => rootRoute;
+const validateKind = ({ params }: { params: { kind: string } }) => {
+	if (params.kind !== "virtual_machines" && params.kind !== "bare_metal") {
+		throw notFound({ routeId: rootRoute.id });
+	}
+};
 const routeTree = rootRoute.addChildren([
 	createRoute({ getParentRoute: parent, path: "/unlock" }),
 	createRoute({ getParentRoute: parent, path: "/" }),
@@ -41,6 +34,11 @@ const routeTree = rootRoute.addChildren([
 	createRoute({
 		getParentRoute: parent,
 		path: "/teams/$team/machines/$machine",
+	}),
+	createRoute({
+		beforeLoad: validateKind,
+		getParentRoute: parent,
+		path: "/teams/$team/machines/$kind/$machine",
 	}),
 	createRoute({ getParentRoute: parent, path: "/teams/$team/launch" }),
 	createRoute({ getParentRoute: parent, path: "/teams/$team/settings" }),
@@ -61,6 +59,11 @@ const routeTree = rootRoute.addChildren([
 	}),
 	createRoute({ getParentRoute: parent, path: "/teams/$team/image" }),
 	createRoute({ getParentRoute: parent, path: "/teams/$team/history/$run" }),
+	createRoute({
+		beforeLoad: validateKind,
+		getParentRoute: parent,
+		path: "/teams/$team/history/$kind/$run",
+	}),
 	createRoute({ getParentRoute: parent, path: "/teams/$team/history" }),
 ]);
 export function createAppRouter(history?: RouterHistory) {

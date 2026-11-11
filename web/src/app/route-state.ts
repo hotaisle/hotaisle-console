@@ -1,3 +1,4 @@
+import { machineKind, parseMachineKey } from "../../../shared/machine-identity";
 import type { Image } from "../lib/prefs";
 export type View =
 	| "home"
@@ -52,10 +53,10 @@ export function validateSearch(search: Record<string, unknown>): ConsoleSearch {
 	};
 }
 export function viewFromPath(path: string): View {
-	if (path.includes("/history/")) {
+	const [, , , page, resource] = path.split("/");
+	if (page === "history" && resource) {
 		return "run";
 	}
-	const page = path.split("/").at(-1);
 	if (page === "keys") {
 		return "settings";
 	}
@@ -74,6 +75,14 @@ export function viewFromPath(path: string): View {
 }
 export function viewPath(team: string, view: View, name?: string) {
 	const base = `/teams/${encodeURIComponent(team)}`;
+	const identity = name ? parseMachineKey(name) : undefined;
+	if (
+		identity &&
+		identity.team === team &&
+		(view === "run" || view === "home")
+	) {
+		return `${base}/${view === "run" ? "history" : "machines"}/${machineKind(identity)}/${encodeURIComponent(identity.name)}`;
+	}
 	if (view === "run" && name) {
 		return `${base}/history/${encodeURIComponent(name)}`;
 	}

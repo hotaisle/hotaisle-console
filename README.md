@@ -112,15 +112,21 @@ the tab. Failed background updates keep the current list visible and offer a ret
 | `/teams` | Team selection |
 | `/teams/new` | Create a team |
 | `/teams/:team/machines` | Machines |
-| `/teams/:team/machines/:machine` | Selected machine |
+| `/teams/:team/machines/:kind/:deployment` | Selected machine |
 | `/teams/:team/launch` | Launch a machine |
 | `/teams/:team/settings` | Preferences and account |
 | `/teams/:team/credits` | Credits checkout |
 | `/teams/:team/settings#ssh-keys` | SSH keys |
 | `/teams/:team/keys` | Redirects to SSH keys in Settings |
 | `/teams/:team/image` | Cloud-init URL |
-| `/teams/:team/history/:run` | An earlier run |
+| `/teams/:team/history/:kind/:run` | An earlier run |
 | `/teams/:team/history?page=2&pageSize=12` | Machine history, entries per page adapt to the panel's visible height |
+
+Machine identity uses the API’s team, collection and `deployment_id`. In machine/history URLs, `:kind` is
+`virtual_machines` or `bare_metal`, and the selected machine/run uses its deployment ID. Same-name
+resources and successive rentals remain distinct; names are display labels. Legacy name-only URLs upgrade
+when there is one match; ambiguous links ask you to choose a machine. Existing encrypted history
+replays without rewriting stored entries; older entries without deployment IDs retain name-based identity. The local preview includes a same-name VM/bare-metal scenario.
 
 Launch size and image are validated URL search parameters: `gpus` and `image`. Custom cloud-init
 URLs stay in account-scoped encrypted browser storage.

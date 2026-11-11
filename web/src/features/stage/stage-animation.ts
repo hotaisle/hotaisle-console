@@ -569,7 +569,7 @@ export function startStageAnimation({
 		put(el, "--h", h.x.toFixed(2));
 		function resolveWho() {
 			if (liveLocal) {
-				if (m?.name === st.focus) {
+				if (m && m.id === st.focus) {
 					return "focus";
 				}
 				return "mine";

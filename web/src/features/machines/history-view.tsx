@@ -1,5 +1,10 @@
 import { Link, useRouter, useSearch } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
+import {
+	machineAddress,
+	machineKey,
+	machineKind,
+} from "../../../../shared/machine-identity";
 import type { Ended } from "../../lib/api";
 import { duration, money } from "../../lib/format";
 import { runTitle } from "./formatting";
@@ -88,12 +93,16 @@ export function HistoryView({
 			</p>
 			<ul className="history-results" ref={list}>
 				{result.items.map((item) => (
-					<li key={item.name}>
+					<li key={machineKey(team, item)}>
 						<Link
 							className="history-run"
-							params={{ run: item.name, team }}
+							params={{
+								kind: machineKind(item),
+								run: machineAddress(item),
+								team,
+							}}
 							search={search}
-							to="/teams/$team/history/$run"
+							to="/teams/$team/history/$kind/$run"
 						>
 							<span className="history-run-title">
 								<strong className="mono">{runTitle(item)}</strong>

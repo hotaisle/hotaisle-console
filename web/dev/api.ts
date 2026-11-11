@@ -42,11 +42,12 @@ export class PreviewAPI {
 	constructor(scenario: Scenario, now = Date.now) {
 		this.scenario = scenario;
 		this.now = now;
-		if (scenario === "bare-metal") {
+		if (scenario === "bare-metal" || scenario === "same-name") {
 			this.metal = new BareMetalPreview(now);
 			updateMachine(
 				this.records,
 				{
+					deployment_id: this.metal.deployment_id,
 					image: "standard",
 					launched: true,
 					metal: true,
@@ -56,6 +57,9 @@ export class PreviewAPI {
 				},
 				now() - 38 * 60_000
 			);
+			if (scenario === "same-name") {
+				this.seed(2, "running", this.metal.name);
+			}
 		}
 		if (
 			scenario === "assigned" ||
@@ -108,14 +112,21 @@ export class PreviewAPI {
 			});
 		}
 	}
-	private seed(count: number, mode: PreviewMachine["mode"]) {
+	private seed(
+		count: number,
+		mode: PreviewMachine["mode"],
+		customName?: string
+	) {
 		this.serial += 1;
-		const name = `preview-${String(this.serial).padStart(3, "0")}`;
+		const name =
+			customName ?? `preview-${String(this.serial).padStart(3, "0")}`;
 		const startedAt = this.now() - 38 * 60_000;
-		this.machines.set(name, newMachine(name, count, mode, startedAt));
+		const machine = newMachine(name, count, mode, startedAt);
+		this.machines.set(name, machine);
 		updateMachine(
 			this.records,
 			{
+				deployment_id: machine.vm.deployment_id,
 				image: mode === "assigned" ? "standard" : "vllm",
 				launched: true,
 				name,
@@ -241,7 +252,12 @@ export class PreviewAPI {
 		if (!name) {
 			return await this.collection(request);
 		}
-		const machine = this.machines.get(decodeURIComponent(name));
+		const selector = decodeURIComponent(name);
+		const machine =
+			this.machines.get(selector) ??
+			[...this.machines.values()].find(
+				(item) => item.vm.deployment_id === selector
+			);
 		if (!machine) {
 			return fail(404, "This preview machine no longer exists.");
 		}
@@ -259,8 +275,8 @@ export class PreviewAPI {
 					"This machine is inside its minimum reservation. Confirm the minimum charge to end it."
 				);
 			}
-			this.machines.delete(name);
-			removeMachine(this.records, "preview", name);
+			this.machines.delete(machine.vm.name);
+			removeMachine(this.records, "preview", machine.vm);
 			return new Response(null, { status: 204 });
 		}
 		if (request.method !== "POST") {

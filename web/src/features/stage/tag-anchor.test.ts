@@ -17,14 +17,18 @@ describe("GPU label anchor", () => {
 		const current = layout({
 			...state(),
 			focus: "vm",
-			machines: [{ gpus: 2, host: "server", mode: "ready", name: "vm" }],
+			machines: [
+				{ gpus: 2, host: "server", id: "vm", mode: "ready", name: "vm" },
+			],
 		});
 		expect(tagAnchor(scene, current, "server")).toEqual([30, 40]);
 	});
 	it("follows preview GPUs on a server that already holds a machine", () => {
 		const current = layout({
 			...state(),
-			machines: [{ gpus: 1, host: "server", mode: "ready", name: "vm" }],
+			machines: [
+				{ gpus: 1, host: "server", id: "vm", mode: "ready", name: "vm" },
+			],
 			preview: 1,
 		});
 		expect(tagAnchor(scene, current, "server")).toEqual([30, 40]);

@@ -30,4 +30,4 @@ export function transition(change: () => void) {
 
 /** A CSS-safe view-transition-name for a machine. */
 export const vtName = (prefix: string, name: string) =>
-	`${prefix}-${name.replace(/[^a-zA-Z0-9_-]/gu, "_")}`;
+	`${prefix}-${Array.from(name, (character) => character.codePointAt(0)?.toString(16)).join("-")}`;

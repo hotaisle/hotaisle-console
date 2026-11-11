@@ -5,6 +5,10 @@ import {
 	type Specs,
 	specsOf,
 } from "../../../shared/availability";
+import {
+	type MachineRef,
+	machineAddress,
+} from "../../../shared/machine-identity";
 import { type HistoryKey, historyVault } from "./history-vault";
 import { keyVault } from "./key-vault";
 
@@ -98,36 +102,7 @@ export interface Status {
 	waiting_for_email?: { email: string; expires_at: string };
 }
 
-/** What this app remembers about a machine (the API doesn't keep its launch time, image or price). */
-export interface MachineRecord {
-	image?: string;
-	launched_at?: string;
-	name: string;
-	price_cents?: number;
-	team: string;
-	user_data_url?: string;
-}
-
-/** An ended machine saved as encrypted browser history for the signed-in account. */
-export interface Ended {
-	cents?: number;
-	cpu_cores?: number;
-	disk_capacity?: number;
-	ended_at: string;
-	ended_by?: "you";
-	gpus: string;
-	image?: string;
-	metal?: boolean;
-	minimum_applied?: boolean;
-	name: string;
-	price_cents?: number;
-	ram_capacity?: number;
-	ran_ms?: number;
-	server?: string;
-	// what the run was, for looking back at it
-	started_at?: string;
-	team: string;
-}
+export type { Ended, Machine as MachineRecord } from "../../../shared/records";
 
 export class APIError extends Error {
 	status: number;
@@ -175,7 +150,8 @@ const t = (team: string) => `/api/teams/${encodeURIComponent(team)}`;
 
 // Bare metal: Hot Aisle rents whole 8-GPU servers through its own endpoints.
 // Actions use the selected resource's explicit kind, never a name-only cache.
-export type MachineRef = Pick<VM, "name" | "metal">;
+export type { MachineRef } from "../../../shared/machine-identity";
+
 type Metal = MetalSpecs & {
 	name: string;
 	deployment_id?: string;
@@ -190,7 +166,7 @@ const m = (team: string, name: string) =>
 function metalVM(b: Metal): VM {
 	return {
 		...specsOf(b.specs ?? b),
-		deployment_id: b.deployment_id ?? b.name,
+		deployment_id: b.deployment_id ?? "",
 		description: b.description,
 		ip_address: b.ip_address ?? "",
 		metal: true,
@@ -270,7 +246,7 @@ export const api = {
 		if (vm.metal) {
 			return await call<void>(
 				"POST",
-				`${m(team, vm.name)}/power/${POWER[action]}/`
+				`${m(team, machineAddress(vm))}/power/${POWER[action]}/`
 			);
 		}
 		if (action === "shutdown" || action === "stop" || action === "ac-reset") {
@@ -280,7 +256,7 @@ export const api = {
 		}
 		return await call<void>(
 			"POST",
-			`${t(team)}/virtual_machines/${encodeURIComponent(vm.name)}/${action}/`
+			`${t(team)}/virtual_machines/${encodeURIComponent(machineAddress(vm))}/${action}/`
 		);
 	},
 	provision: (team: string, gpus: GPU[], user_data_url?: string) =>
@@ -290,16 +266,16 @@ export const api = {
 		}),
 	rebuild: (team: string, vm: MachineRef, user_data_url?: string) =>
 		vm.metal
-			? call<void>("POST", `${m(team, vm.name)}/reinstall/`)
+			? call<void>("POST", `${m(team, machineAddress(vm))}/reinstall/`)
 			: call<void>(
 					"POST",
-					`${t(team)}/virtual_machines/${encodeURIComponent(vm.name)}/rebuild/`,
+					`${t(team)}/virtual_machines/${encodeURIComponent(machineAddress(vm))}/rebuild/`,
 					user_data_url ? { user_data_url } : {}
 				),
 	release: (team: string, vm: MachineRef, force = false) =>
 		call<void>(
 			"DELETE",
-			`${vm.metal ? m(team, vm.name) : `${t(team)}/virtual_machines/${encodeURIComponent(vm.name)}`}/${force ? "?force=true" : ""}`
+			`${vm.metal ? m(team, machineAddress(vm)) : `${t(team)}/virtual_machines/${encodeURIComponent(machineAddress(vm))}`}/${force ? "?force=true" : ""}`
 		),
 	removeKey: (fingerprint: string) =>
 		call<void>(
@@ -369,15 +345,16 @@ export const api = {
 		if (!vm.metal) {
 			return call<VMState>(
 				"GET",
-				`${t(team)}/virtual_machines/${encodeURIComponent(vm.name)}/state/`
+				`${t(team)}/virtual_machines/${encodeURIComponent(machineAddress(vm))}/state/`
 			);
 		}
 		// a bare-metal server is its own host; it is up once its operating system is installed
 		const [d, power] = await Promise.all([
-			call<Metal>("GET", `${m(team, vm.name)}/`),
-			call<{ state: string }>("GET", `${m(team, vm.name)}/power/`).catch(
-				() => undefined
-			),
+			call<Metal>("GET", `${m(team, machineAddress(vm))}/`),
+			call<{ state: string }>(
+				"GET",
+				`${m(team, machineAddress(vm))}/power/`
+			).catch(() => undefined),
 		]);
 		const install = d.os_status?.os_install_status;
 		function resolveState() {
@@ -401,16 +378,6 @@ export const api = {
 			call<VM[] | null>("GET", `${t(team)}/virtual_machines/`),
 			call<Metal[] | null>("GET", `${t(team)}/bare_metal/`).catch(() => null),
 		]);
-		const machines = [...(vms ?? []), ...(metal ?? []).map(metalVM)];
-		const names = new Set<string>();
-		for (const machine of machines) {
-			if (names.has(machine.name)) {
-				throw new Error(
-					"The API returned machines with duplicate names. Contact Hot Aisle support before managing these machines."
-				);
-			}
-			names.add(machine.name);
-		}
-		return machines;
+		return [...(vms ?? []), ...(metal ?? []).map(metalVM)];
 	},
 };

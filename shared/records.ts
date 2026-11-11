@@ -7,7 +7,10 @@
 //
 // Persisted only as encrypted, append-only browser entries. No Cloudflare user-data storage.
 
+import { type MachineRef, machineKey, machineKind } from "./machine-identity";
+
 export interface Machine {
+	deployment_id?: string;
 	/** The size as people say it ("4× MI300X"). */
 	gpus?: string;
 	image?: string;
@@ -23,6 +26,7 @@ export interface Machine {
 export interface Ended {
 	cents?: number;
 	cpu_cores?: number;
+	deployment_id?: string;
 	disk_capacity?: number;
 	ended_at: string;
 	ended_by?: "you";
@@ -46,6 +50,7 @@ export interface RecordsState {
 
 /** What the app sends to record a launch. */
 export interface MachineUpdate {
+	deployment_id?: string;
 	gpus?: string;
 	image?: string;
 	launched?: boolean;
@@ -59,14 +64,38 @@ export interface MachineUpdate {
 /** Records of machines launched this recently are kept whatever a machine list says (it may predate them). */
 export const PRUNE_GRACE_MS = 5 * 60_000;
 
-const key = (team: string, name: string) => `${team}/${name}`;
-
 export const emptyRecords = (): RecordsState => ({ history: [], machines: {} });
 
 export function listMachines(s: RecordsState, team: string): Machine[] {
 	return Object.values(s.machines)
 		.filter((m) => m.team === team)
 		.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Read old name-only launch metadata only when the current collection has exactly one match. */
+export function recordsByIdentity(
+	team: string,
+	records: Machine[],
+	machines: MachineRef[]
+) {
+	const indexed: Record<string, Machine | undefined> = Object.fromEntries(
+		records.map((record) => [machineKey(team, record), record])
+	);
+	for (const record of records) {
+		if (record.deployment_id) {
+			continue;
+		}
+		const matches = machines.filter(
+			(machine) =>
+				machine.name === record.name &&
+				machineKind(machine) === machineKind(record)
+		);
+		if (matches.length === 1) {
+			const key = machineKey(team, matches[0]);
+			indexed[key] ??= record;
+		}
+	}
+	return indexed;
 }
 
 /** Validates an update; returns an error message, or nothing. */
@@ -87,8 +116,12 @@ export function updateMachine(
 	u: MachineUpdate,
 	now = Date.now()
 ): Machine {
-	const k = key(u.team, u.name);
+	const k = machineKey(u.team, u);
 	const m: Machine = s.machines[k] ?? { name: u.name, team: u.team };
+	m.name = u.name;
+	if (u.deployment_id) {
+		m.deployment_id = u.deployment_id;
+	}
 	if (u.launched && !m.launched_at) {
 		m.launched_at = new Date(now).toISOString();
 	}
@@ -124,7 +157,7 @@ export function pruneMachines(
 		if (m.launched_at && now - Date.parse(m.launched_at) < PRUNE_GRACE_MS) {
 			continue;
 		}
-		if (m.team === team && !keep.has(m.name)) {
+		if (m.team === team && !keep.has(machineKey(team, m))) {
 			delete s.machines[k];
 			changed = true;
 		}
@@ -132,15 +165,19 @@ export function pruneMachines(
 	return changed;
 }
 
-export function removeMachine(s: RecordsState, team: string, name: string) {
-	delete s.machines[key(team, name)];
+export function removeMachine(
+	s: RecordsState,
+	team: string,
+	machine: MachineRef
+) {
+	delete s.machines[machineKey(team, machine)];
 }
 
 /** Records an ended machine, newest first; the same machine twice replaces the displayed receipt. */
 export function addEnded(s: RecordsState, e: Ended) {
 	const out = [e];
 	for (const h of s.history) {
-		if (h.team === e.team && h.name === e.name) {
+		if (machineKey(h.team, h) === machineKey(e.team, e)) {
 			continue;
 		}
 		out.push(h);

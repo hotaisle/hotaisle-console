@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+	isNotFound,
 	useLocation,
 	useRouter,
 	useRouterState,
@@ -27,6 +28,7 @@ import {
 	type UserAccount,
 } from "../lib/api";
 import { applyStatusMotion, applyTheme, usePrefs } from "../lib/prefs";
+import { NotFound } from "./not-found";
 import { Redirect } from "./redirect";
 import { safeReturnTo, viewPath } from "./route-state";
 
@@ -262,6 +264,12 @@ function AccountView({ status }: { status: Status }) {
 
 export function App() {
 	useSessionSync();
+	const missing = useRouterState({
+		select: (state) =>
+			state.matches.some(
+				(match) => match.status === "notFound" || isNotFound(match.error)
+			),
+	});
 	const location = useLocation();
 	const [prefs] = usePrefs();
 	useEffect(() => applyTheme(prefs.theme), [prefs.theme]);
@@ -275,6 +283,9 @@ export function App() {
 	const retry = useCallback(async () => {
 		await session.refetch();
 	}, [session.refetch]);
+	if (missing) {
+		return <NotFound />;
+	}
 	if (session.isPending) {
 		return <LoadingScreen />;
 	}

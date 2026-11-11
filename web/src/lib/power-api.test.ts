@@ -4,20 +4,55 @@ import { api, type PowerAction } from "./api";
 afterEach(() => vi.unstubAllGlobals());
 describe("bare-metal power API", () => {
 	it.each([false, true])(
-		"rejects ambiguous machine names before exposing a combined list (cross-kind: %s)",
-		async (crossKind) => {
-			const machine = { gpus: [], name: "shared-name" };
-			const fetcher = vi
-				.fn()
-				.mockResolvedValueOnce(
-					Response.json(crossKind ? [machine] : [machine, machine])
+		"uses the deployment ID for state, power, rebuild and release for metal=%s",
+		async (metal) => {
+			const fetcher = vi.fn().mockImplementation(() =>
+				Promise.resolve(
+					Response.json({
+						os_status: { os_install_status: "installed" },
+						state: "On",
+					})
 				)
-				.mockResolvedValueOnce(Response.json(crossKind ? [machine] : []));
+			);
 			vi.stubGlobal("fetch", fetcher);
-			await expect(api.vms("lab")).rejects.toThrow("duplicate names");
-			expect(fetcher).toHaveBeenCalledTimes(2);
+			const vm = { deployment_id: "rental-id", metal, name: "display-name" };
+			await api.vmState("lab", vm);
+			await api.power("lab", vm, "reboot");
+			await api.rebuild("lab", vm);
+			await api.release("lab", vm);
+			expect(fetcher.mock.calls.map(([path]) => path)).toEqual(
+				metal
+					? [
+							"/api/teams/lab/bare_metal/rental-id/",
+							"/api/teams/lab/bare_metal/rental-id/power/",
+							"/api/teams/lab/bare_metal/rental-id/power/warm_reboot/",
+							"/api/teams/lab/bare_metal/rental-id/reinstall/",
+							"/api/teams/lab/bare_metal/rental-id/",
+						]
+					: [
+							"/api/teams/lab/virtual_machines/rental-id/state/",
+							"/api/teams/lab/virtual_machines/rental-id/reboot/",
+							"/api/teams/lab/virtual_machines/rental-id/rebuild/",
+							"/api/teams/lab/virtual_machines/rental-id/",
+						]
+			);
 		}
 	);
+	it("keeps same-name VMs and bare-metal servers as distinct API resources", async () => {
+		const machine = { gpus: [], name: "shared-name" };
+		vi.stubGlobal(
+			"fetch",
+			vi
+				.fn()
+				.mockResolvedValueOnce(Response.json([machine]))
+				.mockResolvedValueOnce(Response.json([machine]))
+		);
+		const list = await api.vms("lab");
+		expect(list).toHaveLength(2);
+		expect(list[0]).toMatchObject({ name: "shared-name" });
+		expect(list[0].metal).toBeFalsy();
+		expect(list[1]).toMatchObject({ metal: true, name: "shared-name" });
+	});
 	it.each(["start", "reboot", "hard-reset"] as const)(
 		"routes VM %s to the matching VM endpoint",
 		async (action) => {

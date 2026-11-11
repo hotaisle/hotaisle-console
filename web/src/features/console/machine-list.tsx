@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { minimumReservationMinutes } from "../../../../shared/availability";
+import { machineKey } from "../../../../shared/machine-identity";
 import type {
 	Ended,
 	MachineRecord,
@@ -36,8 +37,8 @@ interface MachineListProps {
 }
 function MachineItem({ vm, context }: { vm: VM; context: MachineListProps }) {
 	const focus = useCallback(
-		() => context.onFocus(vm.name),
-		[context.onFocus, vm.name]
+		() => context.onFocus(machineKey(context.team.handle, vm)),
+		[context.onFocus, context.team.handle, vm]
 	);
 	const offer = context.offerFor(
 		vm.gpus?.[0]?.count,
@@ -46,19 +47,19 @@ function MachineItem({ vm, context }: { vm: VM; context: MachineListProps }) {
 	);
 	return (
 		<Trip
-			expanded={context.focused === vm.name}
-			host={context.serverOf(vm.name)}
+			expanded={context.focused === machineKey(context.team.handle, vm)}
+			host={context.serverOf(machineKey(context.team.handle, vm))}
 			minimumMin={
 				offer?.MinimumReservationMinutes ??
 				minimumReservationMinutes(vm, vm.metal)
 			}
-			morph={context.launchedNow === vm.name}
+			morph={context.launchedNow === machineKey(context.team.handle, vm)}
 			onChanged={context.onChanged}
 			onEnded={context.onEnded}
 			onFocus={focus}
 			price={context.priceOf(vm)}
-			record={context.records[vm.name]}
-			state={context.states[vm.name]}
+			record={context.records[machineKey(context.team.handle, vm)]}
+			state={context.states[machineKey(context.team.handle, vm)]}
 			team={context.team}
 			vm={vm}
 		/>
@@ -72,8 +73,8 @@ function ReceiptItem({
 	onDismiss: (name: string) => void;
 }) {
 	const done = useCallback(
-		() => onDismiss(receipt.name),
-		[onDismiss, receipt.name]
+		() => onDismiss(machineKey(receipt.team, receipt)),
+		[onDismiss, receipt]
 	);
 	return <ReceiptCard onDone={done} r={receipt} />;
 }
@@ -102,12 +103,12 @@ export function MachineList(props: MachineListProps) {
 				item.kind === "machine" ? (
 					<MachineItem
 						context={props}
-						key={item.vm.deployment_id || item.vm.name}
+						key={machineKey(props.team.handle, item.vm)}
 						vm={item.vm}
 					/>
 				) : (
 					<ReceiptItem
-						key={`receipt:${item.receipt.name}`}
+						key={`receipt:${machineKey(item.receipt.team, item.receipt)}`}
 						onDismiss={props.onDismiss}
 						receipt={item.receipt}
 					/>

@@ -36,6 +36,7 @@ const decode = (value: string) =>
 const object = (value: unknown): value is Record<string, unknown> =>
 	typeof value === "object" && value !== null;
 const STRING_FIELDS = new Set([
+	"deployment_id",
 	"team",
 	"name",
 	"gpus",
@@ -88,7 +89,7 @@ function apply(records: RecordsState, entry: Entry) {
 		updateMachine(records, entry.change.value, entry.at);
 	} else {
 		addEnded(records, entry.change.value);
-		removeMachine(records, entry.change.value.team, entry.change.value.name);
+		removeMachine(records, entry.change.value.team, entry.change.value);
 	}
 }
 

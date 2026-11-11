@@ -6,6 +6,7 @@ export const SCENARIOS = [
 	{ id: "running", label: "Running" },
 	{ id: "multiple", label: "Multiple machines" },
 	{ id: "bare-metal", label: "Bare metal" },
+	{ id: "same-name", label: "Same-name VM + bare metal" },
 	{ id: "ended", label: "Ended" },
 	{ id: "history", label: "History (200 runs)" },
 	{ id: "launch-error", label: "Launch failure" },

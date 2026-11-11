@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { machineKey } from "../../../../shared/machine-identity";
 import { isPresent } from "../../../../shared/present";
 import type { Ended, Status, Team, VM } from "../../lib/api";
 import { usePrefs } from "../../lib/prefs";
@@ -9,6 +10,7 @@ import { useOrder } from "../launch/use-order";
 import { NEW, placeNew } from "../stage/model";
 import { buildStage } from "./stage-state";
 import { useConsoleData } from "./use-console-data";
+import { useMachineSelection } from "./use-machine-selection";
 import { useNavigation } from "./use-navigation";
 
 export function useConsole({
@@ -40,14 +42,22 @@ export function useConsole({
 		wasReady,
 		guessHost,
 		machinesRef,
-		recByName,
+		recByIdentity,
 		list,
 	} = useConsoleData(h, prefs.notify);
 
-	const rootIsOrder = list.length === 0 && receipts.length === 0;
-	const { stack, view, go, push, back, focusMachine, focus, runName } =
+	const { stack, view, go, push, back, focusMachine, focus, runName, legacy } =
 		useNavigation(h);
-	const run = history.find((item) => item.name === runName);
+	const { focused, focusedReceipt, focusedKey, run, runError, selectionError } =
+		useMachineSelection(
+			h,
+			list,
+			receipts,
+			history,
+			{ focus, focusMachine, legacy, runName, view },
+			vms.data === undefined
+		);
+	const rootIsOrder = list.length === 0 && receipts.length === 0 && !focus;
 	// ---------------------------------------------------------------- the order, kept while you look at keys or settings
 	const { order, setOrder } = useOrder();
 	// an earlier run, opened from the history to look back at it
@@ -63,13 +73,14 @@ export function useConsole({
 	// The order card becomes the new machine's card.
 	const onLaunched = useCallback(
 		async (vm: VM, meta: LaunchMeta) => {
-			wasReady.current[vm.name] = false;
+			wasReady.current[machineKey(h, vm)] = false;
 			// Until the API names its server, draw the new machine where it was previewed: next to your others.
 			const guess = placeNew(machinesRef.current, vm.gpus?.[0]?.count ?? 1);
 			if (guess !== NEW) {
-				guessHost.current[vm.name] = guess;
+				guessHost.current[machineKey(h, vm)] = guess;
 			}
 			record({
+				deployment_id: vm.deployment_id,
 				gpus: `${vm.gpus?.[0]?.count ?? 1}× ${vm.gpus?.[0]?.model ?? "MI300X"}`,
 				image: meta.image,
 				launched: true,
@@ -79,18 +90,19 @@ export function useConsole({
 				user_data_url: meta.user_data_url,
 			});
 			await vms.setData((l) => [
-				...(l ?? []).filter((x) => x.name !== vm.name),
+				...(l ?? []).filter((x) => machineKey(h, x) !== machineKey(h, vm)),
 				vm,
 			]);
 			go("none", () => {
-				setLaunchedNow(vm.name);
-				focusMachine(vm.name);
+				setLaunchedNow(machineKey(h, vm));
+				focusMachine(machineKey(h, vm));
 				hold.set(0);
 			});
 			window.setTimeout(() => setLaunchedNow(undefined), 900);
 			refreshAll();
 		},
 		[
+			h,
 			wasReady,
 			machinesRef,
 			guessHost,
@@ -107,11 +119,15 @@ export function useConsole({
 	const onEnded = useCallback(
 		async (e: Ended) => {
 			// the receipt takes the ended card's place in the list, so nothing around it moves
-			const at = (vms.data ?? []).findIndex((x) => x.name === e.name);
-			await vms.setData((l) => (l ?? []).filter((x) => x.name !== e.name));
+			const at = (vms.data ?? []).findIndex(
+				(x) => machineKey(h, x) === machineKey(h, e)
+			);
+			await vms.setData((l) =>
+				(l ?? []).filter((x) => machineKey(h, x) !== machineKey(h, e))
+			);
 			go("none", () => {
 				setReceipts((rs) => [
-					...rs.filter((x) => x.name !== e.name),
+					...rs.filter((x) => machineKey(h, x) !== machineKey(h, e)),
 					{
 						...e,
 						at: at < 0 ? 0 : at + rs.length,
@@ -121,17 +137,17 @@ export function useConsole({
 			rememberEnd(e);
 			refreshAll();
 		},
-		[vms, go, setReceipts, rememberEnd, refreshAll]
+		[vms, go, setReceipts, rememberEnd, refreshAll, h]
 	);
 	const dismiss = useCallback(
 		(name: string) =>
 			go("none", () => {
-				setReceipts((rs) => rs.filter((x) => x.name !== name));
+				setReceipts((rs) => rs.filter((x) => machineKey(h, x) !== name));
 				if (focus === name) {
 					focusMachine(undefined, true);
 				}
 			}),
-		[go, setReceipts, focus, focusMachine]
+		[go, setReceipts, focus, focusMachine, h]
 	);
 
 	const b = balance.data;
@@ -152,19 +168,19 @@ export function useConsole({
 	);
 	const priceOf = useCallback(
 		(vm: VM) =>
-			recByName[vm.name]?.price_cents ||
+			recByIdentity[machineKey(h, vm)]?.price_cents ||
 			offerFor(vm.gpus?.[0]?.count, vm.gpus?.[0]?.model, !!vm.metal)
 				?.OnDemandPrice,
-		[recByName, offerFor]
+		[recByIdentity, offerFor, h]
 	);
 
 	// ---------------------------------------------------------------- what the drawing shows
 	// Every machine on the server the API says it runs on. Ended ones keep theirs while their GPUs cool.
 	const hostOf = useRef<Record<string, string>>({});
 	for (const vm of list) {
-		const host = states[vm.name]?.host;
+		const host = states[machineKey(h, vm)]?.host;
 		if (host) {
-			hostOf.current[vm.name] = host;
+			hostOf.current[machineKey(h, vm)] = host;
 		}
 	}
 	const serverOf = useCallback(
@@ -173,16 +189,6 @@ export function useConsole({
 	);
 	const viewingRun = view === "run";
 	const orderContext = !viewingRun && (rootIsOrder || stack.includes("order"));
-	const focused = viewingRun
-		? undefined
-		: (list.find((v) => v.name === focus) ??
-			(receipts.some((r) => r.name === focus) ? undefined : list.at(-1)));
-	let focusedReceipt = run;
-	if (!viewingRun) {
-		focusedReceipt = focused
-			? undefined
-			: (receipts.find((r) => r.name === focus) ?? receipts[0]);
-	}
 	const stage = buildStage({
 		focused,
 		focusedReceipt,
@@ -194,9 +200,10 @@ export function useConsole({
 		orderContext,
 		priceOf,
 		receipts: viewingRun ? [run].filter(isPresent) : receipts,
-		records: recByName,
+		records: recByIdentity,
 		serverOf,
 		states,
+		team: h,
 	});
 	machinesRef.current = stage.machines;
 
@@ -228,6 +235,7 @@ export function useConsole({
 		dismiss,
 		entering,
 		focused,
+		focusedKey,
 		focusMachine,
 		gpusAtWork,
 		h,
@@ -245,11 +253,13 @@ export function useConsole({
 		order,
 		priceOf,
 		push,
-		recByName,
+		recByIdentity,
 		receipts,
 		refreshAll,
 		rootIsOrder,
 		run,
+		runError,
+		selectionError,
 		serverOf,
 		setOrder,
 		sizes,

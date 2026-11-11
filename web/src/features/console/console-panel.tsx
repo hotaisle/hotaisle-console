@@ -2,6 +2,7 @@ import { useRouter, useSearch } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { isPresent } from "../../../../shared/present";
 import { BuildDate } from "../../components/build-date";
+import { FormError } from "../../components/forms/form-error";
 import { PanelScroll } from "../../components/panel-scroll";
 import { cloudInitVault } from "../../lib/cloud-init-vault";
 import { ImageView } from "../launch/image-view";
@@ -36,7 +37,7 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 		balance,
 		dismiss,
 		focusMachine,
-		focused,
+		focusedKey,
 		gpusAtWork,
 		h,
 		history,
@@ -54,10 +55,12 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 		priceOf,
 		push,
 		receipts,
-		recByName,
+		recByIdentity,
 		refreshAll,
 		rootIsOrder,
 		run,
+		runError,
+		selectionError,
 		sizes,
 		vms,
 		serverOf,
@@ -141,9 +144,10 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 	} else if (view === "home") {
 		body = (
 			<>
+				<FormError message={selectionError} />
 				<AccountInstruments balance={b} gpus={gpusAtWork} />
 				<MachineList
-					focused={focused?.name}
+					focused={focusedKey}
 					launchedNow={launchedNow}
 					list={list}
 					offerFor={offerFor}
@@ -153,7 +157,7 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 					onFocus={focusMachine}
 					priceOf={priceOf}
 					receipts={receipts}
-					records={recByName}
+					records={recByIdentity}
 					serverOf={serverOf}
 					states={states}
 					team={team}
@@ -201,7 +205,7 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 		);
 	} else if (view === "run") {
 		sub = runSubtitle(run);
-		body = <RunResult loading={false} run={run} team={h} />;
+		body = <RunResult error={runError} loading={false} run={run} team={h} />;
 	} else if (view === "history") {
 		body = <HistoryView items={history} team={h} />;
 	} else {

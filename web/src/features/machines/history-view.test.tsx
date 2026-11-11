@@ -69,7 +69,7 @@ describe("machine history", () => {
 		expect(screen.getByText("server-020")).toBeInTheDocument();
 		expect(screen.getByText("server-020").closest("a")).toHaveAttribute(
 			"href",
-			"/teams/lab/history/machine-020?page=3"
+			"/teams/lab/history/virtual_machines/machine-020?page=3"
 		);
 		expect(screen.queryByText("machine-020")).not.toBeInTheDocument();
 		expect(screen.queryByText("server-000")).not.toBeInTheDocument();

@@ -1,3 +1,4 @@
+import { machineKey } from "../../../../shared/machine-identity";
 import { isPresent } from "../../../../shared/present";
 import type { Ended, MachineRecord, Offer, VM, VMState } from "../../lib/api";
 import { duration, money, specRows } from "../../lib/format";
@@ -20,18 +21,21 @@ export interface StageInput {
 	records: Record<string, MachineRecord | undefined>;
 	serverOf: (name: string) => string | undefined;
 	states: Record<string, VMState | undefined>;
+	team: string;
 }
 function machines(input: StageInput): StageMachine[] {
 	return [
 		...input.list.map((vm) => {
-			const launched = input.records[vm.name]?.launched_at;
-			const phase = phaseOf(vm, input.states[vm.name]);
+			const launched = input.records[machineKey(input.team, vm)]?.launched_at;
+			const phase = phaseOf(vm, input.states[machineKey(input.team, vm)]);
 			return {
 				gpus: vm.gpus?.[0]?.count ?? 1,
-				host: input.serverOf(vm.name),
+				host: input.serverOf(machineKey(input.team, vm)),
+				id: machineKey(input.team, vm),
 				mode: stageModeOf(
 					phase,
-					vm.metal || usesCloudInit(phase, input.records[vm.name])
+					vm.metal ||
+						usesCloudInit(phase, input.records[machineKey(input.team, vm)])
 				),
 				name: vm.name,
 				since: launched ? Date.parse(launched) : undefined,
@@ -39,7 +43,8 @@ function machines(input: StageInput): StageMachine[] {
 		}),
 		...input.receipts.map((receipt) => ({
 			gpus: Number(receipt.gpus.split("×")[0]) || 1,
-			host: receipt.server ?? input.serverOf(receipt.name),
+			host: receipt.server ?? input.serverOf(machineKey(input.team, receipt)),
+			id: machineKey(input.team, receipt),
 			mode: "ended" as const,
 			name: receipt.name,
 		})),
@@ -80,13 +85,13 @@ function preview(input: StageInput): Omit<StageState, "machines"> {
 }
 function machineReadout(
 	vm: VM,
-	states: StageInput["states"],
+	state: VMState | undefined,
 	record?: MachineRecord
 ) {
-	const phase = phaseOf(vm, states[vm.name]);
+	const phase = phaseOf(vm, state);
 	const mode = stageModeOf(phase, vm.metal || usesCloudInit(phase, record));
 	const count = vm.gpus?.[0]?.count ?? 1;
-	const server = states[vm.name]?.host ?? (vm.metal ? vm.name : "Server");
+	const server = state?.host ?? (vm.metal ? vm.name : "Server");
 	if (mode === "booting") {
 		return vm.metal
 			? "Installing your server's operating system."
@@ -107,7 +112,7 @@ function activeMachine(
 	vm: VM
 ): Omit<StageState, "machines"> {
 	const spec = specRows(vm);
-	const host = input.serverOf(vm.name);
+	const host = input.serverOf(machineKey(input.team, vm));
 	const address = vm.ssh_access?.dns_name || vm.ssh_access?.ip_address;
 	if (address) {
 		spec.push(["Address", address]);
@@ -117,15 +122,19 @@ function activeMachine(
 		spec.push(["Price", `${money(price)} an hour`]);
 	}
 	return {
-		focus: vm.name,
-		readout: machineReadout(vm, input.states, input.records[vm.name]),
+		focus: machineKey(input.team, vm),
+		readout: machineReadout(
+			vm,
+			input.states[machineKey(input.team, vm)],
+			input.records[machineKey(input.team, vm)]
+		),
 		spec,
 		specTitle: host ?? (vm.metal ? vm.name : "Server being assigned"),
 	};
 }
 function endedMachine(receipt: Ended): Omit<StageState, "machines"> {
 	return {
-		focus: receipt.name,
+		focus: machineKey(receipt.team, receipt),
 		readout: `Run on ${runTitle(receipt)} ended. Billing stopped.`,
 		spec: [
 			["GPUs", receipt.gpus],

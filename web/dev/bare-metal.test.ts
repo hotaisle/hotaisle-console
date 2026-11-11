@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
+import { machineKey } from "../../shared/machine-identity";
 import { api } from "../src/lib/api";
 import { PreviewAPI } from "./api";
 
-function setup() {
+function setup(scenario: "bare-metal" | "same-name" = "bare-metal") {
 	let now = Date.parse("2026-11-10T12:00:00Z");
-	const preview = new PreviewAPI("bare-metal", () => now);
+	const preview = new PreviewAPI(scenario, () => now);
 	vi.stubGlobal("fetch", (path: string, init?: RequestInit) =>
 		preview.fetch(
 			new Request(new URL(path, "http://preview.localhost:8787"), init)
@@ -19,6 +20,23 @@ function setup() {
 }
 
 describe("bare-metal preview through the console API", () => {
+	it("keeps same-name VM and bare-metal operations independent", async () => {
+		const { preview } = setup("same-name");
+		const machines = await api.vms("preview");
+		expect(machines).toHaveLength(2);
+		const vm = machines.find((item) => !item.metal);
+		const metal = machines.find((item) => item.metal);
+		if (!(vm && metal)) {
+			throw new Error("Expected both resource kinds");
+		}
+		expect(vm.name).toBe(metal.name);
+		expect(Object.keys(preview.initialRecords().machines)).toHaveLength(2);
+		await api.power("preview", metal, "shutdown");
+		expect((await api.vmState("preview", metal)).state).toBe("off");
+		expect((await api.vmState("preview", vm)).state).toBe("running");
+		await api.release("preview", vm, true);
+		expect(await api.vms("preview")).toEqual([metal]);
+	});
 	it("shows an assigned eight-GPU server with SSH and a matching balance", async () => {
 		const { preview } = setup();
 		const machines = await api.vms("preview");
@@ -40,7 +58,7 @@ describe("bare-metal preview through the console API", () => {
 			virtual_machine_count: 0,
 		});
 		expect(
-			preview.initialRecords().machines[`preview/${server.name}`]
+			preview.initialRecords().machines[machineKey("preview", server)]
 		).toMatchObject({
 			image: "standard",
 			metal: true,

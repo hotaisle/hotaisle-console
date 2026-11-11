@@ -8,6 +8,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useCallback } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { machineKey } from "../../../shared/machine-identity";
 import { TestProvider, testClient } from "../../test/render";
 import { useNavigation } from "../features/console/use-navigation";
 import { useOrder } from "../features/launch/use-order";
@@ -82,6 +83,22 @@ async function open(path: string) {
 	return { history, router };
 }
 describe("console URLs", () => {
+	it.each(["virtual_machines", "bare_metal"])(
+		"restores the API resource kind in canonical %s URLs",
+		async (kind) => {
+			await open(`/teams/lab/machines/${kind}/same-name`);
+			expect(await screen.findByTestId("machine")).toHaveTextContent(
+				machineKey("lab", { metal: kind === "bare_metal", name: "same-name" })
+			);
+		}
+	);
+	it("rejects an unknown API collection instead of treating it as a VM", async () => {
+		await open("/teams/lab/machines/unknown/same-name");
+		expect(
+			await screen.findByRole("heading", { name: "Page not found" })
+		).toBeInTheDocument();
+		expect(screen.queryByTestId("machine")).not.toBeInTheDocument();
+	});
 	it("does not apply an old account's delayed team creation to a new sign-in", async () => {
 		let finishCreate: ((team: Team) => void) | undefined;
 		vi.spyOn(api, "createTeam").mockImplementation(

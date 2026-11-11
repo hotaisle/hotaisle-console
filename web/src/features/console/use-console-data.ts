@@ -1,5 +1,10 @@
 import { type UseQueryResult, useQueries } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import {
+	machineAddress,
+	machineKey,
+} from "../../../../shared/machine-identity";
+import { recordsByIdentity } from "../../../../shared/records";
 import { useToast } from "../../components/ui/toast";
 import { usePoll } from "../../hooks/use-resource";
 import { api, type Ended, type VMState } from "../../lib/api";
@@ -33,16 +38,16 @@ export function useConsoleData(h: string, notify: boolean) {
 	const wasReady = useRef<Record<string, boolean>>({});
 	const guessHost = useRef<Record<string, string>>({});
 	const machinesRef = useRef<StageMachine[]>([]);
-	const recByName = Object.fromEntries(records.map((r) => [r.name, r]));
 	const list = vms.data ?? [];
+	const recByIdentity = recordsByIdentity(h, records, list);
 	const power = useQueries({
 		combine: combineStates,
 		queries: list.map((vm) => ({
 			queryFn: async () => ({
 				...(await api.vmState(h, vm)),
-				name: vm.name,
+				id: machineKey(h, vm),
 			}),
-			queryKey: ["resource", "vm-state", h, vm.name],
+			queryKey: ["resource", "vm-state", h, !!vm.metal, machineAddress(vm)],
 			refetchInterval: fast ? 3000 : 15_000,
 			retry: false,
 		})),
@@ -51,13 +56,20 @@ export function useConsoleData(h: string, notify: boolean) {
 
 	useEffect(() => {
 		const machines = vms.data;
-		if (
-			machines &&
-			records.some((entry) => !machines.some((vm) => vm.name === entry.name))
-		) {
-			prune(machines.map((vm) => vm.name));
+		if (!machines) {
+			return;
 		}
-	}, [vms.data, records, prune]);
+		const alive = new Set(machines.map((vm) => machineKey(h, vm)));
+		const indexed = recordsByIdentity(h, records, machines);
+		for (const [key, entry] of Object.entries(indexed)) {
+			if (entry && alive.has(key)) {
+				alive.add(machineKey(h, entry));
+			}
+		}
+		if (records.some((entry) => !alive.has(machineKey(h, entry)))) {
+			prune([...alive]);
+		}
+	}, [vms.data, records, prune, h]);
 
 	// C copies the SSH command of the newest ready machine.
 	useEffect(() => {
@@ -74,7 +86,10 @@ export function useConsoleData(h: string, notify: boolean) {
 			}
 			const vm = [...(vms.data ?? [])]
 				.reverse()
-				.find((v) => v.ssh_access && phaseOf(v, states[v.name]) === "running");
+				.find(
+					(v) =>
+						v.ssh_access && phaseOf(v, states[machineKey(h, v)]) === "running"
+				);
 			if (!vm?.ssh_access) {
 				return;
 			}
@@ -93,7 +108,7 @@ export function useConsoleData(h: string, notify: boolean) {
 		};
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
-	}, [vms.data, states, toast]);
+	}, [vms.data, states, toast, h]);
 
 	// Poll fast while anything is changing; notify when a machine becomes ready.
 	useEffect(() => {
@@ -102,13 +117,14 @@ export function useConsoleData(h: string, notify: boolean) {
 			return;
 		}
 		setFast(
-			l.some((vm) => !settled(phaseOf(vm, states[vm.name]))) || !!launchedNow
+			l.some((vm) => !settled(phaseOf(vm, states[machineKey(h, vm)]))) ||
+				!!launchedNow
 		);
 		for (const vm of l) {
-			const ready = phaseOf(vm, states[vm.name]) === "running";
+			const ready = phaseOf(vm, states[machineKey(h, vm)]) === "running";
 			if (
 				ready &&
-				wasReady.current[vm.name] === false &&
+				wasReady.current[machineKey(h, vm)] === false &&
 				notify &&
 				"Notification" in window &&
 				Notification.permission === "granted"
@@ -119,11 +135,11 @@ export function useConsoleData(h: string, notify: boolean) {
 				});
 				window.setTimeout(() => notification.close(), 10_000);
 			}
-			if (states[vm.name]) {
-				wasReady.current[vm.name] = ready;
+			if (states[machineKey(h, vm)]) {
+				wasReady.current[machineKey(h, vm)] = ready;
 			}
 		}
-	}, [vms.data, states, launchedNow, notify]);
+	}, [vms.data, states, launchedNow, notify, h]);
 	return {
 		balance,
 		guessHost,
@@ -133,7 +149,7 @@ export function useConsoleData(h: string, notify: boolean) {
 		list,
 		machinesRef,
 		offers,
-		recByName,
+		recByIdentity,
 		receipts,
 		record,
 		rememberEnd,
@@ -146,12 +162,12 @@ export function useConsoleData(h: string, notify: boolean) {
 }
 
 function combineStates(
-	results: UseQueryResult<VMState & { name: string }, Error>[]
+	results: UseQueryResult<VMState & { id: string }, Error>[]
 ) {
 	const states: Record<string, VMState | undefined> = {};
 	for (const result of results) {
 		if (result.data) {
-			states[result.data.name] = result.data;
+			states[result.data.id] = result.data;
 		}
 	}
 	return { error: results.find((result) => result.error)?.error, states };

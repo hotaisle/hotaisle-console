@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useEffect, useId, useRef } from "react";
+import { machineAddress } from "../../../../shared/machine-identity";
 import { HoldButton } from "../../components/ui/hold-button";
 import { api } from "../../lib/api";
 import type { PowerOperation } from "./power-actions";
@@ -23,7 +24,7 @@ export function PowerActionConfirmation({
 			if (operation.action === "ac-reset") {
 				const power = await api.bareMetalPowerState(
 					context.team.handle,
-					context.vm.name
+					machineAddress(context.vm)
 				);
 				if (power.state.toLowerCase() !== "off") {
 					throw new Error("Power off the server before an AC reset.");

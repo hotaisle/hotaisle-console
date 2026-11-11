@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Ended } from "../../lib/api";
+import { machineKey } from "../../../../shared/machine-identity";
+import type { Ended, VM } from "../../lib/api";
+import { layout } from "../stage/model";
 import { buildStage, type StageInput } from "./stage-state";
 
 function input(): StageInput {
@@ -14,9 +16,45 @@ function input(): StageInput {
 		records: {},
 		serverOf: vi.fn(),
 		states: {},
+		team: "lab",
 	};
 }
 describe("machine preview availability", () => {
+	it("focuses the right tray and status for a VM and bare-metal server sharing a name", () => {
+		const vm: VM = {
+			cpu_cores: 1,
+			deployment_id: "vm",
+			disk_capacity: 1,
+			gpus: [{ count: 1, model: "MI300X" }],
+			ip_address: "",
+			name: "shared",
+			ram_capacity: 1,
+			status: "ready",
+		};
+		const metal = { ...vm, deployment_id: "metal", metal: true };
+		const hosts = {
+			[machineKey("lab", vm)]: "vm-host",
+			[machineKey("lab", metal)]: "metal-host",
+		};
+		const serverOf = (key: string) => hosts[key];
+		const drawing = buildStage({
+			...input(),
+			focused: metal,
+			list: [vm, metal],
+			orderContext: false,
+			serverOf,
+			states: {
+				[machineKey("lab", vm)]: { host: "vm-host", state: "running" },
+				[machineKey("lab", metal)]: { host: "metal-host", state: "off" },
+			},
+		});
+		expect(layout(drawing).focusHost).toBe("metal-host");
+		expect(drawing.machines.map((machine) => machine.mode)).toEqual([
+			"ready",
+			"off",
+		]);
+		expect(drawing.readout).toContain("powered off");
+	});
 	it("reports a completed empty catalog without claiming sizes are loading", () => {
 		expect(buildStage(input()).specTitle).toBe("No machines available");
 	});
@@ -55,6 +93,7 @@ describe("history drawing", () => {
 			records: {},
 			serverOf: () => "newly-assigned-server",
 			states: {},
+			team: "lab",
 		};
 		const drawing = buildStage(historical);
 		expect(drawing.specTitle).toBe("original-server");
