@@ -73,8 +73,8 @@ refreshing. Keep component behavior covered by focused tests instead of a whole-
 Availability polls from the browser every ten seconds through the stateless proxy and refreshes on focus.
 Do not add server-side rooms, tickets, or user-data storage. The old Account and Availability Durable Object
 exports are deletion tombstones; never re-export or bind the retired classes. Workers Logs and Issues are
-enabled, with invocation logs and traces disabled. The repository config enables query-string redaction on
-the next code deployment; verify it live afterward. Never add credentials, account
+enabled, with invocation logs and traces disabled. Query-string redaction is required and was verified
+in the 2026-11-11 follow-up; recheck effective settings after observability changes. Never add credentials, account
 identifiers, request bodies, or other user data to application logs or issue context.
 The only Worker-side rate state is Cloudflare's temporary counters keyed by purpose-separated HMAC digests;
 never send raw emails, IP addresses, or API keys to a rate-limit binding. Binding limits are approximate
@@ -133,6 +133,12 @@ the later expiry so an older response cannot replace a newer session.
 - Use native controls and labels, native dialogs for modal interaction, and accessible links for navigation.
 
 ## GitHub workflow
+
+Treat all tracked documentation as public, including security records. Follow
+`docs/SECURITY-PUBLICATION.md` before updating them. Do not include credentials, production key material,
+personal/local paths, private upstream internals, host inventories, raw diagnostics, or control-plane
+access inventories. Coordinate unresolved exploitable issues privately before publishing reproduction
+details. Docs remain outside production assets, but that does not make Git history confidential.
 
 Use a descriptive non-default branch; never commit directly to the default branch. Use `gh` for GitHub operations.
 Keep commits small, coherent, and conventional. PR approval, signed commits, resolved review threads, and the `test`

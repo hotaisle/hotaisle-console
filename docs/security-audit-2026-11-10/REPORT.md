@@ -8,6 +8,10 @@
 **Execution:** source-only under the skill's sandboxed source-and-local-only policy; no target tests, builds, browser traffic, or deployed probes were run  
 **Prior runs:** no compatible Console audit ledger was available
 
+**Publication:** this is a public source-review record. See the [publication policy](../SECURITY-PUBLICATION.md)
+and [historical-record guide](README.md). Private operational inventories and upstream implementation
+details are intentionally excluded.
+
 ## Result
 
 **No vulnerability met the audit's confirmed-evidence bar.** The original source pass recorded nine leads. The 2026-11-11 follow-ups resolved all items on the [current validation list](NEEDS-VALIDATION.md), using source changes, ordinary regression evidence, hotManager source inspection, and live Cloudflare configuration/access review. The original ledger remains a record of the baseline audit, not a claim that every external behavior has been tested. This was a complete source pass for the 24 recorded coverage units, not a certification of all Cloudflare, upstream, browser, payment, or machine behavior.
@@ -32,20 +36,20 @@ The subsequent rate-limit change added five separate Cloudflare bindings: 3 emai
 
 The 2026-11-11 verification passed Ultracite, TypeScript, all 203 tests across 45 files, the production build, and a deployment dry-run. The Worker suite's five files and 28 tests also passed before each commit. The generated config contains `cpuMs: 1000`, `subrequests: 10`, and all five rate-limit bindings with their intended thresholds. Local tests confirm oversized request bodies are rejected and blocked email requests and API calls return 429 without reaching the upstream fixture; redirect, account-switch, machine-routing, SSH, and cloud-init regressions also pass. Deployment completed for source `40fb99f`, and the production dashboard confirms the five limiter bindings. These checks do not establish Cloudflare's live distributed accuracy or upstream mail policy.
 
-The final follow-up verified hotManager's policy at `ba6751a5fe5f4a6153899e149a33b83513ef3b91`: ten
-attempts per normalized mailbox and fifty per valid client IP per ten-minute fixed window, held in
-bounded process-local counters. These limits precede delivery and do not promise a fleet-wide budget.
+The final follow-up inspected upstream source and verified that mailbox and client-address attempt
+limits apply before delivery. Private upstream thresholds, capacities, and implementation details are
+omitted from the public record. The review does not establish a strict global delivery budget.
 The naming guard added two fixture cases, bringing the passing total to 205 tests, and was deployed as
-source `2743ea8`, Worker version `c153e747-f0bb-461b-aa3b-8a72d5f80d23`. That temporary
+source `2743ea8`. That temporary
 restriction was subsequently replaced by composite identity handling; see the current implementation
 and regression details in [the resolution evidence](RESOLUTION-2026-11-11.md). Source `cb73a79` now
-replaces that guard in production as version `752d54d1-6560-4e25-840b-3df422d1a8b5`, confirmed at
-100% traffic after passing CI, 238 tests, the build and deployment dry-run. The served script matches
-the local production artifact by SHA-256.
+replaces that guard in production, with activation checked after passing CI, 238 tests, the build
+and deployment dry-run. The served script matches the local production artifact by SHA-256;
+operational deployment identifiers and artifact fingerprints are omitted.
 
 ## Deployment and privacy
 
-The owner requested Workers Logs and Issues and explicitly accepted diagnostic metadata. [The Worker configuration](../../worker/cloudflare.config.ts) enables both, persists diagnostic logs, disables automatic invocation logs and traces, and requests query-string redaction. The initial dashboard-only change left redaction off; the successful live `script-settings` response now confirms `redact_query_string: true`. Dashboard inspection also confirms Logs and Issues **on**, invocation logs and traces **off**, and log persistence **on**. An existing scanner occurrence showed request path/method and platform/correlation metadata with no application user/session context attached. Accepted dashboard members are account administrators; the inspected account-owned token inventory has no Workers observability permission. [Cloudflare documents seven-day occurrence detail retention](https://developers.cloudflare.com/workers/observability/issues/investigate/), with issue summaries remaining afterward. Paths can contain team handles, and one observed record does not establish all possible payloads. Do not claim zero diagnostic user metadata or exhaustive credential inventory. See [the resolution evidence](RESOLUTION-2026-11-11.md).
+The owner requested Workers Logs and Issues and explicitly accepted diagnostic metadata. [The Worker configuration](../../worker/cloudflare.config.ts) enables both, persists diagnostic logs, disables automatic invocation logs and traces, and requests query-string redaction. The initial dashboard-only change left redaction off; the successful live `script-settings` response now confirms `redact_query_string: true`. Dashboard inspection also confirms Logs and Issues **on**, invocation logs and traces **off**, and log persistence **on**. Access and retention were reviewed; raw diagnostics, account membership and token inventories are excluded from the public record. [Cloudflare documents seven-day occurrence detail retention](https://developers.cloudflare.com/workers/observability/issues/investigate/), with issue summaries remaining afterward. Paths can contain team handles, and one observed record does not establish all possible payloads. Do not claim zero diagnostic user metadata or exhaustive credential inventory. See [the resolution evidence](RESOLUTION-2026-11-11.md).
 
 Root [`docs/`](../) is outside the Worker asset root `web/dist`. The standard build and deployment scripts run an asset guard that rejects a `docs/` directory, Markdown files, and named audit records if copied into `web/dist`. The post-audit production build and deployment dry-run passed that guard and packaged 28 assets. A direct deployment of an arbitrary stale prebuilt artifact is outside this guarantee. This report is in a public Git repository and will be visible on GitHub if pushed, even though it is excluded from the deployed site.
 

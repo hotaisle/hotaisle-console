@@ -1,5 +1,8 @@
 # Architecture and audit scope
 
+This describes the 2026-11-10 baseline, not current production status. Later source and deployment
+verification is recorded in [the resolution follow-up](RESOLUTION-2026-11-11.md).
+
 This is a source-only, standard-profile audit of the public Hot Aisle Console at commit `4e72d26ab835c2f678c31442116968d21a3a84ea`. There was no compatible prior Console audit ledger. The repository was clean before the audit documents were added. The audit covers `worker/`, `web/`, `shared/`, GitHub Actions, and the Bun lockfile. It does not test deployed Cloudflare settings, the Hot Aisle API, live users, purchases, or machines.
 
 ## Principals and protected resources

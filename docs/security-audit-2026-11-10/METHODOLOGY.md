@@ -28,7 +28,7 @@ At the end of the original source audit, only the dashboard observability toggle
 ## Operational follow-up: 2026-11-11
 
 The owner requested grouped commits, a production deployment, and reconciliation of completed validation.
-Source `40fb99f` was deployed as Worker version `c5ece2fd-9f9a-45bd-9e47-fdede99c6312` after ordinary
+Public source `40fb99f` was deployed after ordinary
 component/Worker tests, type checks, lint, a production build, and deployment dry-run passed. Read-only
 Chrome verification confirmed the public sign-in links and production settings, including all five rate
 limiters, Logs/Issues, disabled invocation logs/traces, persisted logs, and the CPU cap. No real sign-in,
@@ -41,12 +41,13 @@ the evidence and limits. This operational evidence does not retroactively change
 audit's sandbox limitations or historical JSON verdicts.
 
 The owner then requested inspection of hotManager and effective Cloudflare Issues settings. The final
-follow-up reviewed clean hotManager revision `ba6751a5fe5f4a6153899e149a33b83513ef3b91`, identified
+follow-up inspected upstream source, identified
 the lack of a cross-kind naming guarantee, and deployed a fail-closed duplicate-name guard with passing
 fixture cases. The owner then requested full composite identity handling in place of rejecting
 collisions; the resolution log documents the implementation and regressions. It traced the upstream email limiters and inspected the authenticated dashboard's actual
-`script-settings` response, existing Issues metadata, account memberships, and account-owned token
-permissions. No credentials or member identities were retained. Query redaction is confirmed enabled.
+`script-settings` response, existing Issues metadata, and relevant access controls. Private upstream
+details, access inventories, and raw diagnostic records are omitted from the public documentation.
+Query redaction is confirmed enabled.
 The final three questions are closed with explicit limits in [RESOLUTION-2026-11-11.md](RESOLUTION-2026-11-11.md).
 
 ## Relevant vendor documentation

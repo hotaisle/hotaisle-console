@@ -193,9 +193,12 @@ All active `/auth` and `/api` requests require the console's custom request head
 `Origin` when one is present. The proxy uses a configured upstream URL, forwards only the required headers,
 and rejects upstream redirects. The Worker serves a Content Security Policy. Retired `/records/*` and `/live/*` endpoints
 return 410 without accessing data bindings. Production Workers Logs and Issues are enabled, with invocation
-logs and traces disabled. The current dashboard configuration does not redact query strings; the repository
-configuration enables that protection on the next code deployment. Cloudflare may retain exception and issue
+logs and traces disabled. The configuration requires query-string redaction, which the
+[2026-11-11 follow-up](docs/security-audit-2026-11-10/RESOLUTION-2026-11-11.md) confirmed in production.
+Cloudflare may retain exception and issue
 metadata, including request details. The application must not log credentials, account identifiers, or request bodies.
+Security documentation is public on GitHub even though it is excluded from deployment assets; follow the
+[publication policy](docs/SECURITY-PUBLICATION.md) before adding evidence or operational details.
 
 The Worker configuration caps each production invocation at 1000 ms of CPU time and 10 subrequests.
 Cloudflare enforces these resource caps only on its network. The Worker also rejects email-start bodies

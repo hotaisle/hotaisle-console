@@ -10,7 +10,7 @@ independent reproduction under the security-audit skill's stricter OS isolation 
 ## Revision and release
 
 - Reviewed and deployed source: `40fb99f` on `chore/adopt-hotaisle-console`.
-- Production Worker version: `c5ece2fd-9f9a-45bd-9e47-fdede99c6312`.
+- Production activation was checked; operational version identifiers are omitted from this public record.
 - The authenticated Cloudflare deployment completed for `console.hotaisle.app`; existing secrets were retained.
 - Production Chrome verification showed the Console repository link and build footer link to PR #1.
 - The production dashboard showed all five rate-limit bindings, both required secret names, CPU limit

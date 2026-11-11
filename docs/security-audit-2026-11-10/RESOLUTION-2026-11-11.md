@@ -6,19 +6,14 @@ an existing diagnostic occurrence, and administrative access inventory. It is no
 
 ## Machine names
 
-Reviewed hotManager revision `ba6751a5fe5f4a6153899e149a33b83513ef3b91`, with a clean worktree.
-`vm/create.go` checks existing VM names in the selected cluster and reserves names with a process lock.
-Automatically generated names use the cluster's configured prefix and a numeric suffix. That code does
-not reserve names against inventory devices. `api/teams/resources/vm/virtual_machine.go` returns the VM's
-name; `api/teams/resources/baremetal/bare_metal.go` independently returns the device's name. There is no
-source guarantee of cross-kind uniqueness on which the Console can rely.
+Upstream source inspection established that the Console must not assume display names are globally
+unique. Public evidence here describes the Console's resulting invariant and regressions; private
+upstream implementation paths and deployment details are omitted.
 
-The initial mitigation rejected duplicate names in the combined response (commit `2743ea8`, Worker
-version `c153e747-f0bb-461b-aa3b-8a72d5f80d23`). That restriction is superseded by composite identity
+The initial mitigation rejected duplicate names in the combined response (commit `2743ea8`).
+That restriction is superseded by composite identity
 handling: `shared/machine-identity.ts` uses **team handle, API collection, deployment ID**. The API’s
-`getVirtualMachineByName` and
-`getServerByName` also accept deployment UUIDs: their assignment lookup checks active state, object type
-and the selected tenant before resolving the resource. The collections are `virtual_machines` and
+resource endpoints also accept deployment IDs. The collections are `virtual_machines` and
 `bare_metal`; names remain display labels and need not be globally unique. Deployment IDs distinguish
 successive rentals that reuse a name, as well as same-kind resources with the same display name.
 
@@ -56,13 +51,12 @@ purchases or machine actions were exercised. Signed commit `8d1289a` contains th
 change, and signed commit `cb73a79` contains the contextual keyboard controls. The required GitHub CI
 job passed for `cb73a79` before deployment. The 31-test Worker suite also passed before each commit.
 
-The production build of `cb73a794f6b823bae2c4e1a3f699d4adca7e6cfb` was deployed on 2026-11-11 at
-18:54 UTC as Worker version `752d54d1-6560-4e25-840b-3df422d1a8b5`. The active deployment response
-confirmed this version receives 100% of traffic. An anonymous sign-in request returned 200 with the
-expected CSP and `/assets/index-Brn2dxcv.js`; the served script's SHA-256 matched the local production
-artifact (`4e87a7aac53a7a10d26470a6984124e52c77dac51465f58fc7ef3f89d2abbc12`). The build links to
-PR #1. Existing secrets were retained. This replaces the temporary duplicate-name guard above; later
-audit-documentation commits do not change the deployed code or its excluded documentation assets.
+The production build of public commit `cb73a79` was deployed on 2026-11-11. Deployment and artifact
+checks confirmed the expected source was active and the served frontend matched the local build.
+The build links to PR #1. Existing secrets were retained. Production version identifiers, raw control-plane
+responses, and artifact fingerprints are omitted from this public record. This replaces the temporary
+duplicate-name guard above; later audit-documentation commits do not change the deployed code or its
+excluded documentation assets.
 
 Keyboard shortcuts now use TanStack Hotkeys with exclusive dialog/action scopes. The native help modal
 lists only active, enabled registrations from the page or section where it was opened. Chrome checks
@@ -75,27 +69,15 @@ This is ordinary engineering verification, separate from the original source-onl
 
 ## Upstream email limits
 
-At the same hotManager revision, `api/user/signin/signin.go` configures:
+Upstream source inspection confirmed mailbox and client-address attempt limits before email delivery,
+including mailbox normalization and a source regression for case variants. Those upstream tests were
+inspected, not executed in this follow-up. Exact upstream thresholds, counter capacities, implementation
+paths, and process topology are omitted from the public record.
 
-| Key | Limit | Scope |
-| --- | --- | --- |
-| Normalized mailbox | 10 requests per ten-minute fixed window | Sign-in router instance |
-| Valid client IP | 50 requests per ten-minute fixed window | Sign-in router instance |
-| Tracked keys in each limiter | 10,000 | Limiter instance |
-
-The client-IP check runs before signature verification. The parsed mailbox is canonicalized with
-`types.NewEmail` before the mailbox check, which runs before policy lookup, ticket creation, and email
-delivery. The Worker does not forward the browser's IP to override the upstream client's identity.
-`httputil/ratelimit.go` uses a mutex, counts attempts in a fixed window, removes expired entries when
-needed, and rejects new keys at capacity without evicting unexpired entries. State is in memory: it is
-neither replicated across server processes nor retained across restart. Fixed windows permit boundary
-bursts; these are attempt limits, not a strict fleet-wide delivery budget.
-
-`api/user/signin/signin_internal_test.go` contains a regression proving that a differently cased mailbox
-hits the primed limiter and returns 429 before backend work. That source/test was inspected, not executed
-in this follow-up. Cloudflare's separately verified 3-per-mailbox/minute and 10-per-IP/minute bindings
-remain the Console's edge controls, and the Console's Worker limiter regressions pass. No real email
-was sent. The previously unknown upstream policy is now documented; no global delivery guarantee is made.
+The Console's independently configured edge limits and passing Worker limiter regressions remain
+documented in its public source. The Worker does not forward browser IPs to override upstream identity.
+No real email was sent. This resolves the source-policy question without claiming a strict global
+delivery guarantee or independently attesting the deployed upstream revision.
 
 ## Cloudflare Issues
 
@@ -118,10 +100,9 @@ network debugger. Only non-secret configuration fields were retained here:
 }
 ```
 
-The dashboard agrees with these toggles. An existing scanner occurrence from the preceding deployment
-showed method/path, timing, Worker/version, client browser/platform, country, and correlation identifiers.
-Its application user/session context was empty. No raw occurrence values, member identities, token names,
-or credentials were copied into this report. One sample does not establish every possible error payload.
+The dashboard agrees with these toggles. Existing diagnostic metadata was inspected without generating
+a production failure. Raw diagnostic records, request values, and identifying metadata are excluded from
+the public record. One sample does not establish every possible error payload.
 
 [Cloudflare documents](https://developers.cloudflare.com/workers/observability/issues/investigate/)
 that available diagnostic context depends on the captured failure, occurrence details last seven days,
@@ -129,20 +110,13 @@ and issue summaries remain listed afterward. Query redaction does not hide path 
 not remove secrets accidentally included in an application error. The source still avoids explicit
 Worker logging and application tracing; the owner's acceptance of diagnostic metadata remains necessary.
 
-Read-only membership inspection confirmed that dashboard access is held by accepted account
-administrators. The dashboard's account-owned token inventory showed only Account Settings Read permission,
-with no Workers observability grant. The deployment CLI could not list account-owned tokens with its
-OAuth scope, so the already-authorized browser dashboard was used without broadening that credential.
-Personal credentials issued by account administrators were not exhaustively inventoried. Administrative
-access is trusted authority, not evidence that no delegated credential exists.
+Read-only access and retention review was performed without changing roles, credentials, or export
+settings. Account membership, token inventories, individual grants, and diagnostic export configuration
+are operational information and are excluded from the public record. The inspection was not an exhaustive
+credential inventory and does not prove that no delegated access exists.
 [Cloudflare's permission model](https://developers.cloudflare.com/workers/authorization/workers/)
-controls observability access through Workers roles and scope. No role, token, export destination, or
-Issues status was changed. The dashboard showed no diagnostic export destinations or Logpush job.
-
-Opening Cloudflare's code viewer automatically invoked its temporary editor preview, which lacks the
-asset binding and reported an error. No code was edited or deployed from that viewer; this was not a
-production failure injection. The browser was returned to production settings and network observation
-was disabled after inspection.
+controls observability access through Workers roles and scope. No application code was changed or
+deployed through the dashboard during this inspection.
 
 ## Release and limits
 
