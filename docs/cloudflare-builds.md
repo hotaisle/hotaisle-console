@@ -72,5 +72,22 @@ unmerged or foreign-repository results. The corrected parser was also checked
 against the actual public response for PR #1's squash commit using the same API
 version and no authentication.
 
+## Build assets before Worker tests
+
+The next main build passed PR resolution, installed dependencies and reached the
+isolated tests. Its CSP test received a 404 because the native helper ran tests
+before creating frontend assets. A fresh Cloudflare build image has no generated
+`web/dist` files; local cached assets had hidden that ordering error.
+
+The native helper now builds before testing, as GitHub CI already does. Test
+failures still stop publication, and the deployment dry-run follows the tests.
+The orchestration regression verifies that asset generation precedes tests and
+that packaging validation follows them. Generated assets remain ignored and are
+not checked into Git.
+
+A source-only copy without generated assets passed frozen dependency installation,
+the production build, all 291 tests across 56 files, and the deployment dry-run
+in this corrected order. This check did not use the local frontend output cache.
+
 This document belongs under `docs/` and must remain outside the frontend assets
 and Worker upload. The production asset guard enforces that exclusion.
