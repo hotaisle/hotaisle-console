@@ -16,6 +16,7 @@ export function TextField({
 	help,
 	hideLabel = false,
 	id: suppliedId,
+	"aria-describedby": suppliedDescription,
 	...props
 }: TextFieldProps) {
 	const field = useFieldContext<string>();
@@ -32,7 +33,7 @@ export function TextField({
 		[field]
 	);
 	const describedBy =
-		[help ? `${id}-help` : "", error ? `${id}-error` : ""]
+		[suppliedDescription, help ? `${id}-help` : "", error ? `${id}-error` : ""]
 			.filter(Boolean)
 			.join(" ") || undefined;
 	return (

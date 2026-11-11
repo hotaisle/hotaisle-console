@@ -7,6 +7,30 @@ import { ApiKeySignIn } from "./api-key-sign-in";
 import { EmailSignIn } from "./email-sign-in";
 
 describe("sign-in components", () => {
+	it("counts passphrase characters and confirms only matching passphrases of sufficient length", async () => {
+		const user = userEvent.setup();
+		renderWithQuery(<ApiKeySignIn onConnected={vi.fn()} />);
+		const passphrase = screen.getByLabelText("Local unlock passphrase");
+		const confirmation = screen.getByLabelText("Repeat passphrase");
+		const feedback = screen.getByText("0 characters · Minimum 12.");
+		expect(passphrase).toHaveAccessibleDescription(feedback.textContent ?? "");
+		expect(confirmation).toHaveAccessibleDescription(
+			feedback.textContent ?? ""
+		);
+		await user.type(passphrase, "short");
+		await user.type(confirmation, "short");
+		expect(feedback).toHaveTextContent("5 characters · Minimum 12.");
+		expect(feedback).toHaveAttribute("data-matched", "false");
+		await user.type(passphrase, " passphrase");
+		expect(feedback).toHaveTextContent("16 characters · Minimum 12.");
+		expect(feedback).toHaveAttribute("data-matched", "false");
+		await user.type(confirmation, " passphrase");
+		expect(feedback).toHaveTextContent("Passphrases match.");
+		expect(feedback).toHaveAttribute("data-matched", "true");
+		await user.type(passphrase, "!");
+		expect(feedback).not.toHaveTextContent("Passphrases match.");
+		expect(feedback).toHaveAttribute("data-matched", "false");
+	});
 	it("keeps the API key out of the password-manager form and still requires it", async () => {
 		const request = vi.spyOn(api, "signInWithKey");
 		renderWithQuery(<ApiKeySignIn onConnected={vi.fn()} />);

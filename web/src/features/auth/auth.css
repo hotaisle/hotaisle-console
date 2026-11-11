@@ -145,6 +145,9 @@
 	font-size: 15px;
 	line-height: 1.6;
 }
+.auth-content .passphrase-feedback[data-matched="true"] {
+	color: var(--on);
+}
 .auth-content .pasterow input {
 	height: 60px;
 	padding-inline: 18px;

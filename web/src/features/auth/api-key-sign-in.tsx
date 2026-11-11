@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Form } from "../../components/forms/form";
 import { FormError } from "../../components/forms/form-error";
 import { useAppForm } from "../../components/forms/use-app-form";
@@ -7,12 +7,17 @@ import { api } from "../../lib/api";
 import { errorMessage } from "../../lib/error-message";
 import { VaultIdentity } from "./vault-identity";
 
+const selectPassphrases = (state: {
+	values: { passphrase: string; confirmation: string };
+}) => state.values;
+
 export function ApiKeySignIn({
 	onConnected,
 }: {
 	onConnected: () => Promise<void>;
 }) {
 	const [error, setError] = useState("");
+	const feedbackId = useId();
 	const form = useAppForm({
 		defaultValues: { confirmation: "", key: "", passphrase: "" },
 		onSubmit: async ({ value, formApi }) => {
@@ -80,10 +85,29 @@ export function ApiKeySignIn({
 				onSubmit={form.handleSubmit}
 			>
 				<VaultIdentity />
+				<form.Subscribe selector={selectPassphrases}>
+					{({ passphrase, confirmation }) => {
+						const matched =
+							passphrase.length >= 12 && passphrase === confirmation;
+						return (
+							<p
+								className="hint passphrase-feedback"
+								data-matched={matched}
+								id={feedbackId}
+							>
+								{passphrase.length}{" "}
+								{passphrase.length === 1 ? "character" : "characters"} · Minimum
+								12.
+								{matched ? " Passphrases match." : ""}
+							</p>
+						);
+					}}
+				</form.Subscribe>
 				<div className="auth-passphrases">
 					<form.AppField name="passphrase">
 						{(field) => (
 							<field.TextField
+								aria-describedby={feedbackId}
 								autoComplete="new-password"
 								id="new-password"
 								label="Local unlock passphrase"
@@ -96,6 +120,7 @@ export function ApiKeySignIn({
 					<form.AppField name="confirmation">
 						{(field) => (
 							<field.TextField
+								aria-describedby={feedbackId}
 								autoComplete="new-password"
 								id="confirm-password"
 								label="Repeat passphrase"
@@ -107,12 +132,8 @@ export function ApiKeySignIn({
 					</form.AppField>
 				</div>
 				<p className="hint">
-					Use at least 12 characters. You'll need this passphrase after
-					reloading. It is never sent to the server and cannot be recovered.
-				</p>
-				<p className="hint">
-					Save your unlock passphrase in your password manager for
-					console.hotaisle.app.
+					You'll need this passphrase after reloading. It is never sent to the
+					server and cannot be recovered.
 				</p>
 				<p className="hint">
 					While unlocked, your key passes through the console proxy to
