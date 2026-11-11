@@ -7,6 +7,20 @@ process.env.VITE_BUILD_DATE = new Date().toISOString();
 const PR_URL =
 	/^https:\/\/github\.com\/hotaisle\/hotaisle-console\/pull\/[1-9]\d*$/u;
 
+function ghPRURL(args: string[]) {
+	try {
+		const url = execFileSync("gh", args, {
+			encoding: "utf8",
+			env: { ...process.env, GH_PROMPT_DISABLED: "1" },
+			stdio: ["ignore", "pipe", "ignore"],
+			timeout: 3000,
+		}).trim();
+		return PR_URL.test(url) ? url : "";
+	} catch {
+		return "";
+	}
+}
+
 function buildPRURL() {
 	const supplied = process.env.VITE_BUILD_PR_URL?.trim();
 	if (supplied) {
@@ -17,12 +31,8 @@ function buildPRURL() {
 			encoding: "utf8",
 			timeout: 3000,
 		}).trim();
-		if (!branch || branch === "main" || branch === "master") {
-			return "";
-		}
-		const url = execFileSync(
-			"gh",
-			[
+		if (branch && branch !== "main" && branch !== "master") {
+			const branchPR = ghPRURL([
 				"pr",
 				"view",
 				branch,
@@ -32,15 +42,21 @@ function buildPRURL() {
 				"url",
 				"--jq",
 				".url",
-			],
-			{
-				encoding: "utf8",
-				env: { ...process.env, GH_PROMPT_DISABLED: "1" },
-				stdio: ["ignore", "pipe", "ignore"],
-				timeout: 3000,
+			]);
+			if (branchPR) {
+				return branchPR;
 			}
-		).trim();
-		return PR_URL.test(url) ? url : "";
+		}
+		const commit = execFileSync("git", ["rev-parse", "HEAD"], {
+			encoding: "utf8",
+			timeout: 3000,
+		}).trim();
+		return ghPRURL([
+			"api",
+			`repos/hotaisle/hotaisle-console/commits/${commit}/pulls`,
+			"--jq",
+			'map(select(.base.ref == "main")) | .[0].html_url // ""',
+		]);
 	} catch {
 		return "";
 	}
