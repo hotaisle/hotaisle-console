@@ -330,9 +330,11 @@ only if its source is still the current main commit. It skips older revisions. B
 retains the merged PR link using public GitHub metadata, so Cloudflare needs no GitHub API key.
 These commands must be merged into main before the first successful native build.
 
-Workers Builds still needs a build credential to deploy. Keep a non-expiring credential scoped
-to the required Worker/domain operations in Cloudflare's build configuration. GitHub Actions
-does not need a Cloudflare secret. The Worker's existing session, history and signing secrets
+Workers Builds still needs a build credential to deploy. Keep a dedicated, non-expiring user
+token in Cloudflare's build configuration. [Workers Builds currently supports user tokens](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/#api-token),
+whose Workers Scripts Edit permission covers the Hot Aisle account. Limit Workers Routes Edit
+and Zone Read to `hotaisle.app`; do not add storage, billing or token-administration permissions.
+GitHub Actions does not need a Cloudflare secret. The Worker's existing session, history and signing secrets
 are retained by deployment and are not supplied to build commands. Never put build-token values
 in source, command arguments, PRs or chat. Local checks do not validate the live native integration.
 
