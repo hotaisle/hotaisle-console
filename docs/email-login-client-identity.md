@@ -1,7 +1,7 @@
 # Verified Console email-login identity
 
 Implemented and locally validated on 2026-11-11. The owner confirmed that the upstream public-key
-registration and service restart are complete. Worker activation is a separate deployment step;
+registration and service restart are complete. The subsequent Worker rollout is recorded below;
 hotManager configuration changes and service commands require owner review before execution.
 This is a public implementation summary under the [publication policy](SECURITY-PUBLICATION.md).
 It contains no deployment key material, production hostnames, registry contents, or service commands.
@@ -59,3 +59,20 @@ Rotation requires coordinating the Worker's private key with hotManager's regist
 
 hotManager already supports this registry and signing profile; no hotManager source change is needed.
 The registry display name identifies the requesting application, not the person signing in.
+
+## Production activation: 2026-11-11
+
+After owner confirmation of upstream registration, public Console source `ead690b` passed the required
+GitHub `test` job with 257 tests. Its production build and deployment dry-run passed, and that prebuilt
+Worker was deployed with the dedicated signing secret. Deployment verification confirmed the expected
+version receives all traffic and that signing, session, and history secret bindings are present.
+The deployment retained existing secrets; it did not rotate the history key or alter hotManager.
+
+An anonymous sign-in page request returned 200 with the expected Content Security Policy. The served
+JavaScript matched the tested local artifact by SHA-256. Documentation, preview fixtures, and key material
+remain outside the deployed frontend assets. Operational version IDs, fingerprints, and raw control-plane
+responses are omitted from this public record.
+
+This confirms deployment and packaging, not a real email-approval flow. A new owner-initiated sign-in
+is still the end-to-end check for the verified approval-page label; no real mailbox, purchase, or machine
+operation was exercised during rollout verification.

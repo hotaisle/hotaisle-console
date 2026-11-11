@@ -57,3 +57,9 @@ Ultracite, TypeScript, all 257 tests across 51 files, the production build, and 
 passed. The full suite includes the isolated Worker tests for the separately pending email-login
 signing work. These are local engineering checks; no application process was started or restarted,
 and no production deployment or GitHub comment was made as part of this review.
+
+The subsequent owner-authorized rollout deployed public commit `ead690b` on 2026-11-11 after the
+required GitHub `test` job passed. The new Worker was confirmed active for all traffic, and the public
+sign-in page served the expected frontend artifact. This deployment evidence is separate from the
+fixture reproduction and focused source review above. The history fix is co-authored by StayLameBro
+in public commit `6ea6841`, and GitHub recognizes his account on that commit.
