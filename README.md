@@ -338,6 +338,9 @@ GitHub Actions does not need a Cloudflare secret. The Worker's existing session,
 are retained by deployment and are not supplied to build commands. Never put build-token values
 in source, command arguments, PRs or chat. Local checks do not validate the live native integration.
 
+The main-only connection is active. See [the activation record](docs/cloudflare-builds.md)
+for the verified settings and the first-build verification boundary.
+
 See [AGENTS.md](AGENTS.md) for the source layout and implementation rules.
 
 ## Credits
