@@ -3,6 +3,21 @@ import { api, type PowerAction } from "./api";
 
 afterEach(() => vi.unstubAllGlobals());
 describe("bare-metal power API", () => {
+	it.each([false, true])(
+		"rejects ambiguous machine names before exposing a combined list (cross-kind: %s)",
+		async (crossKind) => {
+			const machine = { gpus: [], name: "shared-name" };
+			const fetcher = vi
+				.fn()
+				.mockResolvedValueOnce(
+					Response.json(crossKind ? [machine] : [machine, machine])
+				)
+				.mockResolvedValueOnce(Response.json(crossKind ? [machine] : []));
+			vi.stubGlobal("fetch", fetcher);
+			await expect(api.vms("lab")).rejects.toThrow("duplicate names");
+			expect(fetcher).toHaveBeenCalledTimes(2);
+		}
+	);
 	it.each(["start", "reboot", "hard-reset"] as const)(
 		"routes VM %s to the matching VM endpoint",
 		async (action) => {

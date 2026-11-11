@@ -401,6 +401,16 @@ export const api = {
 			call<VM[] | null>("GET", `${t(team)}/virtual_machines/`),
 			call<Metal[] | null>("GET", `${t(team)}/bare_metal/`).catch(() => null),
 		]);
-		return [...(vms ?? []), ...(metal ?? []).map(metalVM)];
+		const machines = [...(vms ?? []), ...(metal ?? []).map(metalVM)];
+		const names = new Set<string>();
+		for (const machine of machines) {
+			if (names.has(machine.name)) {
+				throw new Error(
+					"The API returned machines with duplicate names. Contact Hot Aisle support before managing these machines."
+				);
+			}
+			names.add(machine.name);
+		}
+		return machines;
 	},
 };
