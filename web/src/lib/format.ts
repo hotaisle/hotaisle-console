@@ -110,12 +110,30 @@ export function duration(ms: number) {
 export const sshPortOption = (port: number) =>
 	port === 22 ? "" : ` -p ${port}`;
 
-export function sshCommand(a: SSHAccess, user = "hotaisle") {
+const SSH_NAME = /^[a-z0-9][a-z0-9._-]{0,127}$/iu;
+const SSH_HOST = /^(?:[a-z0-9][a-z0-9.-]{0,252}|[0-9a-f:]+)$/iu;
+export const validSSHPort = (port: number) =>
+	Number.isSafeInteger(port) && port >= 1 && port <= 65_535;
+export const validSSHName = (name: string) => SSH_NAME.test(name);
+export function sshHost(a: SSHAccess): string {
 	const host = a.dns_name || a.ip_address;
+	return SSH_HOST.test(host) && !host.endsWith(".") && !host.includes("..")
+		? host
+		: "";
+}
+
+export function sshCommand(a: SSHAccess, user = "hotaisle") {
+	const host = sshHost(a);
+	if (!(host && validSSHPort(a.port) && validSSHName(user))) {
+		return "";
+	}
 	return `ssh${sshPortOption(a.port)} ${user}@${host}`;
 }
 
 export function sshURL(a: SSHAccess, user = "hotaisle") {
+	if (!(sshHost(a) && validSSHPort(a.port) && validSSHName(user))) {
+		return "";
+	}
 	const host =
 		a.dns_name ||
 		(a.ip_address.includes(":") ? `[${a.ip_address}]` : a.ip_address);

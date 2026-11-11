@@ -79,6 +79,13 @@ export function useConsoleData(h: string, notify: boolean) {
 				return;
 			}
 			const cmd = sshCommand(vm.ssh_access);
+			if (!cmd) {
+				toast(
+					"Connection details are unavailable. Refresh this machine.",
+					"err"
+				);
+				return;
+			}
 			navigator.clipboard.writeText(cmd).then(
 				() => toast("Copied the SSH command.", "info", cmd),
 				() => toast("Could not copy the SSH command.", "err")

@@ -10,7 +10,7 @@ import {
 	type VM,
 	type VMState,
 } from "../../lib/api";
-import { money } from "../../lib/format";
+import { money, sshHost } from "../../lib/format";
 import { vtName } from "../../lib/motion";
 import { sound } from "../../lib/sound";
 import type { PowerOperation } from "./power-actions";
@@ -161,7 +161,7 @@ export function useTrip(props: TripProps) {
 
 	const ssh = vm.ssh_access;
 	const ready = phase === "running";
-	const host = ssh ? ssh.dns_name || ssh.ip_address : "";
+	const host = ssh ? sshHost(ssh) : "";
 	const cloudInit = usesCloudInit(phase, record);
 	// a bare-metal server installs its operating system before its first boot
 	const install = state?.install;

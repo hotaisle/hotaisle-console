@@ -7,11 +7,19 @@ export function TripConnection({ context }: { context: TripContext }) {
 	if (!(ready && ssh)) {
 		return null;
 	}
+	const command = sshCommand(ssh);
+	if (!command) {
+		return (
+			<p className="small muted" role="alert">
+				Connection details are unavailable. Refresh this machine and try again.
+			</p>
+		);
+	}
 	return (
 		<div className="connection">
 			<div className="ssh lcd-panel ready">
-				<code>{sshCommand(ssh)}</code>
-				<CopyButton text={sshCommand(ssh)} />
+				<code>{command}</code>
+				<CopyButton text={command} />
 			</div>
 			<p className="small muted">
 				Paste this command in your terminal to connect.
