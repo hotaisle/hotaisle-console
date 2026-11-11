@@ -1,5 +1,11 @@
+import { execFileSync, spawnSync } from "node:child_process";
+
 const REPOSITORY = "hotaisle/hotaisle-console";
 const COMMIT = /^[a-f0-9]{40}$/u;
+const SQUASH_PR = / \(#(?<number>[1-9]\d*)\)$/u;
+const MERGE_PR = /^Merge pull request #(?<number>[1-9]\d*) from /u;
+const PR_TRAILER = /^Pull-Request: (?<url>\S+)$/mu;
+const MAIN_REF = /^(?<sha>[a-f0-9]{40})\trefs\/heads\/main$/u;
 const PR_URL =
 	/^https:\/\/github\.com\/hotaisle\/hotaisle-console\/pull\/[1-9]\d*$/u;
 
@@ -43,6 +49,42 @@ export function mergedPullRequestURL(value: unknown, sha: string) {
 	return pr.html_url;
 }
 
+export function commitPullRequestURL(message: string) {
+	const [subject] = message.split("\n", 1);
+	const number =
+		SQUASH_PR.exec(subject)?.groups?.number ??
+		MERGE_PR.exec(subject)?.groups?.number;
+	if (number) {
+		return `https://github.com/${REPOSITORY}/pull/${number}`;
+	}
+	const trailer = PR_TRAILER.exec(message)?.groups?.url;
+	return trailer && PR_URL.test(trailer) ? trailer : undefined;
+}
+
+export async function sourcePullRequestURL(sha: string) {
+	if (!COMMIT.test(sha)) {
+		throw new Error("Cannot verify this build's source commit.");
+	}
+	const message = execFileSync(
+		"git",
+		["show", "-s", "--format=%B", sha, "--"],
+		{
+			encoding: "utf8",
+			stdio: "pipe",
+			timeout: 5000,
+		}
+	);
+	const url = commitPullRequestURL(message);
+	if (url) {
+		return url;
+	}
+	// Rebased commits without a PR trailer need the public association lookup.
+	return mergedPullRequestURL(
+		await githubMetadata(`commits/${sha}/pulls?per_page=100`),
+		sha
+	);
+}
+
 // The Console is public. Public build metadata needs no GitHub credential in
 // Cloudflare; never forward the Cloudflare deployment token to this endpoint.
 export async function githubMetadata(path: string) {
@@ -67,12 +109,34 @@ export async function githubMetadata(path: string) {
 	return response.json() as Promise<unknown>;
 }
 
-export async function currentMainCommit() {
-	const value = (await githubMetadata("commits/main")) as {
-		sha?: string;
-	} | null;
-	if (!(value?.sha && COMMIT.test(value.sha))) {
+export function currentMainCommit() {
+	const result = spawnSync(
+		"git",
+		[
+			"-c",
+			"credential.helper=",
+			"-c",
+			"http.extraHeader=",
+			"-c",
+			"http.followRedirects=false",
+			"ls-remote",
+			"--exit-code",
+			`https://github.com/${REPOSITORY}.git`,
+			"refs/heads/main",
+		],
+		{
+			encoding: "utf8",
+			env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+			stdio: "pipe",
+			timeout: 20_000,
+		}
+	);
+	if (result.status !== 0) {
+		throw new Error("Cannot read the current main revision through Git.");
+	}
+	const sha = MAIN_REF.exec(result.stdout.trim())?.groups?.sha;
+	if (!sha) {
 		throw new Error("Cannot verify the current main revision.");
 	}
-	return value.sha;
+	return sha;
 }

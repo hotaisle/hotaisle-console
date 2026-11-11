@@ -1,7 +1,10 @@
 import { execFileSync } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("node:child_process", () => ({ execFileSync: vi.fn() }));
+vi.mock("node:child_process", () => ({
+	execFileSync: vi.fn(),
+	spawnSync: vi.fn(),
+}));
 
 const HEAD = "a".repeat(40);
 // Public fields returned by the 2026-03-10 associated-PR API. That API no
@@ -20,6 +23,11 @@ beforeEach(() => {
 	vi.stubEnv("WORKERS_CI", "1");
 	vi.stubEnv("WORKERS_CI_BRANCH", "main");
 	vi.stubEnv("WORKERS_CI_COMMIT_SHA", HEAD);
+	vi.mocked(execFileSync).mockImplementation((command) =>
+		command === "git"
+			? "Rebased change without a PR trailer"
+			: (undefined as never)
+	);
 });
 
 afterEach(() => {
@@ -28,6 +36,32 @@ afterEach(() => {
 });
 
 describe("native build PR metadata", () => {
+	it("resolves squash-merge provenance without a REST request", async () => {
+		vi.mocked(execFileSync).mockImplementation((command) =>
+			command === "git"
+				? "fix(ci): restore native builds (#3)"
+				: (undefined as never)
+		);
+		const fetcher = vi.fn();
+		vi.stubGlobal("fetch", fetcher);
+		await import("./cloudflare-build");
+		expect(fetcher).not.toHaveBeenCalled();
+		expect(execFileSync).toHaveBeenCalledWith(
+			"git",
+			["show", "-s", "--format=%B", HEAD, "--"],
+			expect.any(Object)
+		);
+		expect(execFileSync).toHaveBeenCalledWith(
+			"bun",
+			["run", "build"],
+			expect.objectContaining({
+				env: expect.objectContaining({
+					VITE_BUILD_PR_URL:
+						"https://github.com/hotaisle/hotaisle-console/pull/3",
+				}),
+			})
+		);
+	});
 	it("builds using the current API's commit-specific PR association", async () => {
 		const fetcher = vi.fn().mockResolvedValue(Response.json([PR]));
 		vi.stubGlobal("fetch", fetcher);
@@ -73,6 +107,8 @@ describe("native build PR metadata", () => {
 		await expect(import("./cloudflare-build")).rejects.toThrow(
 			"No merged Console pull request matches"
 		);
-		expect(execFileSync).not.toHaveBeenCalled();
+		expect(
+			vi.mocked(execFileSync).mock.calls.every(([command]) => command === "git")
+		).toBe(true);
 	});
 });
