@@ -4,6 +4,7 @@ import {
 	createRoute,
 	createRouter,
 	RouterProvider,
+	useRouterState,
 } from "@tanstack/react-router";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -44,6 +45,7 @@ const ENDED: Ended = {
 const noop = () => undefined;
 let machines: Machine[];
 function Probe() {
+	useRouterState();
 	const c = useConsole({
 		onTeam: noop,
 		status: {
@@ -116,6 +118,13 @@ async function open(path: string) {
 	);
 	const history = createMemoryHistory({ initialEntries: [path] });
 	const router = createRouter({ history, routeTree });
+	const navigate = router.navigate.bind(router);
+	vi.spyOn(router, "navigate").mockImplementation((options) => {
+		if (vi.mocked(router.navigate).mock.calls.length > 20) {
+			throw new Error("Machine selection kept navigating.");
+		}
+		return navigate(options);
+	});
 	const rendered = render(
 		<TestProvider>
 			<ToastHost>
@@ -280,6 +289,7 @@ describe("composite machine identity in the console", () => {
 		expect(screen.getByTestId("selection")).toHaveTextContent(
 			machineKey("lab", METAL)
 		);
+		expect(rendered.router.navigate).toHaveBeenCalledOnce();
 	});
 	it("keeps same-name history links distinct and rejects ambiguous legacy run links", async () => {
 		historyVault.rememberEnd(ENDED);
@@ -321,5 +331,6 @@ describe("composite machine identity in the console", () => {
 		expect(screen.getByTestId("run")).toHaveTextContent(
 			machineKey("lab", METAL)
 		);
+		expect(rendered.router.navigate).toHaveBeenCalledOnce();
 	});
 });
