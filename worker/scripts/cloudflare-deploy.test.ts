@@ -14,7 +14,7 @@ beforeEach(() => {
 });
 describe("Workers Builds production deployment", () => {
 	it("deploys the prebuilt output only for the current main commit", async () => {
-		vi.mocked(currentMainCommit).mockResolvedValue(HEAD);
+		vi.mocked(currentMainCommit).mockReturnValue(HEAD);
 		await import("./cloudflare-deploy");
 		expect(execFileSync).toHaveBeenCalledOnce();
 		expect(execFileSync).toHaveBeenCalledWith(
@@ -24,14 +24,14 @@ describe("Workers Builds production deployment", () => {
 		);
 	});
 	it("does not publish an older build after main advances", async () => {
-		vi.mocked(currentMainCommit).mockResolvedValue("b".repeat(40));
+		vi.mocked(currentMainCommit).mockReturnValue("b".repeat(40));
 		await import("./cloudflare-deploy");
 		expect(execFileSync).not.toHaveBeenCalled();
 	});
 	it("does not publish when the current source revision cannot be verified", async () => {
-		vi.mocked(currentMainCommit).mockRejectedValue(
-			new Error("GitHub unavailable")
-		);
+		vi.mocked(currentMainCommit).mockImplementation(() => {
+			throw new Error("GitHub unavailable");
+		});
 		await expect(import("./cloudflare-deploy")).rejects.toThrow(
 			"GitHub unavailable"
 		);

@@ -16,10 +16,10 @@ Verified on November 11, 2026 through the Cloudflare Builds API and dashboard:
 
 GitHub Actions continues to validate pull requests without production credentials.
 Cloudflare builds and deploys after a merge changes main. The production helper
-installs frozen dependencies, runs lint, type checks and isolated tests, builds
-the application, and validates Worker packaging. Deployment uses that prebuilt
+installs frozen dependencies, runs lint and type checks, builds the application,
+runs isolated tests, and validates Worker packaging. Deployment uses that prebuilt
 output and skips publication if main has advanced. The footer resolves the merged
-PR from public metadata without a GitHub API credential.
+PR from its Git merge message without a GitHub API credential.
 
 ## Credentials
 
@@ -88,6 +88,23 @@ not checked into Git.
 A source-only copy without generated assets passed frozen dependency installation,
 the production build, all 291 tests across 56 files, and the deployment dry-run
 in this corrected order. This check did not use the local frontend output cache.
+
+## Avoid public REST dependencies for normal builds
+
+A later native build received HTTP 403 from the unauthenticated GitHub metadata
+endpoint before compilation. The normal build path now reads the exact source
+commit's Git message: GitHub squash subjects and merge subjects identify their
+PR directly. A rebased commit can provide an exact `Pull-Request:` URL trailer;
+without one, its fallback still uses the public commit-specific association API.
+Incidental body references and foreign-repository URLs are not accepted as PR
+metadata.
+
+The final main-revision check uses Git's remote-ref advertisement for this public
+repository rather than the REST API quota. Credential helpers, extra HTTP headers,
+redirects and interactive prompts are disabled for that read. It has a bounded
+timeout and rejects malformed responses and transport failures before deployment.
+Tests cover the API-independent path and preserve stale-build rejection. Both Git
+lookups were also checked against the actual merged source and remote main ref.
 
 This document belongs under `docs/` and must remain outside the frontend assets
 and Worker upload. The production asset guard enforces that exclusion.
