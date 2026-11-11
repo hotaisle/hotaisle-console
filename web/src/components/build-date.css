@@ -3,3 +3,10 @@
 	line-height: 1.5;
 	color: var(--muted);
 }
+
+.build-date a {
+	color: inherit;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	cursor: pointer;
+}

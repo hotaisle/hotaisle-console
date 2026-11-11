@@ -31,6 +31,8 @@ jobs:
       - name: Lint and formatting (tabs)
         run: bun run check
       - name: Build the app
+        env:
+          VITE_BUILD_PR_URL: ${{ github.event.pull_request.html_url }}
         run: bun run build
       - name: Validate deployment bundle (no upload)
         run: bun run --cwd worker cf deploy --prebuilt --dry-run
