@@ -82,6 +82,11 @@ bun run build             # Frontend, then Worker packaging
 Keep the existing development process running during browser verification. Frontend changes need
 `bun run build:web`, or an already-running `bun run --cwd web watch` process.
 
+The build footer links to the source pull request. Normal builds require a valid PR URL, resolved with
+the authenticated `gh` CLI from the branch or commit. For an offline build, supply the verified URL with
+`VITE_BUILD_PR_URL=https://github.com/hotaisle/hotaisle-console/pull/<number> bun run build`.
+CI supplies the PR URL directly for pull-request builds and resolves it from the merged commit on `main`.
+
 Bun manages the root, `web`, and `worker` workspaces with one `bun.lock`. Frontend tools, type checks, and helper
 scripts run under Bun. Cloudflare's TypeScript configuration loader requires Node, so `cf`, the Worker bundler,
 and Vitest orchestration use Node. Do not force those commands to run with `--bun`.
