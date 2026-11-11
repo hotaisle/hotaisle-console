@@ -1,0 +1,465 @@
+[
+	{
+		"verdict": "needs_validation",
+		"fingerprint": "browser-cloud-init-url-plaintext",
+		"title": "Custom cloud-init URL remains in plaintext browser state",
+		"description": "The Console stores a custom HTTPS cloud-init URL in persistent plaintext preferences; the launch flow also places it in URL search state. Preferences survive sign-out. If signed URLs are supported, someone with access to the signed-out browser profile can read an embedded token. The UI currently describes the link as public, so intended signed-link use is unverified.",
+		"claimed_root_cause": "The cloud-init URL shares plaintext preference and navigation storage instead of a credential-aware storage path.",
+		"trace": [
+			{
+				"kind": "entrypoint",
+				"file": "web/src/features/settings/defaults.tsx",
+				"line": 41,
+				"scope": "custom URL setting",
+				"description": "The user enters a custom cloud-init URL."
+			},
+			{
+				"kind": "propagation",
+				"file": "web/src/features/settings/defaults.tsx",
+				"line": 18,
+				"scope": "setting change",
+				"description": "The input updates shared preferences."
+			},
+			{
+				"kind": "sink",
+				"file": "web/src/lib/prefs.ts",
+				"line": 69,
+				"scope": "setPrefs",
+				"description": "The full preference object, including customURL, is written to localStorage."
+			}
+		],
+		"evidence": [
+			{
+				"file": "web/src/features/console/console-panel.tsx",
+				"line": 100,
+				"description": "The launch flow also copies the URL into route search state."
+			},
+			{
+				"file": "web/src/features/launch/image-view.tsx",
+				"line": 19,
+				"description": "The UI says the link must be public, leaving signed-link support unclear."
+			}
+		],
+		"blockers": [
+			"The product requirement for signed or otherwise credential-bearing cloud-init URLs is unresolved.",
+			"No isolated browser sign-out check was performed during this audit."
+		],
+		"validation_plan": {
+			"local": "With a dummy signed-looking HTTPS URL in an isolated browser fixture, inspect localStorage and navigation history after sign-out.",
+			"deployment": "Decide whether signed links are supported; if public-only, document and enforce that constraint; if supported, keep them out of plaintext persistence and URL search."
+		}
+	},
+	{
+		"verdict": "needs_validation",
+		"fingerprint": "cloudflare-issues-request-metadata",
+		"title": "Workers Issues may retain request identifiers",
+		"description": "The newly requested Logs and Issues settings are an intentional operational change. The production dashboard now shows Logs and Issues on and invocation logs and traces off, but its generated config still shows query-string redaction off. The repository requests redaction for the next code deployment. Cloudflare documents that Issues occurrences can include request details, and API pathnames can contain team handles. Exact retained fields and dashboard access are unverified, so the zero-user-metadata privacy property cannot be claimed.",
+		"claimed_root_cause": "Issues persists failure context outside the application's own storage model.",
+		"trace": [
+			{
+				"kind": "entrypoint",
+				"file": "web/src/lib/api.ts",
+				"line": 174,
+				"scope": "team API path",
+				"description": "API paths embed a team handle."
+			},
+			{
+				"kind": "propagation",
+				"file": "worker/src/index.ts",
+				"line": 381,
+				"scope": "upstream response",
+				"description": "The Worker can return upstream 5xx responses that Issues detects."
+			},
+			{
+				"kind": "sink",
+				"file": "worker/cloudflare.config.ts",
+				"line": 24,
+				"scope": "observability",
+				"description": "Persistent Logs and Issues are enabled."
+			}
+		],
+		"evidence": [
+			{
+				"file": "worker/cloudflare.config.ts",
+				"line": 26,
+				"description": "The repository requests query-string redaction; the live dashboard still reports it off."
+			},
+			{
+				"file": "worker/cloudflare.config.ts",
+				"line": 30,
+				"description": "Automatic invocation logs are disabled."
+			},
+			{
+				"file": "worker/src/index.ts",
+				"line": 381,
+				"description": "Upstream failure statuses can reach the client and Cloudflare Issues."
+			}
+		],
+		"blockers": [
+			"Actual Issues occurrence fields and dashboard access permissions were not observed.",
+			"The source redaction setting has not been deployed; production currently reports query-string redaction off."
+		],
+		"validation_plan": {
+			"local": "Use only dummy failure metadata in an authorized isolated deployment to inspect the exact Issues occurrence fields, or use vendor documentation if it fully resolves them.",
+			"deployment": "Verify access, retention, and query-string redaction before allowing real traffic; if no user metadata may be retained, disable Issues."
+		}
+	},
+	{
+		"verdict": "needs_validation",
+		"fingerprint": "machine-kind-name-collision",
+		"title": "Global machine-name cache can misroute actions",
+		"description": "The browser selects bare-metal versus VM endpoints from a global set of names, while machine UI actions use the selected resource's explicit type. A same-team cross-type name collision could send a confirmed VM operation to a bare-metal resource. The deployed API's name-uniqueness invariant is unknown.",
+		"claimed_root_cause": "Endpoint dispatch uses name alone rather than the selected typed resource and team.",
+		"trace": [
+			{
+				"kind": "entrypoint",
+				"file": "web/src/lib/api.ts",
+				"line": 192,
+				"scope": "metalVM",
+				"description": "A bare-metal response adds its name to a process-global set."
+			},
+			{
+				"kind": "propagation",
+				"file": "web/src/lib/api.ts",
+				"line": 188,
+				"scope": "isMetal",
+				"description": "The set is queried by name with no team or type."
+			},
+			{
+				"kind": "sink",
+				"file": "web/src/lib/api.ts",
+				"line": 298,
+				"scope": "release",
+				"description": "The DELETE target is chosen from isMetal(name)."
+			}
+		],
+		"evidence": [
+			{
+				"file": "web/src/lib/api.ts",
+				"line": 271,
+				"description": "Power dispatch uses the same name-only decision."
+			},
+			{
+				"file": "web/src/lib/api.ts",
+				"line": 290,
+				"description": "Rebuild dispatch uses the same name-only decision."
+			}
+		],
+		"blockers": [
+			"The deployed API's cross-type and cross-team name uniqueness/reuse rules are unavailable.",
+			"No isolated collision fixture was executed."
+		],
+		"validation_plan": {
+			"local": "Use a dummy isolated API fixture with VM and bare-metal resources sharing a name; verify that the selected resource type determines the endpoint.",
+			"deployment": "Have the API owner document and verify deployed naming invariants; avoid real machine operations."
+		}
+	},
+	{
+		"verdict": "needs_validation",
+		"fingerprint": "ssh-unescaped-metadata",
+		"title": "Copied SSH instructions interpolate API metadata",
+		"description": "The Console copies API-provided host, port, and machine name into shell commands and SSH config text without escaping. The browser does not execute this text; a command or config injection outcome would require lower-trust control of those fields and a user pasting them. Field provenance in the deployed API is unverified.",
+		"claimed_root_cause": "Terminal instructions treat upstream machine metadata as syntactically safe shell and SSH-config text.",
+		"trace": [
+			{
+				"kind": "entrypoint",
+				"file": "web/src/features/machines/use-trip.ts",
+				"line": 162,
+				"scope": "machine connection data",
+				"description": "API-derived SSH fields populate the trip context."
+			},
+			{
+				"kind": "propagation",
+				"file": "web/src/lib/format.ts",
+				"line": 113,
+				"scope": "sshCommand",
+				"description": "Host and port are interpolated into copied command text."
+			},
+			{
+				"kind": "sink",
+				"file": "web/src/features/machines/trip-connection.tsx",
+				"line": 14,
+				"scope": "SSH command copy",
+				"description": "The generated SSH command is passed to a Copy button for terminal use."
+			}
+		],
+		"evidence": [
+			{
+				"file": "web/src/features/machines/connection-actions.tsx",
+				"line": 10,
+				"description": "A parallel action interpolates machine name and host into SSH config text."
+			},
+			{
+				"file": "web/src/features/machines/connection-actions.tsx",
+				"line": 18,
+				"description": "The vLLM port-forward command interpolates the same values."
+			},
+			{
+				"file": "web/src/lib/format.ts",
+				"line": 115,
+				"description": "sshCommand does not enforce a host/port grammar."
+			}
+		],
+		"blockers": [
+			"No source proves an untrusted tenant can write machine host/name/port fields.",
+			"No bounded dummy metadata fixture was executed."
+		],
+		"validation_plan": {
+			"local": "In a fully isolated component fixture, render and copy dummy metadata containing delimiters; assert output is escaped or rejected without executing it.",
+			"deployment": "Check deployed API and inventory field provenance and validation; do not test with live machine addresses."
+		}
+	},
+	{
+		"verdict": "needs_validation",
+		"fingerprint": "teams:stale-available-cross-account",
+		"title": "Delayed team mutations can cross an account switch",
+		"description": "A team creation or invitation accepted under account A can resolve after sign-out and after account B has loaded the shared account cache. The callback appends A's returned team metadata to B's cache and navigates. Installed TanStack Query source supports callbacks after unmount, but an isolated two-account fixture has not demonstrated the visible leak.",
+		"claimed_root_cause": "AccountView.available writes to the current ACCOUNT_KEY without checking the account that initiated the mutation.",
+		"trace": [
+			{
+				"kind": "entrypoint",
+				"file": "web/src/features/teams/create-team-form.tsx",
+				"line": 18,
+				"scope": "CreateTeamForm submission",
+				"description": "An authenticated team creation request may remain pending during account switch."
+			},
+			{
+				"kind": "propagation",
+				"file": "web/src/features/teams/create-team-form.tsx",
+				"line": 25,
+				"scope": "onCreated continuation",
+				"description": "After the response, the form calls the captured onCreated callback."
+			},
+			{
+				"kind": "sink",
+				"file": "web/src/app/app.tsx",
+				"line": 116,
+				"scope": "AccountView.available",
+				"description": "The callback appends the returned team to whichever account data is current, then navigates."
+			}
+		],
+		"evidence": [
+			{
+				"file": "web/src/features/teams/team-invitation.tsx",
+				"line": 13,
+				"description": "Invitation acceptance uses the same onAccepted callback path."
+			},
+			{
+				"file": "web/src/hooks/use-session.ts",
+				"line": 75,
+				"description": "Sign-out removes private queries but does not invalidate a pending callback's account generation."
+			},
+			{
+				"file": "web/src/app/app.tsx",
+				"line": 143,
+				"description": "The separate teamSaved path has an account identity check that available lacks."
+			}
+		],
+		"blockers": [
+			"No isolated two-account delayed-response fixture was run under the required sandbox to demonstrate visible B-account metadata.",
+			"The duration and exact fields of the transient display depend on account refetch timing."
+		],
+		"validation_plan": {
+			"local": "Use two dummy accounts in a fully isolated component fixture. Hold A's create/accept response, sign out, sign in B and populate ACCOUNT_KEY, release A's response, then assert B's cache/UI excludes A's team.",
+			"deployment": "No live account test is needed. Confirm the deployed upstream still authorizes resources independently of client cache."
+		}
+	},
+	{
+		"verdict": "needs_validation",
+		"fingerprint": "worker:email-start-abuse",
+		"title": "Email sign-in relies on upstream abuse limits",
+		"description": "An unauthenticated caller can request email sign-in for syntactically valid addresses. The Console has no local throttle, but its adapter preserves upstream 429 and a local HotManager checkout contains rate limits. A mail-flood effect is not established for the deployed API.",
+		"claimed_root_cause": "The anonymous route delegates all mail rate limiting to upstream and edge controls.",
+		"trace": [
+			{
+				"kind": "entrypoint",
+				"file": "worker/src/index.ts",
+				"line": 140,
+				"scope": "request guard",
+				"description": "A non-browser caller can supply the custom header and omit Origin."
+			},
+			{
+				"kind": "propagation",
+				"file": "worker/src/index.ts",
+				"line": 273,
+				"scope": "emailStart",
+				"description": "Valid email input enters the sign-in flow."
+			},
+			{
+				"kind": "sink",
+				"file": "worker/src/hotaisle.ts",
+				"line": 145,
+				"scope": "startEmail",
+				"description": "The Worker asks the upstream email-login endpoint to send approval mail."
+			}
+		],
+		"evidence": [
+			{
+				"file": "worker/src/index.ts",
+				"line": 273,
+				"description": "No Worker-local rate limiter is applied before startEmail."
+			},
+			{
+				"file": "worker/src/hotaisle.ts",
+				"line": 158,
+				"description": "An upstream 429 response is passed through."
+			}
+		],
+		"blockers": [
+			"The deployed upstream revision and effective edge/mail throttles were not inspected."
+		],
+		"validation_plan": {
+			"local": "Use a dummy mailbox in a fully isolated upstream fixture to verify the Worker's response to 429 without sending real email.",
+			"deployment": "Compare the deployed API revision and edge rules with the expected per-mailbox/client limits; inspect existing rate-limit and delivery metrics."
+		}
+	},
+	{
+		"verdict": "needs_validation",
+		"fingerprint": "worker:email-start-body-buffer",
+		"title": "Email sign-in body is buffered before its limit",
+		"description": "An anonymous non-browser caller can make the Worker materialize a large email-start body before the 1,024-character check. Cloudflare documents that full buffering can exhaust Worker memory, but this run did not reproduce shared availability loss.",
+		"claimed_root_cause": "Size validation happens after req.text() consumes the full body.",
+		"trace": [
+			{
+				"kind": "entrypoint",
+				"file": "worker/src/index.ts",
+				"line": 194,
+				"scope": "POST /auth/email/start",
+				"description": "Anonymous email-start route enters the auth handler."
+			},
+			{
+				"kind": "propagation",
+				"file": "worker/src/index.ts",
+				"line": 273,
+				"scope": "emailStart",
+				"description": "The handler invokes readJSON with a 1,024-character intended limit."
+			},
+			{
+				"kind": "sink",
+				"file": "worker/src/index.ts",
+				"line": 76,
+				"scope": "readJSON",
+				"description": "The function reads req.text() before checking its length."
+			}
+		],
+		"evidence": [
+			{
+				"file": "worker/src/index.ts",
+				"line": 76,
+				"description": "The full body is read before the limit is applied."
+			},
+			{
+				"file": "worker/src/index.ts",
+				"line": 140,
+				"description": "The custom header can be supplied by a non-browser caller without Origin."
+			}
+		],
+		"blockers": [
+			"No bounded local reproduction under the skill's required sandbox was available.",
+			"The deployed zone request-body limit and effective isolate behavior are unknown."
+		],
+		"validation_plan": {
+			"local": "In a fully isolated Worker fixture with dummy requests and explicit resource limits, verify that an oversized body is rejected before full buffering; stop at the first deterministic failure.",
+			"deployment": "Confirm zone upload settings and Worker memory/error telemetry without sending large traffic to a live service."
+		}
+	},
+	{
+		"verdict": "needs_validation",
+		"fingerprint": "worker:internal-upstream-redirect",
+		"title": "Internal Worker fetches may forward credentials on redirects",
+		"description": "The internal identity and email adapter omits manual redirect handling while it sends API credentials or an email claim ticket. Cloudflare documents that a followed Worker redirect forwards sensitive headers across origins. The fixed upstream endpoint's ability to produce an attacker-influenced external redirect is unverified.",
+		"claimed_root_cause": "The internal upstream helper uses default redirect-following fetch with credential headers.",
+		"trace": [
+			{
+				"kind": "entrypoint",
+				"file": "worker/src/index.ts",
+				"line": 205,
+				"scope": "history-key authentication",
+				"description": "The Worker verifies an incoming credential through whoIs."
+			},
+			{
+				"kind": "propagation",
+				"file": "worker/src/hotaisle.ts",
+				"line": 27,
+				"scope": "authHeaders",
+				"description": "The credential is placed in Authorization or X-Session-Key."
+			},
+			{
+				"kind": "sink",
+				"file": "worker/src/hotaisle.ts",
+				"line": 58,
+				"scope": "upstream",
+				"description": "send receives a credential-bearing RequestInit without redirect: manual."
+			}
+		],
+		"evidence": [
+			{
+				"file": "worker/src/hotaisle.ts",
+				"line": 58,
+				"description": "Internal upstream requests do not set redirect mode."
+			},
+			{
+				"file": "worker/src/index.ts",
+				"line": 365,
+				"description": "The general API proxy explicitly uses manual redirects, showing a parallel safer path."
+			}
+		],
+		"blockers": [
+			"No source path proves that a lower-trust actor can induce an external redirect at the fixed upstream endpoints."
+		],
+		"validation_plan": {
+			"local": "With dummy credentials in a fully isolated local fixture, return a 307 to a dummy loopback sink and inspect only whether a credential would be forwarded.",
+			"deployment": "Have the upstream owner inspect routing and redirect rules for identity and email endpoints; do not test with live credentials."
+		}
+	},
+	{
+		"verdict": "needs_validation",
+		"fingerprint": "worker:proxy-body-buffer",
+		"title": "API proxy buffers request bodies before credential verification",
+		"description": "A caller can provide a syntactically valid fake API key and the required custom header, then make the Worker fully buffer a non-GET API request body before the upstream can reject the key. Cloudflare warns that large buffered bodies can exhaust Worker memory; no shared outage was reproduced.",
+		"claimed_root_cause": "The proxy uses req.arrayBuffer() without a source-visible byte cap before upstream authentication.",
+		"trace": [
+			{
+				"kind": "entrypoint",
+				"file": "worker/src/index.ts",
+				"line": 140,
+				"scope": "request guard",
+				"description": "A non-browser caller can satisfy the custom-header check without Origin."
+			},
+			{
+				"kind": "propagation",
+				"file": "worker/src/index.ts",
+				"line": 431,
+				"scope": "stateless proxy",
+				"description": "Syntactically valid Token text is accepted for forwarding without local verification."
+			},
+			{
+				"kind": "sink",
+				"file": "worker/src/index.ts",
+				"line": 366,
+				"scope": "apiProxy",
+				"description": "The full request body is buffered with arrayBuffer before upstream forwarding."
+			}
+		],
+		"evidence": [
+			{
+				"file": "worker/src/index.ts",
+				"line": 366,
+				"description": "Non-GET/HEAD bodies are fully buffered."
+			},
+			{
+				"file": "worker/src/index.ts",
+				"line": 421,
+				"description": "Credential parsing checks syntax and length, not validity."
+			}
+		],
+		"blockers": [
+			"No bounded local memory reproduction was run.",
+			"Effective deployed request limits and cross-request impact are unknown."
+		],
+		"validation_plan": {
+			"local": "Use dummy fake credentials and bounded request bodies in a fully isolated Worker fixture under strict memory/time limits; verify early rejection without stressing a live service.",
+			"deployment": "Confirm zone upload limits and relevant Worker failure counts from existing telemetry only."
+		}
+	}
+]

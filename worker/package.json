@@ -4,7 +4,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "bun run scripts/assert-assets.ts && cf build",
-		"deploy": "cf deploy --prebuilt",
+		"deploy": "bun run scripts/assert-assets.ts && cf deploy --prebuilt",
 		"dev": "cf dev"
 	},
 	"devDependencies": {

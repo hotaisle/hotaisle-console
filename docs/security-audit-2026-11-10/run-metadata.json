@@ -1,0 +1,46 @@
+{
+	"run_id": "hotaisle-console-2026-11-10-1",
+	"repo": "hotaisle/hotaisle-console",
+	"target": "repository root",
+	"source_ref": "4e72d26ab835c2f678c31442116968d21a3a84ea",
+	"source_dirty_at_start": false,
+	"profile": "standard",
+	"scope_paths": [
+		"worker",
+		"web",
+		"shared",
+		".github",
+		"package.json",
+		"bun.lock"
+	],
+	"budget": null,
+	"execution_policy": "sandboxed-source-and-local-only",
+	"actual_execution": "source-only; target-controlled tests and builds were not run during the audit",
+	"post_audit_operational_change": "Production dashboard settings-only update: Logs and Issues on; invocation logs and traces off; query-string redaction still off. No application code or route deployed.",
+	"selected_companion_files": [
+		"WEB-PROTOCOL-AND-AUTH.md",
+		"CLIENT-SIDE.md",
+		"CLOUD-AND-DEPLOYMENT.md",
+		"DATA-ISOLATION-AND-LIFECYCLE.md",
+		"SUPPLY-CHAIN-AND-RELEASE.md",
+		"RESOURCE-EXHAUSTION-AND-AVAILABILITY.md"
+	],
+	"prior_run_paths": [],
+	"shared_file_owner": "parent",
+	"skill_upstream": "https://github.com/cloudflare/security-audit-skill",
+	"skill_upstream_ref": "c1c8a8c1471069fb0e188eeaff69b8e8db6564a8",
+	"reviewed_worktree_changes": [
+		"worker/cloudflare.config.ts",
+		"worker/scripts/assert-assets.ts",
+		"worker/package.json",
+		"README.md",
+		"AGENTS.md",
+		"docs/security-audit-2026-11-10/"
+	],
+	"source_dirty_at_end": true,
+	"agent_invocations": 33,
+	"coverage_units": 24,
+	"candidate_records": 9,
+	"confirmed_records": 0,
+	"run_status": "complete"
+}
