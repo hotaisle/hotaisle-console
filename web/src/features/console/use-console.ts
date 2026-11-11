@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { machineKey } from "../../../../shared/machine-identity";
 import { isPresent } from "../../../../shared/present";
+import { useShortcut } from "../../hooks/use-shortcut";
 import type { Ended, Status, Team, VM } from "../../lib/api";
 import { usePrefs } from "../../lib/prefs";
 import { signal } from "../../lib/signal";
@@ -11,6 +12,7 @@ import { NEW, placeNew } from "../stage/model";
 import { buildStage } from "./stage-state";
 import { useConsoleData } from "./use-console-data";
 import { useMachineSelection } from "./use-machine-selection";
+import { useMachineShortcuts } from "./use-machine-shortcuts";
 import { useNavigation } from "./use-navigation";
 
 export function useConsole({
@@ -48,6 +50,10 @@ export function useConsole({
 
 	const { stack, view, go, push, back, focusMachine, focus, runName, legacy } =
 		useNavigation(h);
+	useShortcut("Escape", back, {
+		enabled: view !== "home",
+		meta: { name: "Go back" },
+	});
 	const { focused, focusedReceipt, focusedKey, run, runError, selectionError } =
 		useMachineSelection(
 			h,
@@ -58,6 +64,7 @@ export function useConsole({
 			vms.data === undefined
 		);
 	const rootIsOrder = list.length === 0 && receipts.length === 0 && !focus;
+	useMachineShortcuts(h, view === "home", focused, states);
 	// ---------------------------------------------------------------- the order, kept while you look at keys or settings
 	const { order, setOrder } = useOrder();
 	// an earlier run, opened from the history to look back at it

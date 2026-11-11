@@ -1,19 +1,21 @@
+import {
+	type HotkeyChord,
+	useDefaultHotkeysOptions,
+	useHotkey,
+	useHotkeyScopesState,
+	useHotkeys,
+} from "@tanstack/react-hotkeys";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useShortcut } from "../../hooks/use-shortcut";
 import { sound } from "../../lib/sound";
 import { createHoldController, type HoldPhase } from "./hold-controller";
 
-const INPUT_CONTROL_PATTERN = /^(?:INPUT|TEXTAREA|SELECT)$/u;
-function typing(target: EventTarget | null) {
-	return (
-		target instanceof HTMLElement &&
-		(target.isContentEditable || INPUT_CONTROL_PATTERN.test(target.tagName))
-	);
-}
 export function useHold({
 	ms,
 	disabled,
 	busy,
 	hotkey,
+	label,
 	onConfirm,
 	onProgress,
 	tone,
@@ -21,7 +23,8 @@ export function useHold({
 	ms: number;
 	disabled?: boolean;
 	busy?: boolean;
-	hotkey?: string;
+	hotkey?: HotkeyChord;
+	label: string;
 	onConfirm: () => void;
 	onProgress?: (level: number) => void;
 	tone: "heat" | "danger";
@@ -70,38 +73,41 @@ export function useHold({
 			stop();
 		}
 	}, [disabled, busy, stop]);
+
+	const defaults = useDefaultHotkeysOptions();
+	const scopes = useHotkeyScopesState();
+	const scope = defaults.hotkey?.scope ?? "global";
 	useEffect(() => {
-		if (!hotkey) {
-			return;
+		if (scopes.suspended.includes(scope)) {
+			stop();
 		}
-		function down(event: KeyboardEvent) {
-			if (
-				event.key.toLowerCase() !== hotkey ||
-				event.repeat ||
-				event.metaKey ||
-				event.ctrlKey ||
-				event.altKey ||
-				typing(event.target) ||
-				document.querySelector("dialog[open]")
-			) {
-				return;
-			}
-			event.preventDefault();
-			begin();
-		}
-		function up(event: KeyboardEvent) {
-			if (event.key.toLowerCase() === hotkey) {
-				stop();
-			}
-		}
-		window.addEventListener("keydown", down);
-		window.addEventListener("keyup", up);
+	}, [scopes, scope, stop]);
+	useShortcut(hotkey, begin, {
+		enabled: !(disabled || busy),
+		meta: {
+			description: "Hold until confirmed; release to cancel.",
+			name: label,
+		},
+	});
+	useHotkey(hotkey, stop, {
+		eventType: "keyup",
+		ignoreInputs: false,
+		preventDefault: false,
+	});
+	useHotkeys(
+		(["Enter", "Space"] as const).flatMap((key) => [
+			{
+				callback: begin,
+				hotkey: key,
+				options: { meta: { name: label }, requireReset: true },
+			},
+			{ callback: stop, hotkey: key, options: { eventType: "keyup" as const } },
+		]),
+		{ enabled: !(disabled || busy), ignoreInputs: false, target: button }
+	);
+	useEffect(() => {
 		window.addEventListener("blur", stop);
-		return () => {
-			window.removeEventListener("keydown", down);
-			window.removeEventListener("keyup", up);
-			window.removeEventListener("blur", stop);
-		};
-	}, [hotkey, begin, stop]);
+		return () => window.removeEventListener("blur", stop);
+	}, [stop]);
 	return { begin, button, phase, stop };
 }

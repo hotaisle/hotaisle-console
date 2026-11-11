@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { HoldButton } from "../../components/ui/hold-button";
+import { KeyboardScope } from "../../components/ui/keyboard-scope";
+import { useShortcut } from "../../hooks/use-shortcut";
 import { api } from "../../lib/api";
 import { hoursOr } from "../../lib/format";
 import { PowerActionConfirmation } from "./power-action-confirmation";
@@ -8,10 +10,16 @@ import type { TripContext } from "./use-trip";
 export function TripConfirmation({ context }: { context: TripContext }) {
 	if (context.panel && typeof context.panel === "object") {
 		return (
-			<PowerActionConfirmation context={context} operation={context.panel} />
+			<KeyboardScope>
+				<PowerActionConfirmation context={context} operation={context.panel} />
+			</KeyboardScope>
 		);
 	}
-	return <EndOrRebuildConfirmation context={context} />;
+	return (
+		<KeyboardScope>
+			<EndOrRebuildConfirmation context={context} />
+		</KeyboardScope>
+	);
 }
 
 function EndOrRebuildConfirmation({ context }: { context: TripContext }) {
@@ -46,15 +54,10 @@ function EndOrRebuildConfirmation({ context }: { context: TripContext }) {
 	useEffect(() => {
 		cancel.current?.focus({ preventScroll: true });
 	}, []);
-	const onEscape = useCallback(
-		(event: React.KeyboardEvent<HTMLDialogElement>) => {
-			if (event.key === "Escape" && !busy) {
-				event.preventDefault();
-				setPanel(null);
-			}
-		},
-		[busy, setPanel]
-	);
+	useShortcut("Escape", handleOnClick, {
+		enabled: !busy,
+		meta: { name: panel === "end" ? "Keep it running" : "Cancel rebuild" },
+	});
 	function resolveValue() {
 		if (force || underMin) {
 			return `This deletes the ${vm.metal ? "server" : "machine"} and everything on its ${vm.metal ? "disks" : "disk"}. ${vm.metal ? "A server is" : "Machines are"} billed for at least ${hoursOr(minimumMin)}, so ending now costs ${minCost ? `${minCost} in total` : `the full ${hoursOr(minimumMin)}`}.`;
@@ -69,7 +72,6 @@ function EndOrRebuildConfirmation({ context }: { context: TripContext }) {
 					aria-label={panel === "end" ? "End this machine" : "Rebuild"}
 					className="sheet"
 					key={typeof panel === "string" ? panel : undefined}
-					onKeyDown={onEscape}
 					open
 				>
 					{panel === "end" && (

@@ -8,9 +8,19 @@ import {
 	useRef,
 } from "react";
 import { createPortal } from "react-dom";
+import { useShortcut } from "../../hooks/use-shortcut";
+import { KeyboardScope } from "./keyboard-scope";
 
 /** Non-modal actions near their invoker, with native light dismissal where supported. */
-export function AnchoredPopover({
+export function AnchoredPopover(props: Parameters<typeof PopoverBody>[0]) {
+	return (
+		<KeyboardScope>
+			<PopoverBody {...props} />
+		</KeyboardScope>
+	);
+}
+
+function PopoverBody({
 	anchor,
 	anchorName,
 	id,
@@ -27,6 +37,10 @@ export function AnchoredPopover({
 }) {
 	const ref = useRef<HTMLDialogElement>(null);
 	const titleId = useId();
+	useShortcut("Escape", onClose, {
+		enabled: !Object.hasOwn(HTMLElement.prototype, "popover"),
+		target: ref,
+	});
 	const toggled = useCallback(
 		(event: ToggleEvent<HTMLDialogElement>) => {
 			if (event.target === event.currentTarget && event.newState === "closed") {
@@ -97,15 +111,6 @@ export function AnchoredPopover({
 				onClose();
 			}
 		};
-		const dismissOnEscape = (event: KeyboardEvent) => {
-			if (
-				!native &&
-				event.key === "Escape" &&
-				!popup.querySelector("dialog[open]")
-			) {
-				onClose();
-			}
-		};
 		place();
 		const observer =
 			typeof ResizeObserver === "undefined"
@@ -116,13 +121,11 @@ export function AnchoredPopover({
 		window.addEventListener("resize", place);
 		document.addEventListener("scroll", place, true);
 		document.addEventListener("pointerdown", outside);
-		document.addEventListener("keydown", dismissOnEscape);
 		return () => {
 			observer?.disconnect();
 			window.removeEventListener("resize", place);
 			document.removeEventListener("scroll", place, true);
 			document.removeEventListener("pointerdown", outside);
-			document.removeEventListener("keydown", dismissOnEscape);
 		};
 	}, [anchor, onClose]);
 	return createPortal(

@@ -1,0 +1,20 @@
+.shortcut-list {
+	display: grid;
+	gap: 0;
+	margin: 0;
+}
+.shortcut-list > div {
+	display: flex;
+	gap: 24px;
+	align-items: center;
+	justify-content: space-between;
+	padding-block: 12px;
+	border-block-end: 1px solid var(--line);
+}
+.shortcut-list dt {
+	font-weight: 500;
+}
+.shortcut-list dd {
+	margin: 0;
+	white-space: nowrap;
+}

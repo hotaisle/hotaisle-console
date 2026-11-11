@@ -1,3 +1,4 @@
+import type { HotkeyChord } from "@tanstack/react-hotkeys";
 import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { isPresent } from "../../../../shared/present";
@@ -5,6 +6,7 @@ import type { ConsoleSearch } from "../../app/route-state";
 import { HoldButton } from "../../components/ui/hold-button";
 import { Picker } from "../../components/ui/picker";
 import { useToast } from "../../components/ui/toast";
+import { useShortcuts } from "../../hooks/use-shortcut";
 import {
 	type APIError,
 	api,
@@ -25,8 +27,6 @@ import { availabilityBlocker, sizesOf } from "./offers";
 import { RentalCredits } from "./rental-credits";
 import { RentalEstimate } from "./rental-estimate";
 import type { LaunchMeta, Order } from "./types";
-
-export const INPUT_CONTROL_PATTERN = /^(?:INPUT|TEXTAREA|SELECT)$/u;
 
 export const HTTPS_URL_PATTERN = /^https:\/\/\S+$/u;
 const preserveSearch = (previous: ConsoleSearch) => previous;
@@ -84,27 +84,23 @@ export function OrderView({
 		}
 	}, [sizes, count, setOrder]);
 
-	// 1, 2, 4 and 8 pick a size.
-	useEffect(() => {
-		const onKey = (e: KeyboardEvent) => {
-			if (
-				e.metaKey ||
-				e.ctrlKey ||
-				e.altKey ||
-				(e.target instanceof HTMLElement &&
-					INPUT_CONTROL_PATTERN.test(e.target.tagName))
-			) {
-				return;
-			}
-			const n = Number(e.key);
-			if (sizes.some((o) => o.Specs.gpus?.[0]?.count === n && o.Quantity > 0)) {
-				sound.tick();
-				setOrder({ count: n });
-			}
-		};
-		window.addEventListener("keydown", onKey);
-		return () => window.removeEventListener("keydown", onKey);
-	}, [sizes, setOrder]);
+	useShortcuts(
+		sizes
+			.filter((size) => size.Quantity > 0)
+			.map((size) => ({
+				callback: () => {
+					sound.tick();
+					setOrder({ count: size.Specs.gpus?.[0]?.count });
+				},
+				hotkey: String(size.Specs.gpus?.[0]?.count) as HotkeyChord,
+				options: {
+					enabled: !busy,
+					meta: {
+						name: `Select ${size.Specs.gpus?.[0]?.count} GPU${size.Specs.gpus?.[0]?.count === 1 ? "" : "s"}`,
+					},
+				},
+			}))
+	);
 
 	const offer = sizes.find((o) => o.Specs.gpus?.[0]?.count === count);
 	const g = offer?.Specs.gpus?.[0];
@@ -276,7 +272,7 @@ export function OrderView({
 					busyLabel={offer?.metal ? "Reserving" : "Launching"}
 					disabled={!!blocker || !offer}
 					hint="Press and hold, or hold L. Billing starts once the machine is yours."
-					hotkey="l"
+					hotkey="L"
 					id="launch"
 					label={resolveLabel()}
 					onConfirm={launch}

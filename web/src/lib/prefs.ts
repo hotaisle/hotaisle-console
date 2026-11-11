@@ -7,6 +7,7 @@ export type StatusMotion = "system" | "on" | "off";
 export interface Prefs {
 	image: Image;
 	notify: boolean; // desktop notification when a machine is ready
+	shortcuts: boolean;
 	sound: boolean; // soft key clicks and a chime when a machine is ready
 	statusMotion: StatusMotion;
 	theme: Theme;
@@ -16,6 +17,7 @@ const KEY = "hotaisle-ui:prefs";
 const DEFAULTS: Prefs = {
 	image: "standard",
 	notify: false,
+	shortcuts: true,
 	sound: true,
 	statusMotion: "system",
 	theme: "system",
@@ -31,6 +33,7 @@ function read(): Prefs {
 			statusMotion: StatusMotion | boolean;
 		};
 		saved.customURL = undefined;
+		saved.shortcuts = saved.shortcuts !== false;
 		if (saved.theme !== "light" && saved.theme !== "dark") {
 			saved.theme = "system";
 		}

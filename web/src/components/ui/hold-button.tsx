@@ -1,9 +1,5 @@
-import {
-	type KeyboardEvent,
-	type MouseEvent,
-	type PointerEvent,
-	useCallback,
-} from "react";
+import type { HotkeyChord } from "@tanstack/react-hotkeys";
+import { type MouseEvent, type PointerEvent, useCallback } from "react";
 import { useHold } from "./use-hold";
 
 export interface HoldButtonProps {
@@ -11,7 +7,7 @@ export interface HoldButtonProps {
 	busyLabel?: string;
 	disabled?: boolean;
 	hint?: string;
-	hotkey?: string;
+	hotkey?: HotkeyChord;
 	id?: string;
 	label: string;
 	ms?: number;
@@ -38,6 +34,7 @@ export function HoldButton({
 		busy,
 		disabled,
 		hotkey,
+		label,
 		ms,
 		onConfirm,
 		onProgress,
@@ -46,23 +43,6 @@ export function HoldButton({
 	const context = useCallback(
 		(event: MouseEvent<HTMLButtonElement>) => event.preventDefault(),
 		[]
-	);
-	const keyDown = useCallback(
-		(event: KeyboardEvent<HTMLButtonElement>) => {
-			if ((event.key === " " || event.key === "Enter") && !event.repeat) {
-				event.preventDefault();
-				begin();
-			}
-		},
-		[begin]
-	);
-	const keyUp = useCallback(
-		(event: KeyboardEvent<HTMLButtonElement>) => {
-			if (event.key === " " || event.key === "Enter") {
-				stop();
-			}
-		},
-		[stop]
 	);
 	const pointerDown = useCallback(
 		(event: PointerEvent<HTMLButtonElement>) => {
@@ -83,8 +63,6 @@ export function HoldButton({
 			id={id}
 			onBlur={stop}
 			onContextMenu={context}
-			onKeyDown={keyDown}
-			onKeyUp={keyUp}
 			onPointerCancel={stop}
 			onPointerDown={pointerDown}
 			onPointerLeave={stop}

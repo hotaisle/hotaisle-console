@@ -5,7 +5,6 @@ import {
 	machineKey,
 } from "../../../../shared/machine-identity";
 import { recordsByIdentity } from "../../../../shared/records";
-import { useToast } from "../../components/ui/toast";
 import { usePoll } from "../../hooks/use-resource";
 import { api, type Ended, type VMState } from "../../lib/api";
 import { sshCommand } from "../../lib/format";
@@ -14,9 +13,7 @@ import type { StageMachine } from "../stage/model";
 import { useAvailability } from "./use-availability";
 import { useSessionRecords } from "./use-session-records";
 
-const INPUT_CONTROL_PATTERN = /^(?:INPUT|TEXTAREA|SELECT)$/u;
 export function useConsoleData(h: string, notify: boolean) {
-	const toast = useToast();
 	const [fast, setFast] = useState(true);
 	const vms = usePoll(() => api.vms(h), fast ? 3000 : 15_000, `vms${h}`);
 	const offers = useAvailability(h);
@@ -70,45 +67,6 @@ export function useConsoleData(h: string, notify: boolean) {
 			prune([...alive]);
 		}
 	}, [vms.data, records, prune, h]);
-
-	// C copies the SSH command of the newest ready machine.
-	useEffect(() => {
-		const onKey = (e: KeyboardEvent) => {
-			if (
-				e.key.toLowerCase() !== "c" ||
-				e.metaKey ||
-				e.ctrlKey ||
-				e.altKey ||
-				(e.target instanceof HTMLElement &&
-					INPUT_CONTROL_PATTERN.test(e.target.tagName))
-			) {
-				return;
-			}
-			const vm = [...(vms.data ?? [])]
-				.reverse()
-				.find(
-					(v) =>
-						v.ssh_access && phaseOf(v, states[machineKey(h, v)]) === "running"
-				);
-			if (!vm?.ssh_access) {
-				return;
-			}
-			const cmd = sshCommand(vm.ssh_access);
-			if (!cmd) {
-				toast(
-					"Connection details are unavailable. Refresh this machine.",
-					"err"
-				);
-				return;
-			}
-			navigator.clipboard.writeText(cmd).then(
-				() => toast("Copied the SSH command.", "info", cmd),
-				() => toast("Could not copy the SSH command.", "err")
-			);
-		};
-		window.addEventListener("keydown", onKey);
-		return () => window.removeEventListener("keydown", onKey);
-	}, [vms.data, states, toast, h]);
 
 	// Poll fast while anything is changing; notify when a machine becomes ready.
 	useEffect(() => {

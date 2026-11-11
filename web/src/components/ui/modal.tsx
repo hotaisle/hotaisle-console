@@ -6,6 +6,7 @@ import {
 	useId,
 	useRef,
 } from "react";
+import { KeyboardScope } from "./keyboard-scope";
 
 export function Modal({
 	title,
@@ -50,31 +51,33 @@ export function Modal({
 		return () => dialog.close();
 	}, [initialFocus]);
 	return (
-		<dialog
-			aria-describedby={descriptionId}
-			aria-labelledby={titleId}
-			className="scrim"
-			{...{ closedby: busy ? "none" : "closerequest" }}
-			onCancel={cancel}
-			onClose={closed}
-			ref={ref}
-		>
-			<div className="modal">
-				<div className="modal-h">
-					<h2 id={titleId}>{title}</h2>
-					<form method="dialog">
-						<button
-							aria-label="Close"
-							className="btn ghost sm"
-							disabled={busy}
-							type="submit"
-						>
-							Close
-						</button>
-					</form>
+		<KeyboardScope>
+			<dialog
+				aria-describedby={descriptionId}
+				aria-labelledby={titleId}
+				className="scrim"
+				{...{ closedby: busy ? "none" : "closerequest" }}
+				onCancel={cancel}
+				onClose={closed}
+				ref={ref}
+			>
+				<div className="modal">
+					<div className="modal-h">
+						<h2 id={titleId}>{title}</h2>
+						<form method="dialog">
+							<button
+								aria-label="Close"
+								className="btn ghost sm"
+								disabled={busy}
+								type="submit"
+							>
+								Close
+							</button>
+						</form>
+					</div>
+					{children}
 				</div>
-				{children}
-			</div>
-		</dialog>
+			</dialog>
+		</KeyboardScope>
 	);
 }

@@ -130,6 +130,11 @@ replays without rewriting stored entries; older entries without deployment IDs r
 
 Launch size and image are validated URL search parameters: `gpus` and `image`. Custom cloud-init
 URLs stay in account-scoped encrypted browser storage.
+Press `?` outside text fields for keyboard controls in the current page or action section. TanStack
+Hotkeys scopes pause background commands in dialogs and menus. The list includes only enabled commands;
+`C` copies the selected ready machine’s SSH command, and size/hold-to-launch shortcuts belong to the
+launch view. Keyboard shortcuts can be disabled in Settings without disabling native control activation.
+
 The theme selector is available before and after sign-in. Light, Dark, and System apply to every view and the server drawing, and persist in browser preferences.
 
 Sign-in preserves the requested console destination. Worker assets use SPA fallback for direct page requests.

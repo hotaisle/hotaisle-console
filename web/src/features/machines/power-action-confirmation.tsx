@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useCallback, useEffect, useId, useRef } from "react";
 import { machineAddress } from "../../../../shared/machine-identity";
 import { HoldButton } from "../../components/ui/hold-button";
+import { useShortcut } from "../../hooks/use-shortcut";
 import { api } from "../../lib/api";
 import type { PowerOperation } from "./power-actions";
 import type { TripContext } from "./use-trip";
@@ -39,6 +40,10 @@ export function PowerActionConfirmation({
 			context.onChanged();
 			close();
 		},
+	});
+	useShortcut("Escape", close, {
+		enabled: !action.isPending,
+		meta: { name: "Cancel operation" },
 	});
 	const confirm = useCallback(() => action.mutate(), [action.mutate]);
 	const dismissError = useCallback(() => {

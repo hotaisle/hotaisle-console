@@ -5,13 +5,23 @@ import {
 	notFound,
 	type RouterHistory,
 	redirect,
+	useLocation,
 } from "@tanstack/react-router";
+import { KeyboardControls } from "../components/keyboard-controls";
 import { App } from "./app";
 import { NotFound } from "./not-found";
 import { validateSearch } from "./route-state";
 
+function Root() {
+	const location = useLocation();
+	return (
+		<KeyboardControls contextKey={location.href}>
+			<App />
+		</KeyboardControls>
+	);
+}
 const rootRoute = createRootRoute({
-	component: App,
+	component: Root,
 	notFoundComponent: NotFound,
 	validateSearch,
 });

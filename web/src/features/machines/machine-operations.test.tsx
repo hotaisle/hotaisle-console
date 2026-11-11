@@ -134,11 +134,11 @@ describe("machine operations", () => {
 		expect(notifications).toHaveLength(2);
 		expect(notifications[1]).toHaveValue(write.mock.calls[1][0]);
 	});
-	it("opens More as a non-modal popup and dismisses it without an action", () => {
+	it("opens More as a non-modal popup and dismisses it without an action", async () => {
 		const popup = open();
 		expect(popup).toHaveAttribute("popover", "auto");
 		expect(popup).not.toHaveAttribute("aria-modal");
-		fireEvent.keyDown(document, { key: "Escape" });
+		await userEvent.setup().keyboard("{Escape}");
 		expect(
 			screen.queryByRole("dialog", { name: "VM operations" })
 		).not.toBeInTheDocument();
