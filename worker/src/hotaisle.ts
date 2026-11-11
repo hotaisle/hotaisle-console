@@ -41,7 +41,7 @@ export const apiBase = (env: Env) =>
 
 const UA = (env: Env) => `hotaisle-console/${env.VERSION ?? "dev"}`;
 
-export function upstream(
+export async function upstream(
 	env: Env,
 	method: string,
 	path: string,
@@ -55,11 +55,16 @@ export function upstream(
 	if (opts.body !== undefined) {
 		headers["Content-Type"] = "application/json";
 	}
-	return send(env, apiBase(env) + path, {
+	const response = await send(env, apiBase(env) + path, {
 		body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
 		headers,
 		method,
+		redirect: "manual",
 	});
+	if (response.status >= 300 && response.status < 400) {
+		return new Response("Unexpected upstream redirect.", { status: 502 });
+	}
+	return response;
 }
 
 export interface Who {
@@ -152,10 +157,16 @@ export async function startEmailLogin(
 	}
 	const text = await r.text();
 	if (!r.ok) {
+		let status = 400;
+		if (r.status === 429) {
+			status = 429;
+		} else if (r.status >= 500) {
+			status = 502;
+		}
 		return {
 			message: messageOf(text) || `The API answered ${r.status}`,
 			ok: false,
-			status: r.status === 429 ? 429 : 400,
+			status,
 		};
 	}
 	try {
