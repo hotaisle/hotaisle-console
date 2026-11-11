@@ -14,6 +14,7 @@ import { TeamChoice } from "../features/teams/team-choice";
 import { TeamDetails } from "../features/teams/team-details";
 import {
 	ACCOUNT_KEY,
+	currentSessionEpoch,
 	STATUS_KEY,
 	useSessionActions,
 	useSessionSync,
@@ -95,6 +96,9 @@ function AccountView({ status }: { status: Status }) {
 	const router = useRouter();
 	const search = useSearch({ from: "__root__" });
 	const { logout } = useSessionActions();
+	const initiatingEpoch = currentSessionEpoch();
+	const initiatingEmail = account.data?.user.email;
+	const initiatingCreated = account.data?.user.created;
 	const pickTeam = useCallback(
 		(next: string) => {
 			const navigation = router.navigate({
@@ -112,7 +116,19 @@ function AccountView({ status }: { status: Status }) {
 	);
 	const available = useCallback(
 		async (team: Team) => {
+			if (currentSessionEpoch() !== initiatingEpoch) {
+				return;
+			}
 			await client.cancelQueries({ queryKey: ACCOUNT_KEY });
+			const current = client.getQueryData<UserAccount>(ACCOUNT_KEY);
+			if (
+				currentSessionEpoch() !== initiatingEpoch ||
+				!client.getQueryData<Status>(STATUS_KEY)?.signed_in ||
+				current?.user.email !== initiatingEmail ||
+				current?.user.created !== initiatingCreated
+			) {
+				return;
+			}
 			client.setQueryData<UserAccount>(ACCOUNT_KEY, (previous) =>
 				previous
 					? {
@@ -128,7 +144,7 @@ function AccountView({ status }: { status: Status }) {
 			);
 			await pickTeam(team.handle);
 		},
-		[client, pickTeam]
+		[client, pickTeam, initiatingEpoch, initiatingEmail, initiatingCreated]
 	);
 	const retry = useCallback(async () => {
 		await account.refetch({ throwOnError: true });

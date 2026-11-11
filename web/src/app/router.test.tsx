@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TestProvider, testClient } from "../../test/render";
 import { useNavigation } from "../features/console/use-navigation";
 import { useOrder } from "../features/launch/use-order";
+import { ACCOUNT_KEY, STATUS_KEY } from "../hooks/use-session";
 import { APIError, api, type Team } from "../lib/api";
 import { createAppRouter } from "./router";
 
@@ -81,6 +82,53 @@ async function open(path: string) {
 	return { history, router };
 }
 describe("console URLs", () => {
+	it("does not apply an old account's delayed team creation to a new sign-in", async () => {
+		let finishCreate: ((team: Team) => void) | undefined;
+		vi.spyOn(api, "createTeam").mockImplementation(
+			() =>
+				new Promise<Team>((resolve) => {
+					finishCreate = resolve;
+				})
+		);
+		vi.spyOn(api, "signOut").mockResolvedValue({ ok: true });
+		const { router } = await open("/teams/new");
+		const user = userEvent.setup();
+		await user.type(await screen.findByLabelText("Team name"), "Old team");
+		await user.type(screen.getByLabelText("Team handle"), "old-team");
+		await user.click(screen.getByRole("button", { name: "Create team" }));
+		await waitFor(() => expect(api.createTeam).toHaveBeenCalledOnce());
+		await user.click(screen.getByRole("button", { name: "Sign out" }));
+		await waitFor(() =>
+			expect(
+				testClient.getQueryData<{ signed_in: boolean }>(STATUS_KEY)?.signed_in
+			).toBe(false)
+		);
+		const other = {
+			created: "2026-02-01",
+			email: "other@example.invalid",
+			email_auth_enabled: true,
+			name: "Other",
+		};
+		vi.mocked(api.user).mockResolvedValue({ teams: [TEAM], user: other });
+		act(() => {
+			testClient.setQueryData(ACCOUNT_KEY, { teams: [TEAM], user: other });
+			testClient.setQueryData(STATUS_KEY, {
+				email_login: true,
+				key_stored: false,
+				passkeys: false,
+				signed_in: true,
+				version: "test",
+			});
+		});
+		await act(async () => {
+			finishCreate?.({ ...TEAM, handle: "old-team", name: "Old team" });
+			await Promise.resolve();
+		});
+		expect(
+			testClient.getQueryData<{ teams: Team[] }>(ACCOUNT_KEY)?.teams
+		).toEqual([TEAM]);
+		expect(router.state.location.pathname).not.toContain("old-team");
+	});
 	it("opens the team editor from the chooser", async () => {
 		vi.spyOn(api, "team").mockResolvedValue(TEAM);
 		const { router } = await open("/teams");

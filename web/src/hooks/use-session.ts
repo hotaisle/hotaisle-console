@@ -8,6 +8,11 @@ export const STATUS_KEY = ["auth", "status"];
 export const ACCOUNT_KEY = ["auth", "account"];
 const CHANNEL = "hotaisle-console:session-lock";
 const TAB_ID = crypto.randomUUID();
+let sessionEpoch = 0;
+export const currentSessionEpoch = () => sessionEpoch;
+const advanceSessionEpoch = () => {
+	sessionEpoch += 1;
+};
 
 function lockOtherTabs() {
 	if (typeof BroadcastChannel === "undefined") {
@@ -40,6 +45,7 @@ export function useSessionSync() {
 			) {
 				return;
 			}
+			advanceSessionEpoch();
 			historyVault.lock();
 			keyVault.lock();
 			client.cancelQueries();
@@ -58,6 +64,7 @@ export function useSessionSync() {
 export function useSessionActions() {
 	const client = useQueryClient();
 	const connected = useCallback(async () => {
+		advanceSessionEpoch();
 		historyVault.lock();
 		lockOtherTabs();
 		client.removeQueries({
@@ -69,6 +76,7 @@ export function useSessionActions() {
 	const logout = useMutation({
 		mutationFn: api.signOut,
 		onMutate: () => {
+			advanceSessionEpoch();
 			historyVault.lock();
 			lockOtherTabs();
 		},
