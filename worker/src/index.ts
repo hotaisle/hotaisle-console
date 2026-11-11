@@ -1,13 +1,25 @@
-// hotaisle-console on Cloudflare Workers: the app's static files, and its backend.
+// Hot Aisle Console: static assets, email authentication, and a stateless API proxy.
 //
-//   /auth/*     sign in (an API key, or an emailed link), see who is signed in, sign out
-//   /api/*      the Hot Aisle API, forwarded with the session's token (the API doesn't answer browsers directly,
-//               and the token never reaches the page)
-//   /records/*  retired; returns 410 without reading or storing request data
-//   anything else: the app
+// Routes:
+//   /auth/*       email sign-in, API-key verification, session status, sign-out,
+//                 and authenticated derivation of the browser-history encryption key
+//   /api/*        forward requests to the configured Hot Aisle API without following redirects
+//   /records/*    retired; returns 410, as does /live/*
+//   other paths   serve the app; /__preview is restricted to preview.localhost
 //
-// Every /auth and /api call must carry `X-Requested-With: hotaisle-console` and, when the browser sends an
-// Origin, come from this site. Together with the SameSite=Strict cookie, other sites can't make these calls.
+// Credentials:
+//   API keys arrive in Authorization headers for each request and are never persisted here.
+//   Email-session tokens and pending login claims stay in encrypted HttpOnly, Secure,
+//   SameSite=Strict cookies; their secrets are not returned in frontend response bodies.
+//   History is encrypted in browser storage. This Worker verifies the account before
+//   deriving its key with HISTORY_SECRET and stores neither history nor per-account keys.
+//
+// Request protections:
+//   /auth and /api require X-Requested-With: hotaisle-console and reject a mismatched
+//   Origin when supplied. These are browser CSRF protections, not authentication.
+//   Auth and API calls have rate limits; request bodies are bounded where consumed.
+//   Auth/API responses use no-store, and security headers also cover static assets.
+//   Cloudflare diagnostics are configured separately; never log credentials or request bodies.
 
 import { historyKey } from "./history-key";
 import {
