@@ -306,6 +306,28 @@ Deployment uses the `cf` CLI and Cloudflare Vite plugin to package and publish t
 versions are pinned in the workspace. `bun run --cwd worker cf deploy --prebuilt --dry-run` validates packaging
 without publishing. Live account operations and production deployment still need separate verification.
 
+Merging to `main` also runs the GitHub Actions production pipeline. After lint, build, dry-run,
+types and tests pass, it deploys that exact prebuilt bundle to `console.hotaisle.app` through `cf`.
+PRs cannot deploy or access production credentials. Deployments are serialized, and a workflow
+for an older main revision skips deployment rather than replacing a newer build. Build metadata
+retains the merged PR link. Application secrets already stored on the Worker are preserved;
+GitHub Actions does not receive the session, history or email-signing secrets.
+
+This requires a dedicated Cloudflare API token stored as `CLOUDFLARE_API_TOKEN` in GitHub's
+`production` environment, restricted to the exact `main` branch. Use Cloudflare's **Individual
+Workers → hotaisle-console → Editor** scope, plus **Workers Routes Write** and **Zone Read**
+for the `hotaisle.app` zone so the configured custom domain can be reconciled. Do not reuse an
+interactive OAuth login or grant token-administration, unrelated Worker, KV, R2 or D1 access.
+See [Cloudflare's Workers permissions](https://developers.cloudflare.com/workers/authorization/workers/).
+An administrator can save the token with the CLI's hidden-input prompt:
+
+```sh
+gh secret set CLOUDFLARE_API_TOKEN --repo hotaisle/hotaisle-console --env production
+```
+
+Never put its value in a command argument, source file, PR, or chat. A missing token fails the
+deployment with a visible configuration error; successful PR CI alone does not validate live deployment.
+
 See [AGENTS.md](AGENTS.md) for the source layout and implementation rules.
 
 ## Credits

@@ -36,8 +36,10 @@ are not fabricated or treated as successful. API errors fail the required check.
 
 The controller executes trusted default-branch code, never PR source, artifacts,
 dependencies, or caches. It can read source/reviews and rerun Actions workflows.
-It cannot approve reviews, publish successful statuses, change code, merge PRs, or
-deploy the application. Normal CI and the review signal do not gain write permissions.
+It does not approve reviews, publish successful statuses, change code, or merge PRs.
+Its rerun requests are limited to matching review-policy workflows. Production deployment
+is a separate main-only CI job using the protected production environment. Normal CI
+and the review signal do not gain GitHub write permissions.
 
 Until these controller workflows are merged to main, review changes may require a
 manual rerun of the required workflow in GitHub. The organization rule itself can

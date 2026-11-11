@@ -152,7 +152,10 @@ other PRs require either maintainer's current-commit approval through the pinned
 Keep signed commits, resolved review threads, and the `test` CI job required; do not add ruleset bypasses.
 See `docs/pull-request-approval.md` for controller trust and activation. Never switch accounts to manufacture
 approval. This public repository uses GitHub-hosted
-Actions, not Hot Aisle's private runners. CI validates but does not publish production deployments.
+Actions, not Hot Aisle's private runners. PR CI validates without production credentials. Successful main
+CI passes its exact prebuilt bundle to the production environment for deployment through `cf`.
+Restrict that environment and its Cloudflare token to the main branch. Do not rebuild or deploy PR artifacts,
+pass runtime application secrets through Actions, or rotate existing Worker secrets during deployment.
 
 ## Compatibility and verification limits
 
