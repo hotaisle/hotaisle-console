@@ -5,8 +5,9 @@ import {
 	createRouter,
 	Outlet,
 	RouterProvider,
+	useRouterState,
 } from "@tanstack/react-router";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { validateSearch } from "../../app/route-state";
@@ -23,10 +24,15 @@ const ITEMS: Ended[] = Array.from({ length: 203 }, (_, index) => ({
 function HistoryScreen() {
 	return <HistoryView items={ITEMS} team="lab" />;
 }
-function open(path: string) {
+/** Exercise route-driven re-renders with the derived props passed by the console. */
+function DerivedHistoryScreen() {
+	useRouterState();
+	return <HistoryView items={[...ITEMS]} team="lab" />;
+}
+function open(path: string, component = HistoryScreen) {
 	const root = createRootRoute({ component: Outlet, validateSearch });
 	const route = createRoute({
-		component: HistoryScreen,
+		component,
 		getParentRoute: () => root,
 		path: "/teams/$team/history",
 	});
@@ -34,10 +40,66 @@ function open(path: string) {
 		history: createMemoryHistory({ initialEntries: [path] }),
 		routeTree: root.addChildren([route]),
 	});
+	const navigate = router.navigate.bind(router);
+	// Bound the regression so a navigation storm fails instead of freezing the runner.
+	vi.spyOn(router, "navigate").mockImplementation((options) => {
+		if (vi.mocked(router.navigate).mock.calls.length > 20) {
+			throw new Error("History kept navigating.");
+		}
+		return navigate(options);
+	});
 	render(<RouterProvider router={router} />);
 	return router;
 }
 describe("machine history", () => {
+	it("settles when route changes produce a fresh history array", async () => {
+		vi.spyOn(Element.prototype, "clientHeight", "get").mockReturnValue(1240);
+		vi.spyOn(Element.prototype, "clientWidth", "get").mockReturnValue(400);
+		vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(
+			new DOMRect(0, 0, 400, 100)
+		);
+		const router = open("/teams/lab/history", DerivedHistoryScreen);
+		await screen.findByText("1–12 of 203 runs");
+		expect(router.state.location.search).toMatchObject({
+			page: 1,
+			pageSize: 12,
+		});
+		expect(router.navigate).toHaveBeenCalledOnce();
+	});
+	it("allows later resize changes and preserves the visible run position", async () => {
+		let height = 1240;
+		vi.spyOn(Element.prototype, "clientHeight", "get").mockImplementation(
+			() => height
+		);
+		vi.spyOn(Element.prototype, "clientWidth", "get").mockReturnValue(400);
+		vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(
+			new DOMRect(0, 0, 400, 100)
+		);
+		const router = open(
+			"/teams/lab/history?page=3&pageSize=12",
+			DerivedHistoryScreen
+		);
+		await screen.findByText("25–36 of 203 runs");
+		act(() => {
+			height = 640;
+			window.dispatchEvent(new Event("resize"));
+		});
+		await screen.findByText("25–30 of 203 runs");
+		expect(router.state.location.search).toMatchObject({
+			page: 5,
+			pageSize: 6,
+		});
+		act(() => {
+			height = 1240;
+			window.dispatchEvent(new Event("resize"));
+		});
+		await screen.findByText("25–36 of 203 runs");
+		expect(router.state.location.search).toMatchObject({
+			page: 3,
+			pageSize: 12,
+		});
+		expect(router.navigate).toHaveBeenCalledTimes(2);
+	});
 	it("settles on a measured page size without repeated navigation", async () => {
 		vi.spyOn(Element.prototype, "clientHeight", "get").mockReturnValue(1240);
 		vi.spyOn(Element.prototype, "clientWidth", "get").mockReturnValue(400);

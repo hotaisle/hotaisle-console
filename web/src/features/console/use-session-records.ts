@@ -1,4 +1,4 @@
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 import {
 	type Ended,
 	historyOf,
@@ -30,11 +30,14 @@ export function useSessionRecords(team: string) {
 		(names: string[]) => historyVault.prune(team, names),
 		[team]
 	);
+	// Consumers use these lists in effects; keep them stable for each vault snapshot.
+	const history = useMemo(() => historyOf(records, team), [records, team]);
+	const machines = useMemo(() => listMachines(records, team), [records, team]);
 	return {
-		history: historyOf(records, team),
+		history,
 		prune,
 		record,
-		records: listMachines(records, team),
+		records: machines,
 		rememberEnd,
 	};
 }

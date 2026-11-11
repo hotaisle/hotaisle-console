@@ -7,6 +7,26 @@ import { useSessionRecords } from "./use-session-records";
 
 afterEach(() => vi.unstubAllGlobals());
 describe("browser record lifecycle", () => {
+	it("keeps derived lists stable until the vault snapshot or selected team changes", () => {
+		const { result, rerender } = renderHook(
+			({ team }) => useSessionRecords(team),
+			{ initialProps: { team: "lab" } }
+		);
+		const initial = result.current;
+		rerender({ team: "lab" });
+		expect(result.current.history).toBe(initial.history);
+		expect(result.current.records).toBe(initial.records);
+		act(() => result.current.record({ launched: true, name: "vm-one" }));
+		expect(result.current.records).toHaveLength(1);
+		const updated = result.current;
+		rerender({ team: "lab" });
+		expect(result.current.history).toBe(updated.history);
+		expect(result.current.records).toBe(updated.records);
+		rerender({ team: "other" });
+		expect(result.current.records).toEqual([]);
+		rerender({ team: "lab" });
+		expect(result.current.records[0].name).toBe("vm-one");
+	});
 	it("keeps unsaved fallback records in memory without plaintext storage writes", async () => {
 		const fetchRequest = vi.fn();
 		vi.stubGlobal("fetch", fetchRequest);

@@ -5,6 +5,7 @@ import {
 	machineKey,
 	machineKind,
 } from "../../../../shared/machine-identity";
+import type { ConsoleSearch } from "../../app/route-state";
 import type { Ended } from "../../lib/api";
 import { duration, money } from "../../lib/format";
 import { runTitle } from "./formatting";
@@ -48,31 +49,30 @@ export function HistoryView({
 		list,
 		`${result.page}/${result.pageSize}/${result.items.length}`
 	);
+	const loaded = items !== undefined;
+	// Router navigation settles asynchronously; do not restart the same resize request.
+	const requested = useRef<number>(undefined);
 	useEffect(() => {
-		if (!items || error || !capacity || capacity === result.pageSize) {
+		if (!loaded || error || !capacity || capacity === result.pageSize) {
+			requested.current = undefined;
 			return;
 		}
+		if (requested.current === capacity) {
+			return;
+		}
+		requested.current = capacity;
 		const first = (result.page - 1) * result.pageSize;
 		router.navigate({
 			params: { team },
 			replace: true,
-			search: {
-				...search,
+			search: (previous: ConsoleSearch) => ({
+				...previous,
 				page: Math.floor(first / capacity) + 1,
 				pageSize: capacity,
-			},
+			}),
 			to: "/teams/$team/history",
 		});
-	}, [
-		capacity,
-		items,
-		error,
-		result.page,
-		result.pageSize,
-		router,
-		search,
-		team,
-	]);
+	}, [capacity, loaded, error, result.page, result.pageSize, router, team]);
 	if (error) {
 		return <p role="alert">Could not load machine history. {error.message}</p>;
 	}
