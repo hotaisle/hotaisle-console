@@ -10,6 +10,7 @@
 		"skipLibCheck": true
 	},
 	"include": [
+		".github/scripts/*.ts",
 		"vitest.config.ts",
 		"worker/cloudflare.config.ts",
 		"worker/scripts/*.ts",
