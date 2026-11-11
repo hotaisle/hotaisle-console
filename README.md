@@ -12,6 +12,18 @@ A Cloudflare Worker serves the frontend, proxies the [Hot Aisle API](https://adm
 and saves launch details and run receipts as encrypted browser-local entries. Cloudflare does not persist
 console history or per-user history keys.
 
+## Screenshots
+
+These views use simulated machines from the local development preview.
+
+### Your machines
+
+![Your machines dashboard with a running MI300X machine and server illustration](docs/machine.jpg)
+
+### New machine
+
+![MI300X size selection, cost estimate, and server illustration](docs/order.jpg)
+
 ## Development
 
 Use Bun 1.4.4 and Node 26 LTS:
