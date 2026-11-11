@@ -234,12 +234,13 @@ not handle card details or claim a payment succeeded before confirmation.
 
 ## Repository workflow
 
-Work on a descriptive branch and open a PR into `main`. Merging requires an approving review, signed commits,
-resolved review threads, and the passing `test` CI job. New pushes dismiss earlier approvals, and the final push
-needs approval from someone else. The default branch blocks direct pushes, force pushes, and deletion, with no
-administrator bypass. StayLameBro has write access and is requested to review PR #1.
+Work on a descriptive branch and open a PR into `main`. PRs authored by `jon-hotaisle` or `clint-hotaisle`
+can merge without approval. Other authors need either maintainer's approval of the current commit, enforced
+by the pinned required workflow. Signed commits, resolved review threads, and the passing `test` CI job
+remain required. The default branch blocks direct pushes, force pushes, and deletion, with no administrator
+bypass. StayLameBro has write access and is requested to review PR #1.
 
-CI runs lint, builds, deployment dry-run, types, and both test projects on GitHub-hosted Ubuntu 24.04.
+CI runs lint, builds, deployment dry-run, types, and all test projects on GitHub-hosted Ubuntu 24.04.
 Actions are pinned to exact commits. Fork workflows require approval and use a read-only repository token.
 Hot Aisle's private runner group is not used for this public repository. CI does not publish deployments.
 
