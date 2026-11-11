@@ -1,4 +1,5 @@
 import {
+	createBrowserHistory,
 	createMemoryHistory,
 	createRootRoute,
 	createRoute,
@@ -91,15 +92,20 @@ function RoutedOrderView() {
 	});
 	return <OrderView {...props} />;
 }
-function openRouted(path: string) {
+function openRouted(path: string, browser = false) {
 	const root = createRootRoute({ component: Outlet, validateSearch });
 	const route = createRoute({
 		component: RoutedOrderView,
 		getParentRoute: () => root,
 		path: "/teams/$team/launch",
 	});
+	if (browser) {
+		window.history.replaceState(null, "", path);
+	}
 	const router = createRouter({
-		history: createMemoryHistory({ initialEntries: [path] }),
+		history: browser
+			? createBrowserHistory()
+			: createMemoryHistory({ initialEntries: [path] }),
 		routeTree: root.addChildren([route]),
 	});
 	const navigate = router.navigate.bind(router);
@@ -130,6 +136,31 @@ describe("rental availability and credits", () => {
 		await waitFor(() => expect(router.state.location.search.gpus).toBe(2));
 		expect(router.navigate).toHaveBeenCalledTimes(3);
 	});
+	it.each([
+		{ gpus: 2, maxNavigations: 1 },
+		{ gpus: 1, maxNavigations: 3 },
+	])(
+		"settles legacy cloud-init cleanup with the browser history adapter for $gpus GPUs",
+		async ({ gpus, maxNavigations }) => {
+			const previousURL = window.location.href;
+			const previousState = window.history.state;
+			const router = openRouted(
+				`/teams/lab/launch?gpus=${gpus}&cloudInit=https%3A%2F%2Fexample.invalid%2Finit.yaml`,
+				true
+			);
+			try {
+				await screen.findByRole("button", { name: HOLD_TWO });
+				await waitFor(() => expect(window.location.search).toBe("?gpus=2"));
+				expect(vi.mocked(router.navigate).mock.calls.length).toBeGreaterThan(0);
+				expect(
+					vi.mocked(router.navigate).mock.calls.length
+				).toBeLessThanOrEqual(maxNavigations);
+			} finally {
+				router.history.destroy();
+				window.history.replaceState(previousState, "", previousURL);
+			}
+		}
+	);
 	it("shows an empty inventory and a working credits option without fake sizes", async () => {
 		const provision = vi.spyOn(api, "provision");
 		const input = open({

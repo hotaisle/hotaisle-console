@@ -1,5 +1,6 @@
 import { useLocation, useRouter, useSearch } from "@tanstack/react-router";
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import { type ConsoleSearch, validateSearch } from "../../app/route-state";
 import { cloudInitVault } from "../../lib/cloud-init-vault";
 import { usePrefs } from "../../lib/prefs";
 import type { Order } from "./types";
@@ -13,15 +14,24 @@ export function useOrder() {
 	const router = useRouter();
 	const location = useLocation();
 	const search = useSearch({ from: "__root__" });
+	const legacyCloudInit = Object.hasOwn(location.search, "cloudInit");
+	const cleanedLocation = useRef<string>(undefined);
 	useEffect(() => {
-		if (new URLSearchParams(window.location.search).has("cloudInit")) {
-			router.navigate({
-				replace: true,
-				search: { ...search },
-				to: location.pathname,
-			});
+		if (!legacyCloudInit) {
+			cleanedLocation.current = undefined;
+			return;
 		}
-	}, [router, location.pathname, search]);
+		if (cleanedLocation.current === location.href) {
+			return;
+		}
+		cleanedLocation.current = location.href;
+		router.navigate({
+			replace: true,
+			// Router search can retain unknown keys; spreading it would keep the retired URL.
+			search: (previous: ConsoleSearch) => validateSearch({ ...previous }),
+			to: location.pathname,
+		});
+	}, [router, location.href, location.pathname, legacyCloudInit]);
 	const order: Order = {
 		count: search.gpus ?? 1,
 		customURL: cloudInit.value,
@@ -31,14 +41,17 @@ export function useOrder() {
 		(patch: Partial<Order>) =>
 			router.navigate({
 				replace: true,
-				search: {
-					...search,
-					gpus: patch.count ?? search.gpus,
-					image: patch.image ?? search.image,
+				search: (previous: ConsoleSearch) => {
+					const clean = validateSearch({ ...previous });
+					return {
+						...clean,
+						gpus: patch.count ?? clean.gpus,
+						image: patch.image ?? clean.image,
+					};
 				},
 				to: location.pathname,
 			}),
-		[router, location.pathname, search]
+		[router, location.pathname]
 	);
 	return { order, setOrder };
 }
