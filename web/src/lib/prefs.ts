@@ -5,7 +5,6 @@ export type Image = "standard" | "vllm" | "custom";
 export type Theme = "system" | "light" | "dark";
 export type StatusMotion = "system" | "on" | "off";
 export interface Prefs {
-	customURL: string;
 	image: Image;
 	notify: boolean; // desktop notification when a machine is ready
 	sound: boolean; // soft key clicks and a chime when a machine is ready
@@ -15,7 +14,6 @@ export interface Prefs {
 
 const KEY = "hotaisle-ui:prefs";
 const DEFAULTS: Prefs = {
-	customURL: "",
 	image: "standard",
 	notify: false,
 	sound: true,
@@ -28,7 +26,11 @@ function read(): Prefs {
 		const saved = {
 			...DEFAULTS,
 			...JSON.parse(localStorage.getItem(KEY) || "{}"),
+		} as Omit<Prefs, "statusMotion"> & {
+			customURL?: string;
+			statusMotion: StatusMotion | boolean;
 		};
+		saved.customURL = undefined;
 		if (saved.theme !== "light" && saved.theme !== "dark") {
 			saved.theme = "system";
 		}
@@ -38,7 +40,7 @@ function read(): Prefs {
 		} else if (saved.statusMotion !== "on" && saved.statusMotion !== "off") {
 			saved.statusMotion = "system";
 		}
-		return saved;
+		return saved as Prefs;
 	} catch {
 		return DEFAULTS;
 	}
@@ -66,7 +68,12 @@ export const getPrefs = () => current;
 export function setPrefs(patch: Partial<Prefs>) {
 	current = { ...current, ...patch };
 	try {
-		localStorage.setItem(KEY, JSON.stringify(current));
+		const previous = JSON.parse(localStorage.getItem(KEY) || "{}");
+		const legacy =
+			typeof previous.customURL === "string"
+				? { customURL: previous.customURL }
+				: {};
+		localStorage.setItem(KEY, JSON.stringify({ ...current, ...legacy }));
 	} catch {
 		/* private mode: keep it for this session */
 	}

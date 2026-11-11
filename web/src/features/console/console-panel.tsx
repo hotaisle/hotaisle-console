@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { isPresent } from "../../../../shared/present";
 import { BuildDate } from "../../components/build-date";
 import { PanelScroll } from "../../components/panel-scroll";
+import { cloudInitVault } from "../../lib/cloud-init-vault";
 import { ImageView } from "../launch/image-view";
 import { OrderView } from "../launch/order-view";
 import { runTitle } from "../machines/formatting";
@@ -98,13 +99,15 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 		back();
 	}, [balance.refresh, back]);
 	const saveImage = useCallback(
-		(url: string) =>
-			router.navigate({
+		async (url: string) => {
+			await cloudInitVault.save(url);
+			return router.navigate({
 				params: { team: team.handle },
 				replace: true,
-				search: { ...search, cloudInit: url, image: "custom" },
+				search: { ...search, image: "custom" },
 				to: "/teams/$team/launch",
-			}),
+			});
+		},
 		[router, team.handle, search]
 	);
 	const orderView = (

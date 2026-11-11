@@ -1,9 +1,22 @@
-import { type ChangeEvent, useCallback } from "react";
+import {
+	type ChangeEvent,
+	useCallback,
+	useEffect,
+	useState,
+	useSyncExternalStore,
+} from "react";
+import { cloudInitVault } from "../../lib/cloud-init-vault";
 import { IMAGES, type Image, usePrefs } from "../../lib/prefs";
 
 const IMAGE_OPTIONS = Object.keys(IMAGES) as Image[];
 export function DefaultMachineSettings() {
 	const [prefs, set] = usePrefs();
+	const cloudInit = useSyncExternalStore(
+		cloudInitVault.subscribe,
+		cloudInitVault.getSnapshot
+	);
+	const [urlValue, setURLValue] = useState(cloudInit.value);
+	useEffect(() => setURLValue(cloudInit.value), [cloudInit.value]);
 	const image = useCallback(
 		(event: ChangeEvent<HTMLSelectElement>) => {
 			const { value } = event.currentTarget;
@@ -15,9 +28,14 @@ export function DefaultMachineSettings() {
 	);
 	const url = useCallback(
 		(event: ChangeEvent<HTMLInputElement>) =>
-			set({ customURL: event.currentTarget.value }),
-		[set]
+			setURLValue(event.currentTarget.value),
+		[]
 	);
+	const saveURL = useCallback(() => {
+		cloudInitVault.save(urlValue).catch(() => {
+			// The vault displays a warning and preserves any existing ciphertext.
+		});
+	}, [urlValue]);
 	return (
 		<section className="group">
 			<h2 className="group-h section-heading">Default image</h2>
@@ -40,11 +58,17 @@ export function DefaultMachineSettings() {
 					</label>
 					<input
 						id="def-url"
+						onBlur={saveURL}
 						onChange={url}
 						placeholder="https://…"
 						type="url"
-						value={prefs.customURL}
+						value={urlValue}
 					/>
+					{cloudInit.error ? (
+						<p className="error" role="alert">
+							{cloudInit.error}
+						</p>
+					) : null}
 				</div>
 			) : null}
 		</section>

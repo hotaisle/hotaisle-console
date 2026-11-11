@@ -8,7 +8,6 @@ export type View =
 	| "run"
 	| "history";
 export interface ConsoleSearch {
-	cloudInit?: string;
 	gpus?: number;
 	image?: Image;
 	page?: number;
@@ -20,7 +19,13 @@ export function safeReturnTo(value: unknown): string | undefined {
 		return undefined;
 	}
 	if (value === "/teams" || value.startsWith("/teams/")) {
-		return value;
+		try {
+			const url = new URL(value, "https://console.invalid");
+			url.searchParams.delete("cloudInit");
+			return `${url.pathname}${url.search}${url.hash}`;
+		} catch {
+			return undefined;
+		}
 	}
 	return undefined;
 }
@@ -28,11 +33,6 @@ export function validateSearch(search: Record<string, unknown>): ConsoleSearch {
 	const count = Number(search.gpus);
 	const { image } = search;
 	return {
-		cloudInit:
-			typeof search.cloudInit === "string" &&
-			search.cloudInit.startsWith("https://")
-				? search.cloudInit
-				: undefined,
 		gpus: [1, 2, 4, 8].includes(count) ? count : undefined,
 		image:
 			image === "standard" || image === "vllm" || image === "custom"

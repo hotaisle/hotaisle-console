@@ -8,11 +8,11 @@ export function ImageView({
 	onSave,
 }: {
 	value: string;
-	onSave: (url: string) => void;
+	onSave: (url: string) => Promise<void>;
 }) {
 	const form = useAppForm({
 		defaultValues: { url: value },
-		onSubmit: ({ value: data }) => onSave(data.url.trim()),
+		onSubmit: async ({ value: data }) => await onSave(data.url.trim()),
 	});
 	return (
 		<Form className="stack" onSubmit={form.handleSubmit}>

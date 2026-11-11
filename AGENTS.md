@@ -56,6 +56,8 @@ spaces. Generated `web/dist`, Worker output, and dependency directories are igno
 
 Use TanStack Router for every page. Team, selected machine, history run, and launch choices belong in validated
 URL parameters, so links, reloads, and browser back/forward work. Do not reintroduce an in-memory page stack.
+The custom cloud-init URL is the exception: keep it in account-scoped browser ciphertext, never route search
+or plaintext preferences. Migrate legacy `hotaisle-ui:prefs.customURL` only after an encrypted save succeeds.
 A protected link must retain its destination through sign-in. Unknown machines and missing history must not
 silently display another machine or an unrelated page.
 Keep ended runs in the dedicated history view, with pagination and page size in URL parameters and no search UI.

@@ -9,6 +9,7 @@ import {
 	removeMachine,
 	updateMachine,
 } from "../../../shared/records";
+import { cloudInitVault } from "./cloud-init-vault";
 
 export interface HistoryKey {
 	key: string;
@@ -220,6 +221,7 @@ export function createHistoryVault(storage = () => localStorage) {
 		lock(initial = emptyRecords()) {
 			generation += 1;
 			active = undefined;
+			cloudInitVault.lock();
 			publish({ records: structuredClone(initial) });
 		},
 		prune(team: string, names: string[]) {
@@ -294,6 +296,7 @@ export function createHistoryVault(storage = () => localStorage) {
 					bundle.key = "";
 				}
 				const session = { key, prefix: `${PREFIX}${bundle.scope}:` };
+				await cloudInitVault.unlock(key, bundle.scope);
 				await writes;
 				const restored = await read(session);
 				if (current !== generation) {

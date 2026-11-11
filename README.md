@@ -117,7 +117,8 @@ the tab. Failed background updates keep the current list visible and offer a ret
 | `/teams/:team/history/:run` | An earlier run |
 | `/teams/:team/history?page=2&pageSize=12` | Machine history, entries per page adapt to the panel's visible height |
 
-Launch options are validated URL search parameters: `gpus`, `image`, and `cloudInit`.
+Launch size and image are validated URL search parameters: `gpus` and `image`. Custom cloud-init
+URLs stay in account-scoped encrypted browser storage.
 The theme selector is available before and after sign-in. Light, Dark, and System apply to every view and the server drawing, and persist in browser preferences.
 
 Sign-in preserves the requested console destination. Worker assets use SPA fallback for direct page requests.
@@ -151,6 +152,14 @@ deriving the key with HKDF-SHA-256 from a dedicated `HISTORY_SECRET`, the origin
 email and creation time. It returns the key in a non-cacheable response and never stores per-user keys.
 The browser imports a non-extractable key and retains it only in memory. This is login-gated encryption;
 the Worker can derive the key, and scripts executing in an unlocked session can access history.
+
+**Custom cloud-init links:** The selected URL is encrypted in browser storage with the same account-scoped
+key and a separate authenticated storage label. It is not stored in plaintext preferences or route search.
+On the first successful unlock after this change, the browser encrypts an older `hotaisle-ui:prefs.customURL`
+value and removes that plaintext field only after the encrypted write succeeds. A failed migration leaves
+the old value intact and shows a warning. Existing bookmarked URLs may still contain an older `cloudInit`
+query parameter; opening the console replaces that parameter in the current tab, but cannot erase browser
+history or bookmarks created before this change.
 
 Sign-out clears decrypted history, keys, and private caches, and signals other open tabs to lock. It never
 clears encrypted history. Reload, account switches, and pruning of the active machine view do not delete
