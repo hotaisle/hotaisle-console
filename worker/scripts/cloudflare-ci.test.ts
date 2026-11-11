@@ -10,7 +10,6 @@ const HEAD = "a".repeat(40);
 const PR = {
 	base: { ref: "main", repo: { full_name: "hotaisle/hotaisle-console" } },
 	html_url: "https://github.com/hotaisle/hotaisle-console/pull/1",
-	merge_commit_sha: HEAD,
 	merged_at: "2026-01-01T00:00:00Z",
 };
 afterEach(() => vi.unstubAllGlobals());
@@ -40,18 +39,14 @@ describe("Workers Builds source metadata", () => {
 			expect(() => productionCommit(env)).toThrow();
 		}
 	});
-	it("selects the merged PR which produced the source commit", () => {
-		expect(
-			mergedPullRequestURL(
-				[{ ...PR, merge_commit_sha: "b".repeat(40) }, PR],
-				HEAD
-			)
-		).toBe(PR.html_url);
+	it("accepts the current associated-PR response without merge_commit_sha", () => {
+		expect(mergedPullRequestURL([{ ...PR, merged_at: null }, PR], HEAD)).toBe(
+			PR.html_url
+		);
 	});
 	it.each([
 		{ ...PR, merged_at: null },
 		{ ...PR, merged_at: "invalid" },
-		{ ...PR, merge_commit_sha: "b".repeat(40) },
 		{ ...PR, base: { ref: "feature", repo: PR.base.repo } },
 		{ ...PR, base: { ref: "main", repo: { full_name: "other/repository" } } },
 		{ ...PR, html_url: "https://example.invalid/pull/1" },
@@ -61,6 +56,7 @@ describe("Workers Builds source metadata", () => {
 	it("fails when GitHub returns no associated merged PR", () => {
 		expect(() => mergedPullRequestURL([], HEAD)).toThrow();
 		expect(() => mergedPullRequestURL({}, HEAD)).toThrow();
+		expect(() => mergedPullRequestURL([PR], "invalid")).toThrow();
 	});
 	it("reads public metadata without sending deployment credentials or following redirects", async () => {
 		const fetcher = vi.fn().mockResolvedValue(Response.json([PR]));

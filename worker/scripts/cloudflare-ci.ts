@@ -17,7 +17,6 @@ export function productionCommit(env: Record<string, string | undefined>) {
 interface PullRequest {
 	base?: { ref?: string; repo?: { full_name?: string } };
 	html_url?: string;
-	merge_commit_sha?: string;
 	merged_at?: string | null;
 }
 
@@ -25,11 +24,12 @@ export function mergedPullRequestURL(value: unknown, sha: string) {
 	if (!(Array.isArray(value) && COMMIT.test(sha))) {
 		throw new Error("Cannot verify this build's merged pull request.");
 	}
+	// /commits/{sha}/pulls establishes the commit association. API version
+	// 2026-03-10 omits merge_commit_sha from these PR objects.
 	const pr = (value as (PullRequest | null)[]).find(
 		(item) =>
 			item?.base?.ref === "main" &&
 			item.base.repo?.full_name === REPOSITORY &&
-			item.merge_commit_sha === sha &&
 			typeof item.merged_at === "string" &&
 			Number.isFinite(Date.parse(item.merged_at)) &&
 			typeof item.html_url === "string" &&

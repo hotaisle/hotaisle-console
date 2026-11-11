@@ -55,5 +55,22 @@ GitHub webhook delivery, or a live deployment. Check the first main build and th
 active Worker version after that merge. Never test this path by enabling preview
 deployments or merging without the required repository checks.
 
+## Current GitHub PR response
+
+The first main build after PR #1 merged reached the build helper, then failed its
+PR lookup. The helper requested API version `2026-03-10` but expected the older
+`merge_commit_sha` field. That field is absent from both the associated-PR list
+and the PR detail response in the current version; waiting and retrying did not
+repair the mismatch.
+
+The lookup now uses GitHub's [commit-specific PR association](https://docs.github.com/en/rest/commits/commits#list-pull-requests-associated-with-a-commit)
+to identify the PR that introduced the source commit. It still requires a merged
+PR targeting this repository's main branch and validates the GitHub URL. The
+separate deployment check still rejects an outdated main revision. Regression
+tests exercise the build helper with the current response shape and reject
+unmerged or foreign-repository results. The corrected parser was also checked
+against the actual public response for PR #1's squash commit using the same API
+version and no authentication.
+
 This document belongs under `docs/` and must remain outside the frontend assets
 and Worker upload. The production asset guard enforces that exclusion.
