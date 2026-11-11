@@ -4,9 +4,11 @@
 	color: var(--muted);
 }
 
-.build-date a {
+.build-date a,
+.build-date a:hover,
+.build-date a:focus-visible,
+.build-date a:active {
 	color: inherit;
-	text-decoration: underline;
-	text-underline-offset: 3px;
+	text-decoration: none;
 	cursor: pointer;
 }
