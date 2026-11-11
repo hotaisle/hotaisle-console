@@ -173,8 +173,9 @@ async function call<T>(
 
 const t = (team: string) => `/api/teams/${encodeURIComponent(team)}`;
 
-// Bare metal: Hot Aisle rents whole 8-GPU servers through its own endpoints. The app shows them as
-// machines like any other, so the calls below look up which kind a name is and use the right endpoint.
+// Bare metal: Hot Aisle rents whole 8-GPU servers through its own endpoints.
+// Actions use the selected resource's explicit kind, never a name-only cache.
+export type MachineRef = Pick<VM, "name" | "metal">;
 type Metal = MetalSpecs & {
 	name: string;
 	deployment_id?: string;
@@ -184,12 +185,9 @@ type Metal = MetalSpecs & {
 	specs?: MetalSpecs;
 	os_status?: { os_install_status?: InstallStage };
 };
-const metalNames = new Set<string>();
-const isMetal = (name: string) => metalNames.has(name);
 const m = (team: string, name: string) =>
 	`${t(team)}/bare_metal/${encodeURIComponent(name)}`;
 function metalVM(b: Metal): VM {
-	metalNames.add(b.name);
 	return {
 		...specsOf(b.specs ?? b),
 		deployment_id: b.deployment_id ?? b.name,
@@ -268,9 +266,12 @@ export const api = {
 			})),
 		];
 	},
-	power: async (team: string, vm: string, action: PowerAction) => {
-		if (isMetal(vm)) {
-			return await call<void>("POST", `${m(team, vm)}/power/${POWER[action]}/`);
+	power: async (team: string, vm: MachineRef, action: PowerAction) => {
+		if (vm.metal) {
+			return await call<void>(
+				"POST",
+				`${m(team, vm.name)}/power/${POWER[action]}/`
+			);
 		}
 		if (action === "shutdown" || action === "stop" || action === "ac-reset") {
 			throw new Error(
@@ -279,7 +280,7 @@ export const api = {
 		}
 		return await call<void>(
 			"POST",
-			`${t(team)}/virtual_machines/${encodeURIComponent(vm)}/${action}/`
+			`${t(team)}/virtual_machines/${encodeURIComponent(vm.name)}/${action}/`
 		);
 	},
 	provision: (team: string, gpus: GPU[], user_data_url?: string) =>
@@ -287,18 +288,18 @@ export const api = {
 			gpus,
 			...(user_data_url ? { user_data_url } : {}),
 		}),
-	rebuild: (team: string, vm: string, user_data_url?: string) =>
-		isMetal(vm)
-			? call<void>("POST", `${m(team, vm)}/reinstall/`)
+	rebuild: (team: string, vm: MachineRef, user_data_url?: string) =>
+		vm.metal
+			? call<void>("POST", `${m(team, vm.name)}/reinstall/`)
 			: call<void>(
 					"POST",
-					`${t(team)}/virtual_machines/${encodeURIComponent(vm)}/rebuild/`,
+					`${t(team)}/virtual_machines/${encodeURIComponent(vm.name)}/rebuild/`,
 					user_data_url ? { user_data_url } : {}
 				),
-	release: (team: string, vm: string, force = false) =>
+	release: (team: string, vm: MachineRef, force = false) =>
 		call<void>(
 			"DELETE",
-			`${isMetal(vm) ? m(team, vm) : `${t(team)}/virtual_machines/${encodeURIComponent(vm)}`}/${force ? "?force=true" : ""}`
+			`${vm.metal ? m(team, vm.name) : `${t(team)}/virtual_machines/${encodeURIComponent(vm.name)}`}/${force ? "?force=true" : ""}`
 		),
 	removeKey: (fingerprint: string) =>
 		call<void>(
@@ -364,17 +365,17 @@ export const api = {
 	) => call<Team>("PATCH", `${t(handle)}/`, details),
 
 	user: () => call<UserAccount>("GET", "/api/user/"),
-	vmState: async (team: string, vm: string): Promise<VMState> => {
-		if (!isMetal(vm)) {
+	vmState: async (team: string, vm: MachineRef): Promise<VMState> => {
+		if (!vm.metal) {
 			return call<VMState>(
 				"GET",
-				`${t(team)}/virtual_machines/${encodeURIComponent(vm)}/state/`
+				`${t(team)}/virtual_machines/${encodeURIComponent(vm.name)}/state/`
 			);
 		}
 		// a bare-metal server is its own host; it is up once its operating system is installed
 		const [d, power] = await Promise.all([
-			call<Metal>("GET", `${m(team, vm)}/`),
-			call<{ state: string }>("GET", `${m(team, vm)}/power/`).catch(
+			call<Metal>("GET", `${m(team, vm.name)}/`),
+			call<{ state: string }>("GET", `${m(team, vm.name)}/power/`).catch(
 				() => undefined
 			),
 		]);
@@ -392,7 +393,7 @@ export const api = {
 			return power?.state === "On" ? "running" : "unknown";
 		}
 		const state = resolveState();
-		return { host: vm, install, state };
+		return { host: vm.name, install, state };
 	},
 	/** Your machines: virtual machines and bare-metal servers, as one list. */
 	vms: async (team: string) => {

@@ -98,7 +98,7 @@ export function useTrip(props: TripProps) {
 	const end = async (forced: boolean) => {
 		setBusy("End");
 		try {
-			await api.release(team.handle, vm.name, forced);
+			await api.release(team.handle, vm, forced);
 			setEnding(true);
 			const ran = launched ? Date.now() - launched : undefined;
 			const billedMs = isPresent(ran)

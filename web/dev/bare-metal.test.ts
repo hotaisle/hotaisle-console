@@ -30,7 +30,7 @@ describe("bare-metal preview through the console API", () => {
 			name: "preview-bare-metal",
 			ssh_access: { dns_name: "preview-bare-metal.invalid", port: 22 },
 		});
-		expect(await api.vmState("preview", server.name)).toMatchObject({
+		expect(await api.vmState("preview", server)).toMatchObject({
 			host: server.name,
 			state: "running",
 		});
@@ -50,20 +50,18 @@ describe("bare-metal preview through the console API", () => {
 	it("simulates power, reinstall and a local console URL", async () => {
 		const { advance } = setup();
 		const [server] = await api.vms("preview");
-		await expect(api.power("preview", server.name, "ac-reset")).rejects.toThrow(
+		await expect(api.power("preview", server, "ac-reset")).rejects.toThrow(
 			"Power off the server first."
 		);
-		await api.power("preview", server.name, "shutdown");
-		expect((await api.vmState("preview", server.name)).state).toBe("off");
-		await api.power("preview", server.name, "ac-reset");
-		await api.power("preview", server.name, "start");
-		expect((await api.vmState("preview", server.name)).state).toBe("running");
-		await api.rebuild("preview", server.name);
-		expect((await api.vmState("preview", server.name)).state).toBe(
-			"installing"
-		);
+		await api.power("preview", server, "shutdown");
+		expect((await api.vmState("preview", server)).state).toBe("off");
+		await api.power("preview", server, "ac-reset");
+		await api.power("preview", server, "start");
+		expect((await api.vmState("preview", server)).state).toBe("running");
+		await api.rebuild("preview", server);
+		expect((await api.vmState("preview", server)).state).toBe("installing");
 		advance(8000);
-		expect((await api.vmState("preview", server.name)).state).toBe("running");
+		expect((await api.vmState("preview", server)).state).toBe("running");
 		expect(await api.bareMetalConsole("preview", server.name)).toEqual({
 			url: "http://preview.localhost:8787/__preview/console.html",
 		});
@@ -73,13 +71,13 @@ describe("bare-metal preview through the console API", () => {
 		async (force) => {
 			const { advance } = setup();
 			const [server] = await api.vms("preview");
-			await expect(api.release("preview", server.name)).rejects.toThrow(
+			await expect(api.release("preview", server)).rejects.toThrow(
 				"eight-hour minimum"
 			);
 			if (!force) {
 				advance(8 * 3_600_000);
 			}
-			await api.release("preview", server.name, force);
+			await api.release("preview", server, force);
 			expect(await api.vms("preview")).toEqual([]);
 			expect(await api.balance("preview")).toMatchObject({
 				bare_metal_server_count: 0,

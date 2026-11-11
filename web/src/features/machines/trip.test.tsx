@@ -297,7 +297,11 @@ describe("machine release", () => {
 		await act(async () => {
 			await Promise.resolve();
 		});
-		expect(release).toHaveBeenCalledWith("lab", "vm-fixture", true);
+		expect(release).toHaveBeenCalledWith(
+			"lab",
+			expect.objectContaining({ name: "vm-fixture" }),
+			true
+		);
 		expect(power).not.toHaveBeenCalled();
 		expect(input.onEnded).not.toHaveBeenCalled();
 		act(() => {

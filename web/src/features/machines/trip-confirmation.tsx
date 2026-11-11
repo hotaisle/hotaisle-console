@@ -38,7 +38,7 @@ function EndOrRebuildConfirmation({ context }: { context: TripContext }) {
 		setPanel(null);
 		act(
 			"Rebuilding",
-			() => api.rebuild(team.handle, vm.name),
+			() => api.rebuild(team.handle, vm),
 			`${vm.name} is rebuilding.`
 		);
 	}, [setPanel, act, team, vm]);

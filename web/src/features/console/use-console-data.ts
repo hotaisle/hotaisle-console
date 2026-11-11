@@ -39,7 +39,7 @@ export function useConsoleData(h: string, notify: boolean) {
 		combine: combineStates,
 		queries: list.map((vm) => ({
 			queryFn: async () => ({
-				...(await api.vmState(h, vm.name)),
+				...(await api.vmState(h, vm)),
 				name: vm.name,
 			}),
 			queryKey: ["resource", "vm-state", h, vm.name],

@@ -29,7 +29,7 @@ export function PowerActionConfirmation({
 					throw new Error("Power off the server before an AC reset.");
 				}
 			}
-			await api.power(context.team.handle, context.vm.name, operation.action);
+			await api.power(context.team.handle, context.vm, operation.action);
 		},
 		onSuccess: () => {
 			context.toast(
