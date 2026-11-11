@@ -146,8 +146,12 @@ access inventories. Coordinate unresolved exploitable issues privately before pu
 details. Docs remain outside production assets, but that does not make Git history confidential.
 
 Use a descriptive non-default branch; never commit directly to the default branch. Use `gh` for GitHub operations.
-Keep commits small, coherent, and conventional. PR approval, signed commits, resolved review threads, and the `test`
-CI job are required. Never switch accounts to manufacture approval. This public repository uses GitHub-hosted
+Keep commits small, coherent, and conventional. PRs by `jon-hotaisle` or `clint-hotaisle` do not require approval;
+other PRs require either maintainer's current-commit approval through the pinned organization-required
+`required-maintainer-review.yml` workflow. Do not replace it with a status-name-only rule.
+Keep signed commits, resolved review threads, and the `test` CI job required; do not add ruleset bypasses.
+See `docs/pull-request-approval.md` for controller trust and activation. Never switch accounts to manufacture
+approval. This public repository uses GitHub-hosted
 Actions, not Hot Aisle's private runners. CI validates but does not publish production deployments.
 
 ## Compatibility and verification limits

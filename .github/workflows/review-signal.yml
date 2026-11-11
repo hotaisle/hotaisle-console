@@ -1,0 +1,16 @@
+name: review signal
+
+on:
+  pull_request_review:
+    types: [ submitted, edited, dismissed ]
+
+permissions: {}
+
+jobs:
+  signal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      # This unprivileged event only wakes the trusted workflow_run controller.
+      # Its payload, code and artifacts are never used as approval evidence.
+      - run: "true"
