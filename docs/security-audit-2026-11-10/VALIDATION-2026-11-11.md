@@ -1,5 +1,8 @@
 # Validation follow-up: 2026-11-11
 
+This records the earlier follow-up. Its three remaining questions were subsequently resolved in
+[RESOLUTION-2026-11-11.md](RESOLUTION-2026-11-11.md); use [NEEDS-VALIDATION.md](NEEDS-VALIDATION.md) for current status.
+
 This is an operational follow-up to the source audit, requested by the owner. It reconciles implemented
 fixes, ordinary regression tests, packaging, and deployment evidence. It is not a new full audit or an
 independent reproduction under the security-audit skill's stricter OS isolation requirements.

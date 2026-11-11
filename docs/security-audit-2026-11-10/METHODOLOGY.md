@@ -40,6 +40,14 @@ effective query redaction remain unresolved. [VALIDATION-2026-11-11.md](VALIDATI
 the evidence and limits. This operational evidence does not retroactively change the original source
 audit's sandbox limitations or historical JSON verdicts.
 
+The owner then requested inspection of hotManager and effective Cloudflare Issues settings. The final
+follow-up reviewed clean hotManager revision `ba6751a5fe5f4a6153899e149a33b83513ef3b91`, identified
+the lack of a cross-kind naming guarantee, and deployed a fail-closed duplicate-name guard with passing
+fixture cases. It traced the upstream email limiters and inspected the authenticated dashboard's actual
+`script-settings` response, existing Issues metadata, account memberships, and account-owned token
+permissions. No credentials or member identities were retained. Query redaction is confirmed enabled.
+The final three questions are closed with explicit limits in [RESOLUTION-2026-11-11.md](RESOLUTION-2026-11-11.md).
+
 ## Relevant vendor documentation
 
 - [Cloudflare security-audit-skill source](https://github.com/cloudflare/security-audit-skill/tree/c1c8a8c1471069fb0e188eeaff69b8e8db6564a8/skills/security-audit)
