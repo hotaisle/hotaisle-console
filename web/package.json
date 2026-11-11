@@ -1,23 +1,36 @@
 {
-  "name": "hotaisle-ui-web",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "build": "tsc --noEmit && vite build",
-    "watch": "vite build --watch",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@fontsource-variable/instrument-sans": "5.2.8",
-    "@fontsource/ibm-plex-mono": "5.1.1",
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
-  },
-  "devDependencies": {
-    "@types/react": "18.3.12",
-    "@types/react-dom": "18.3.1",
-    "@vitejs/plugin-react": "4.3.4",
-    "typescript": "5.6.3",
-    "vite": "5.4.21"
-  }
+	"name": "hotaisle-console-web",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "bun run --bun tsc --noEmit && bun run --bun vite build && bun ../worker/scripts/assert-assets.ts",
+		"build:preview": "bun run --bun tsc --noEmit && bun run --bun vite build --mode preview",
+		"typecheck": "bun run --bun tsc --noEmit",
+		"watch": "bun run --bun vite build --watch",
+		"watch:preview": "bun run --bun vite build --mode preview --watch"
+	},
+	"dependencies": {
+		"@fontsource-variable/instrument-sans": "5.3.0",
+		"@fontsource/ibm-plex-mono": "5.3.0",
+		"@tanstack/react-form": "1.33.5",
+		"@tanstack/react-hotkeys": "0.23.1",
+		"@tanstack/react-query": "5.107.1",
+		"@tanstack/react-router": "1.170.46",
+		"dompurify": "3.4.17",
+		"react": "19.3.1",
+		"react-dom": "19.3.1"
+	},
+	"devDependencies": {
+		"@testing-library/dom": "10.4.2",
+		"@testing-library/jest-dom": "7.0.1",
+		"@testing-library/react": "16.3.3",
+		"@testing-library/user-event": "14.6.8",
+		"@types/react": "19.3.0",
+		"@types/react-dom": "19.3.0",
+		"@vitejs/plugin-react": "6.3.0",
+		"jsdom": "31.0.0",
+		"typescript": "7.0.2",
+		"vite": "8.3.7",
+		"vitest": "5.1.0"
+	}
 }

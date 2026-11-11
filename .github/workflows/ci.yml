@@ -1,32 +1,44 @@
 name: ci
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Read-only: tests and pull requests can't write to the repo or publish anything.
 permissions:
   contents: read
+  pull-requests: read
 
 # Third-party actions are pinned to exact commits, so a moved tag can't change what runs.
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      # Cloudflare's TypeScript config loader requires Node module hooks.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            web/package-lock.json
-      - run: npm ci --no-audit --no-fund
+          node-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - name: Lint and formatting (tabs)
+        run: bun run check
       - name: Build the app
-        run: npm run build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VITE_BUILD_PR_URL: ${{ github.event.pull_request.html_url }}
+        run: bun run build
+      - name: Validate deployment bundle (no upload)
+        run: bun run --cwd worker cf deploy --prebuilt --dry-run
       - name: Type checks (Worker and app)
-        run: npm run typecheck
-      - name: Worker tests (in the Workers runtime, against a stand-in Hot Aisle API)
-        run: npm test
+        run: bun run typecheck
+      - name: Component and isolated Worker tests
+        run: bun run test

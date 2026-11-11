@@ -1,0 +1,84 @@
+/* Native dialogs supply the top layer and focus containment. */
+dialog:modal {
+	overscroll-behavior: contain;
+}
+dialog::backdrop {
+	overflow: hidden;
+	overscroll-behavior: contain;
+}
+.modal {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	width: min(520px, 100%);
+	max-height: calc(100dvh - min(14dvh, 128px) - 16px);
+	padding: 4px 24px 22px;
+	overflow: auto;
+	background: var(--card);
+	border-radius: 20px;
+	box-shadow: var(--pop);
+	animation: rise-in var(--d-3) var(--ease);
+}
+.modal-h {
+	display: flex;
+	gap: 16px;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16px 0 0;
+}
+.scrim::backdrop {
+	background: transparent;
+}
+.modal-h h2 {
+	font-size: 19px;
+}
+.modal-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	justify-content: flex-end;
+}
+.modal-actions .btn {
+	min-inline-size: 112px;
+	min-block-size: 40px;
+}
+.modal-actions .destructive {
+	color: white;
+	background: var(--bad);
+	border-color: var(--bad);
+}
+.modal-actions .destructive:hover:not(:disabled) {
+	background: var(--bad-deep);
+	border-color: var(--bad-deep);
+}
+.remove-key-details {
+	display: grid;
+	gap: 6px;
+	padding: 12px;
+	overflow-wrap: anywhere;
+	background: var(--card-2);
+	border: 1px solid var(--line-2);
+	border-radius: 8px;
+}
+.scrim[open] {
+	position: fixed;
+	inset: 0;
+	z-index: 20;
+	display: grid;
+	place-items: start center;
+	width: 100%;
+	max-width: none;
+	height: 100%;
+	max-height: none;
+	padding: min(14vh, 128px) 16px 16px;
+	margin: 0;
+	background: rgb(10 10 9 / 45%);
+	border: 0;
+	animation: fade-in var(--d-2) ease-out;
+}
+.scrim.closing {
+	animation: fade-out 0.17s ease-in forwards;
+}
+.scrim.closing .modal {
+	animation: sink 0.17s ease-in forwards;
+}

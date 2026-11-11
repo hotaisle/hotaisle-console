@@ -1,0 +1,157 @@
+import type { GPU, Specs, SSHAccess } from "./api";
+
+const EMAIL_COMMENT_PATTERN = /\S+@\S+/u;
+
+export const money = (cents: number, digits = 2) =>
+	(cents / 100).toLocaleString("en-US", {
+		currency: "USD",
+		maximumFractionDigits: digits,
+		minimumFractionDigits: digits,
+		style: "currency",
+	});
+
+export const perHour = (cents: number) => `${money(cents)}/h`;
+
+const GiB = 2 ** 30;
+export const gb = (bytes: number) => {
+	// memory comes in binary units (2048 GiB is the "2 TB" on the spec sheet), disks in decimal ones
+	if (bytes >= 1024 * GiB && bytes % GiB === 0) {
+		return `${+(bytes / (1024 * GiB)).toFixed(1)} TB`;
+	}
+	if (bytes >= 1e12) {
+		return `${+(bytes / 1e12).toFixed(1)} TB`;
+	}
+	return `${Math.round(bytes / GiB)} GB`;
+};
+
+// Per accelerator, from AMD's public spec sheets: memory (GB), memory type, peak bandwidth (TB/s), compute units.
+const FACTS: Record<
+	string,
+	{ mem: number; kind: string; bw: number; cu: number }
+> = {
+	MI300X: { bw: 5.3, cu: 304, kind: "HBM3", mem: 192 },
+	MI325X: { bw: 6, cu: 304, kind: "HBM3E", mem: 256 },
+	MI350X: { bw: 8, cu: 256, kind: "HBM3E", mem: 288 },
+	MI355X: { bw: 8, cu: 256, kind: "HBM3E", mem: 288 },
+};
+export const gpuFacts = (model?: string) =>
+	model ? FACTS[model.toUpperCase()] : undefined;
+export const hbm = (g?: GPU) => {
+	const f = gpuFacts(g?.model);
+	if (!(f && g)) {
+		return "";
+	}
+	const total = f.mem * g.count;
+	return total >= 1024
+		? `${+(total / 1024).toFixed(1)} TB ${f.kind}`
+		: `${total} GB ${f.kind}`;
+};
+
+/** The spec sheet for a machine size: what the API says, plus the GPU's published numbers. */
+export function specRows(s: Specs): [string, string][] {
+	const g = s.gpus?.[0];
+	const f = gpuFacts(g?.model);
+	const rows: [string, string][] = [];
+	if (g) {
+		rows.push([
+			"GPUs",
+			`${g.count}× ${g.manufacturer === "AMD" || f ? "AMD Instinct " : ""}${g.model ?? "GPU"}`,
+		]);
+	}
+	if (g && f) {
+		rows.push(["GPU memory", `${f.mem * g.count} GB ${f.kind}`]);
+		rows.push(["Bandwidth", `${+(f.bw * g.count).toFixed(1)} TB/s`]);
+		rows.push(["Compute units", (f.cu * g.count).toLocaleString("en-US")]);
+	}
+	if (s.cpu_cores) {
+		rows.push([
+			"CPU",
+			`${s.cpu_cores} cores${s.cpus?.model ? `, ${s.cpus.model}` : ""}`,
+		]);
+	}
+	if (s.ram_capacity) {
+		rows.push(["Memory", gb(s.ram_capacity)]);
+	}
+	if (s.disk_capacity) {
+		rows.push(["Disk", gb(s.disk_capacity)]);
+	}
+	return rows;
+}
+
+export const gpuLabel = (s: Pick<Specs, "gpus">) => {
+	const g = s.gpus?.[0];
+	if (!g) {
+		return "CPU only";
+	}
+	return `${g.count}× ${g.model ?? "GPU"}`;
+};
+
+export const gpuCount = (s: Pick<Specs, "gpus">) =>
+	s.gpus?.reduce((n, g) => n + g.count, 0) ?? 0;
+
+export function duration(ms: number) {
+	if (ms <= 0) {
+		return "no time";
+	}
+	const m = Math.floor(ms / 60_000);
+	const d = Math.floor(m / 1440),
+		h = Math.floor((m % 1440) / 60),
+		mm = m % 60;
+	const u = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
+	if (d > 0) {
+		return h ? `${u(d, "day")} ${u(h, "hour")}` : u(d, "day");
+	}
+	if (h > 0) {
+		return mm ? `${u(h, "hour")} ${u(mm, "minute")}` : u(h, "hour");
+	}
+	return u(Math.max(mm, 1), "minute");
+}
+
+export const sshPortOption = (port: number) =>
+	port === 22 ? "" : ` -p ${port}`;
+
+const SSH_NAME = /^[a-z0-9][a-z0-9._-]{0,127}$/iu;
+const SSH_HOST = /^(?:[a-z0-9][a-z0-9.-]{0,252}|[0-9a-f:]+)$/iu;
+export const validSSHPort = (port: number) =>
+	Number.isSafeInteger(port) && port >= 1 && port <= 65_535;
+export const validSSHName = (name: string) => SSH_NAME.test(name);
+export function sshHost(a: SSHAccess): string {
+	const host = a.dns_name || a.ip_address;
+	return SSH_HOST.test(host) && !host.endsWith(".") && !host.includes("..")
+		? host
+		: "";
+}
+
+export function sshCommand(a: SSHAccess, user = "hotaisle") {
+	const host = sshHost(a);
+	if (!(host && validSSHPort(a.port) && validSSHName(user))) {
+		return "";
+	}
+	return `ssh${sshPortOption(a.port)} ${user}@${host}`;
+}
+
+export function sshURL(a: SSHAccess, user = "hotaisle") {
+	if (!(sshHost(a) && validSSHPort(a.port) && validSSHName(user))) {
+		return "";
+	}
+	const host =
+		a.dns_name ||
+		(a.ip_address.includes(":") ? `[${a.ip_address}]` : a.ip_address);
+	return `ssh://${user}@${host}:${a.port}`;
+}
+
+/** A name for an SSH key that never shows an email address (key comments often are one). */
+export const keyLabel = (k: {
+	comment?: string;
+	type: string;
+	fingerprint: string;
+}) =>
+	k.comment && !EMAIL_COMMENT_PATTERN.test(k.comment)
+		? k.comment
+		: `${k.type.replace("ssh-", "")} ${k.fingerprint.replace("SHA256:", "").slice(0, 8)}`;
+
+/** A minimum reservation, as people say it: "30 minutes", "8 hours". */
+export const hoursOr = (min: number) =>
+	min >= 60 && min % 60 === 0
+		? `${min / 60} hour${min === 60 ? "" : "s"}`
+		: `${min} minute${min === 1 ? "" : "s"}`;

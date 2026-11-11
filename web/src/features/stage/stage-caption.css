@@ -1,0 +1,25 @@
+.stage-caption {
+	position: absolute;
+	right: 24px;
+	bottom: 20px;
+	z-index: 4;
+	width: max-content;
+	max-width: min(74ch, calc(100% - 48px));
+	padding: 10px 14px;
+	margin: 0;
+	font: 0.8125rem / 1.5 var(--mono);
+	color: var(--ink-2);
+	overflow-wrap: anywhere;
+	pointer-events: none;
+	background: color-mix(in srgb, var(--plate) 96%, transparent);
+	border: 1px solid var(--line-2);
+	border-radius: 10px;
+}
+@media (max-width: 600px) {
+	.stage-caption {
+		right: 16px;
+		bottom: 14px;
+		max-width: calc(100% - 32px);
+		font-size: 0.75rem;
+	}
+}

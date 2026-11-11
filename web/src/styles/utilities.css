@@ -1,0 +1,60 @@
+/* the estimate: what this machine costs over time, before you launch it */
+.estimate {
+	display: grid;
+	gap: 20px;
+}
+
+.visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	white-space: nowrap;
+	border: 0;
+	clip-path: inset(50%);
+}
+
+.options {
+	min-inline-size: 0;
+	padding: 0;
+	margin: 0;
+	border: 0;
+}
+
+.amounts {
+	min-inline-size: 0;
+	padding: 0;
+	margin: 0;
+	border: 0;
+}
+.estimate dl {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 11em;
+	gap: 7px 16px;
+	margin: 0;
+	font-size: 14px;
+}
+.estimate dt {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: var(--muted);
+	white-space: nowrap;
+}
+.estimate dd {
+	margin: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+	white-space: nowrap;
+}
+fieldset.seg {
+	min-inline-size: 0;
+	margin: 0;
+	border: 0;
+}
+.estimate dd.dim {
+	color: var(--muted);
+}

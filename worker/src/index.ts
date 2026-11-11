@@ -1,187 +1,570 @@
-// hotaisle-ui on Cloudflare Workers: the app's static files, and its backend.
+// Hot Aisle Console: static assets, email authentication, and a stateless API proxy.
 //
-//   /auth/*     sign in (an API key, or an emailed link), see who is signed in, sign out
-//   /api/*      the Hot Aisle API, forwarded with the session's token (the API doesn't answer browsers directly,
-//               and the token never reaches the page)
-//   /records/*  this account's machine records and history (a Durable Object per account)
-//   anything else: the app
+// Routes:
+//   /auth/*       email sign-in, API-key verification, session status, sign-out,
+//                 and authenticated derivation of the browser-history encryption key
+//   /api/*        forward requests to the configured Hot Aisle API without following redirects
+//   /records/*    retired; returns 410, as does /live/*
+//   other paths   serve the app; /__preview is restricted to preview.localhost
 //
-// Every /auth, /api and /records call must carry `X-Requested-With: hotaisle-ui` and, when the browser sends an
-// Origin, come from this site. Together with the SameSite=Strict cookie, other sites can't make these calls.
+// Credentials:
+//   API keys arrive in Authorization headers for each request and are never persisted here.
+//   Email-session tokens and pending login claims stay in encrypted HttpOnly, Secure,
+//   SameSite=Strict cookies; their secrets are not returned in frontend response bodies.
+//   History is encrypted in browser storage. This Worker verifies the account before
+//   deriving its key with HISTORY_SECRET and stores neither history nor per-account keys.
+//
+// Request protections:
+//   /auth and /api require X-Requested-With: hotaisle-console and reject a mismatched
+//   Origin when supplied. These are browser CSRF protections, not authentication.
+//   Auth and API calls have rate limits; request bodies are bounded where consumed.
+//   Auth/API responses use no-store, and security headers also cover static assets.
+//   Cloudflare diagnostics are configured separately; never log credentials or request bodies.
 
-import { apiBase, authHeaders, completeEmailLogin, send, startEmailLogin, waitEmailLogin, whoIs, type Credential, type Env } from './hotaisle';
-import { accountId, readSession, sessionCookie, type Session } from './session';
+import { historyKey } from "./history-key";
+import {
+	apiBase,
+	authHeaders,
+	type Credential,
+	completeEmailLogin,
+	type Env,
+	send,
+	startEmailLogin,
+	waitEmailLogin,
+	whoIs,
+} from "./hotaisle";
+import { allowRate, requestIp } from "./rate-limit";
+import { readSession, type Session, sessionCookie } from "./session";
 
-export { Account } from './account';
+const TOKEN_SCHEME_PATTERN = /^Token\s+/iu;
+const WHITESPACE_PATTERN = /\s/u;
+const MAX_EMAIL_START_BYTES = 1024;
+const MAX_API_BODY_BYTES = 1024 * 1024;
 
 const SECURITY_HEADERS: Record<string, string> = {
-  'X-Content-Type-Options': 'nosniff',
-  'Referrer-Policy': 'no-referrer',
-  'X-Frame-Options': 'DENY',
-  'Strict-Transport-Security': 'max-age=31536000',
-  'Content-Security-Policy':
-    "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+	"Content-Security-Policy":
+		"default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+	"Referrer-Policy": "no-referrer",
+	"Strict-Transport-Security": "max-age=31536000",
+	"X-Content-Type-Options": "nosniff",
+	"X-Frame-Options": "DENY",
 };
 
-function withHeaders(r: Response, extra: Record<string, string> = {}): Response {
-  const out = new Response(r.body, r);
-  for (const [k, v] of Object.entries({ ...SECURITY_HEADERS, ...extra })) out.headers.set(k, v);
-  return out;
+function withHeaders(
+	r: Response,
+	extra: Record<string, string> = {}
+): Response {
+	const out = new Response(r.body, r);
+	for (const [k, v] of Object.entries({ ...SECURITY_HEADERS, ...extra })) {
+		out.headers.set(k, v);
+	}
+	return out;
 }
 
 const json = (v: unknown, status = 200, headers: Record<string, string> = {}) =>
-  withHeaders(new Response(JSON.stringify(v), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...headers } }));
-const fail = (status: number, message: string, headers: Record<string, string> = {}) =>
-  withHeaders(new Response(message, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', ...headers } }));
+	withHeaders(
+		new Response(JSON.stringify(v), {
+			headers: {
+				"Cache-Control": "no-store",
+				"Content-Type": "application/json",
+				...headers,
+			},
+			status,
+		})
+	);
+const fail = (
+	status: number,
+	message: string,
+	headers: Record<string, string> = {}
+) =>
+	withHeaders(
+		new Response(message, {
+			headers: {
+				"Cache-Control": "no-store",
+				"Content-Type": "text/plain; charset=utf-8",
+				...headers,
+			},
+			status,
+		})
+	);
 
-async function readJSON<T>(req: Request, limit: number): Promise<T | undefined> {
-  const text = await req.text();
-  if (text.length > limit) return undefined;
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return undefined;
-  }
+async function rateLimitResponse(
+	limiter: RateLimit,
+	secret: string,
+	scope: string,
+	actor: string
+): Promise<Response | undefined> {
+	try {
+		if (await allowRate(limiter, secret, scope, actor)) {
+			return undefined;
+		}
+		return fail(429, "Too many requests. Try again shortly.", {
+			"Retry-After": "60",
+		});
+	} catch {
+		return fail(503, "Request limiting is temporarily unavailable.");
+	}
 }
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+async function readBody(
+	req: Request,
+	limit: number
+): Promise<Uint8Array | null> {
+	const declaredLength = Number(req.headers.get("Content-Length"));
+	if (Number.isFinite(declaredLength) && declaredLength > limit) {
+		return null;
+	}
+	if (!req.body) {
+		return new Uint8Array();
+	}
+	const chunks: Uint8Array[] = [];
+	let length = 0;
+	for await (const chunk of req.body) {
+		length += chunk.byteLength;
+		if (length > limit) {
+			return null;
+		}
+		chunks.push(chunk);
+	}
+	const body = new Uint8Array(length);
+	let offset = 0;
+	for (const chunk of chunks) {
+		body.set(chunk, offset);
+		offset += chunk.byteLength;
+	}
+	return body;
+}
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
+
+interface TokenSession extends Session {
+	token: string;
+}
+interface AuthenticatedSession extends TokenSession {
+	token: string;
+}
+
+function isAuthenticatedSession(
+	session: Session | undefined
+): session is AuthenticatedSession {
+	return Boolean(session?.token);
+}
 
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
-    const url = new URL(req.url);
-    const area = url.pathname.split('/')[1];
-    if (area !== 'auth' && area !== 'api' && area !== 'records') return withHeaders(await env.ASSETS.fetch(req));
+	async fetch(req: Request, env: Env): Promise<Response> {
+		const url = new URL(req.url);
+		if (
+			url.pathname.startsWith("/__preview") &&
+			url.hostname !== "preview.localhost"
+		) {
+			return fail(404, "not found");
+		}
+		const [, area] = url.pathname.split("/");
+		if (
+			url.hostname === "preview.localhost" &&
+			(area === "api" || area === "auth")
+		) {
+			return fail(
+				403,
+				"The preview origin cannot call the real API. Open /__preview/ for simulated machines."
+			);
+		}
+		if (area === "records" || area === "live") {
+			return fail(
+				410,
+				"Server-side console records and live channels have been removed. Reload the console to use browser-session data and automatic availability checks."
+			);
+		}
+		if (
+			area !== "auth" &&
+			area !== "api" &&
+			area !== "records" &&
+			area !== "live"
+		) {
+			return withHeaders(await env.ASSETS.fetch(req));
+		}
 
-    // only this site's own pages can call these
-    if (req.headers.get('X-Requested-With') !== 'hotaisle-ui') return fail(403, 'missing X-Requested-With header');
-    const origin = req.headers.get('Origin');
-    if (origin && origin !== url.origin) return fail(403, 'cross-origin request refused');
+		// only this site's own pages can call these
+		if (req.headers.get("X-Requested-With") !== "hotaisle-console") {
+			return fail(403, "missing X-Requested-With header");
+		}
+		const origin = req.headers.get("Origin");
+		if (origin && origin !== url.origin) {
+			return fail(403, "cross-origin request refused");
+		}
 
-    if (!env.SESSION_SECRET || env.SESSION_SECRET.length < 32)
-      return fail(500, 'This Worker has no SESSION_SECRET. Set one of 32+ random characters: `npx wrangler secret put SESSION_SECRET` (locally, in .dev.vars).');
-    const session = await readSession(req, env.SESSION_SECRET);
-    if (area === 'auth') return auth(req, env, url, session);
-    if (!session?.token || !session.account) return fail(401, 'not signed in');
-    if (area === 'api') return proxy(req, env, url, session);
-    return records(req, env, url, session);
-  },
+		if (!env.SESSION_SECRET || env.SESSION_SECRET.length < 32) {
+			return fail(
+				500,
+				"This Worker has no SESSION_SECRET. Set a secret of 32+ random characters in Cloudflare (locally, in .dev.vars)."
+			);
+		}
+		const authorization = req.headers.get("Authorization");
+		if (authorization && area !== "auth") {
+			return stateless(req, env, url, authorization);
+		}
+		const session = await readSession(req, env.SESSION_SECRET);
+		if (area === "auth") {
+			return auth(req, env, url, session);
+		}
+		if (!isAuthenticatedSession(session)) {
+			return fail(401, "not signed in");
+		}
+		if (area === "api") {
+			return proxy(req, env, url, session);
+		}
+		return fail(404, "not found");
+	},
 } satisfies ExportedHandler<Env>;
 
 /** What this session's calls go out with: an API key, or a session from email sign-in (each has its own header). */
-const credentialOf = (s: Session): Credential => ({ token: s.token!, kind: s.kind === 'email' ? 'email' : 'key' });
+const credentialOf = (s: TokenSession): Credential => ({
+	kind: s.kind === "email" ? "email" : "key",
+	token: s.token,
+});
 
 // ---------------------------------------------------------------- sign-in
 
-async function auth(req: Request, env: Env, url: URL, session: Session | undefined): Promise<Response> {
-  const route = `${req.method} ${url.pathname}`;
-  switch (route) {
-    case 'GET /auth/status':
-      return json({
-        signed_in: !!session?.token,
-        kind: session?.token ? session.kind : undefined,
-        waiting_for_email: session?.pending && !session.token ? { email: session.pending.email, expires_at: session.pending.expires_at } : undefined,
-        email_login: true,
-        passkeys: false,
-        version: env.VERSION ?? 'dev',
-      });
+async function auth(
+	req: Request,
+	env: Env,
+	url: URL,
+	session: Session | undefined
+): Promise<Response> {
+	switch (`${req.method} ${url.pathname}`) {
+		case "GET /auth/status":
+			return await authGetAuthStatus(env, session);
+		case "GET /auth/key":
+			return await authGetAuthKey(req, env);
+		case "POST /auth/history-key":
+			return await authPostHistoryKey(req, env, url, session);
+		case "POST /auth/email/start":
+			return await authPostAuthEmailStart(req, env);
+		case "POST /auth/email/wait":
+			return await authPostAuthEmailWait(req, env, session);
+		case "POST /auth/signout":
+			return await authPostAuthSignout(env);
+		default:
+			return fail(404, "not found");
+	}
+}
 
-    case 'POST /auth/key': {
-      const b = await readJSON<{ key?: string }>(req, 4096);
-      const key = (b?.key ?? '').trim().replace(/^Token\s+/i, '');
-      if (!key || /\s/.test(key)) return fail(400, "That doesn't look like an API key. It is one line, with no spaces.");
-      const who = await whoIs(env, { token: key, kind: 'key' });
-      if (!who.ok) return fail(who.status, who.message);
-      const account = await accountId(who.who.user?.email || 'key:' + key);
-      return json(JSON.parse(who.body), 200, { 'Set-Cookie': await sessionCookie(env.SESSION_SECRET, { token: key, kind: 'key', account }) });
-    }
+async function authPostHistoryKey(
+	req: Request,
+	env: Env,
+	url: URL,
+	session: Session | undefined
+) {
+	const header = req.headers.get("Authorization");
+	let credential: Credential | undefined;
+	if (header) {
+		credential = keyFromHeader(header);
+	} else if (isAuthenticatedSession(session)) {
+		credential = credentialOf(session);
+	}
+	if (!credential) {
+		return fail(401, "Sign in to unlock browser history.");
+	}
+	const limited = await rateLimitResponse(
+		env.AUTH_RATE_LIMITER,
+		env.SESSION_SECRET,
+		"auth-verify",
+		requestIp(req)
+	);
+	if (limited) {
+		return limited;
+	}
+	const who = await whoIs(env, credential);
+	if (!who.ok) {
+		return fail(who.status, "Sign in again to unlock browser history.");
+	}
+	if (!env.HISTORY_SECRET || env.HISTORY_SECRET.length < 32) {
+		return fail(
+			503,
+			"Encrypted browser history is unavailable until HISTORY_SECRET is configured. Existing saved history has not been changed."
+		);
+	}
+	try {
+		return json(
+			await historyKey(env.HISTORY_SECRET, url.origin, who.who),
+			200,
+			{ "Cross-Origin-Resource-Policy": "same-origin" }
+		);
+	} catch {
+		return fail(
+			502,
+			"Could not establish the account identity for browser history. Existing saved history has not been changed."
+		);
+	}
+}
+function authGetAuthStatus(env: Env, session: Session | undefined) {
+	return json({
+		email_login: true,
+		kind: session?.token ? session.kind : undefined,
+		passkeys: false,
+		signed_in: !!session?.token,
+		version: env.VERSION ?? "dev",
+		waiting_for_email:
+			session?.pending && !session.token
+				? {
+						email: session.pending.email,
+						expires_at: session.pending.expires_at,
+					}
+				: undefined,
+	});
+}
 
-    case 'POST /auth/email/start': {
-      const b = await readJSON<{ email?: string }>(req, 1024);
-      const email = (b?.email ?? '').trim();
-      if (!EMAIL.test(email) || email.length > 254) return fail(400, "That doesn't look like an email address.");
-      const r = await startEmailLogin(env, email);
-      if (!r.ok) return fail(r.status, r.message);
-      const pending = { ticket: r.start.claim_ticket, email: r.start.email || email, expires_at: r.start.expires_at };
-      const days = Math.max(1 / 1440, (Date.parse(pending.expires_at) - Date.now()) / 86400_000);
-      return json({ email: pending.email, expires_at: pending.expires_at }, 200, { 'Set-Cookie': await sessionCookie(env.SESSION_SECRET, { pending }, days) });
-    }
+async function authGetAuthKey(req: Request, env: Env) {
+	const credential = keyFromHeader(req.headers.get("Authorization"));
+	if (!credential) {
+		return fail(401, "An API key is required for this request.");
+	}
+	const limited = await rateLimitResponse(
+		env.AUTH_RATE_LIMITER,
+		env.SESSION_SECRET,
+		"auth-verify",
+		requestIp(req)
+	);
+	if (limited) {
+		return limited;
+	}
+	const who = await whoIs(env, credential);
+	if (!who.ok) {
+		return fail(who.status, "Hot Aisle did not accept this API key.");
+	}
+	return json(JSON.parse(who.body));
+}
 
-    case 'POST /auth/email/wait': {
-      const p = session?.pending;
-      if (!p) return fail(400, 'No email sign-in in progress.');
-      if (Date.parse(p.expires_at) <= Date.now()) return fail(410, 'That link has expired. Send a new one.');
-      // Hot Aisle holds this request for up to 20 seconds while the link isn't approved yet
-      const w = await waitEmailLogin(env, p.ticket);
-      if (w === 'waiting') return json({ done: false });
-      if (typeof w === 'object') return fail(410, w.failed);
-      const c = await completeEmailLogin(env, p.ticket);
-      if ('failed' in c) return fail(410, c.failed);
-      const cred: Credential = { token: c.token, kind: 'email' };
-      const who = await whoIs(env, cred);
-      if (!who.ok) return fail(who.status, who.message);
-      const account = await accountId(who.who.user?.email || p.email);
-      // the cookie lasts as long as Hot Aisle's session (it's renewed as the app is used), and at most 30 days
-      const days = c.expires ? Math.max(1 / 1440, (c.expires - Date.now()) / 86400_000) : 30;
-      return json({ done: true, ...JSON.parse(who.body) }, 200, {
-        'Set-Cookie': await sessionCookie(env.SESSION_SECRET, { token: c.token, kind: 'email', account, tokenExp: c.expires }, Math.min(days, 30)),
-      });
-    }
+async function authPostAuthEmailStart(req: Request, env: Env) {
+	const ipLimit = await rateLimitResponse(
+		env.EMAIL_LOGIN_IP_RATE_LIMITER,
+		env.SESSION_SECRET,
+		"email-start-ip",
+		requestIp(req)
+	);
+	if (ipLimit) {
+		return ipLimit;
+	}
+	const body = await readBody(req, MAX_EMAIL_START_BYTES);
+	if (!body) {
+		return fail(413, "Email sign-in request is too large.");
+	}
+	let email = "";
+	try {
+		const parsed = JSON.parse(
+			new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(body)
+		) as {
+			email?: string;
+		};
+		email = (parsed.email ?? "").trim();
+	} catch {
+		return fail(400, "That doesn't look like an email address.");
+	}
+	if (!EMAIL.test(email) || email.length > 254) {
+		return fail(400, "That doesn't look like an email address.");
+	}
+	const emailLimit = await rateLimitResponse(
+		env.EMAIL_LOGIN_EMAIL_RATE_LIMITER,
+		env.SESSION_SECRET,
+		"email-start-address",
+		email.toLowerCase()
+	);
+	if (emailLimit) {
+		return emailLimit;
+	}
+	const r = await startEmailLogin(env, email);
+	if (!r.ok) {
+		return fail(r.status, r.message);
+	}
+	const pending = {
+		email: r.start.email || email,
+		expires_at: r.start.expires_at,
+		ticket: r.start.claim_ticket,
+	};
+	const days = Math.max(
+		1 / 1440,
+		(Date.parse(pending.expires_at) - Date.now()) / 86_400_000
+	);
+	return json({ email: pending.email, expires_at: pending.expires_at }, 200, {
+		"Set-Cookie": await sessionCookie(env.SESSION_SECRET, { pending }, days),
+	});
+}
 
-    case 'POST /auth/signout':
-      return json({ ok: true }, 200, { 'Set-Cookie': await sessionCookie(env.SESSION_SECRET, undefined) });
-  }
-  return fail(404, 'not found');
+async function authPostAuthEmailWait(
+	req: Request,
+	env: Env,
+	session: Session | undefined
+) {
+	const p = session?.pending;
+	if (!p) {
+		return fail(400, "No email sign-in in progress.");
+	}
+	if (Date.parse(p.expires_at) <= Date.now()) {
+		return fail(410, "That link has expired. Send a new one.");
+	}
+	const limited = await rateLimitResponse(
+		env.AUTH_RATE_LIMITER,
+		env.SESSION_SECRET,
+		"email-wait",
+		requestIp(req)
+	);
+	if (limited) {
+		return limited;
+	}
+	// Hot Aisle holds this request for up to 20 seconds while the link isn't approved yet
+	const w = await waitEmailLogin(env, p.ticket);
+	if (w === "waiting") {
+		return json({ done: false });
+	}
+	if (typeof w === "object") {
+		return fail(410, w.failed);
+	}
+	const c = await completeEmailLogin(env, p.ticket);
+	if ("failed" in c) {
+		return fail(410, c.failed);
+	}
+	const cred: Credential = { kind: "email", token: c.token };
+	const who = await whoIs(env, cred);
+	if (!who.ok) {
+		return fail(who.status, who.message);
+	}
+	// the cookie lasts as long as Hot Aisle's session (it's renewed as the app is used), and at most 30 days
+	const days = c.expires
+		? Math.max(1 / 1440, (c.expires - Date.now()) / 86_400_000)
+		: 30;
+	return json({ done: true, ...JSON.parse(who.body) }, 200, {
+		"Set-Cookie": await sessionCookie(
+			env.SESSION_SECRET,
+			{ kind: "email", token: c.token, tokenExp: c.expires },
+			Math.min(days, 30)
+		),
+	});
+}
+
+async function authPostAuthSignout(env: Env) {
+	return json({ ok: true }, 200, {
+		"Set-Cookie": await sessionCookie(env.SESSION_SECRET, undefined),
+	});
 }
 
 // ---------------------------------------------------------------- the Hot Aisle API
 
-const FORWARD_HEADERS = ['Content-Type', 'Accept'];
+const FORWARD_HEADERS = ["Content-Type", "Accept"];
 
-async function proxy(req: Request, env: Env, url: URL, session: Session): Promise<Response> {
-  const cred = credentialOf(session);
-  const path = url.pathname.slice('/api'.length) + url.search;
-  const headers = new Headers();
-  for (const h of FORWARD_HEADERS) {
-    const v = req.headers.get(h);
-    if (v) headers.set(h, v);
-  }
-  for (const [k, v] of Object.entries(authHeaders(cred))) headers.set(k, v);
-  headers.set('User-Agent', `hotaisle-ui/${env.VERSION ?? 'dev'}`);
-  let r: Response;
-  try {
-    r = await send(env, apiBase(env) + path, {
-      method: req.method,
-      headers,
-      body: req.method === 'GET' || req.method === 'HEAD' ? undefined : await req.arrayBuffer(),
-      redirect: 'manual',
-    });
-  } catch (e) {
-    return fail(502, 'Could not reach the Hot Aisle API: ' + (e as Error).message);
-  }
-  const out = new Response(r.body, { status: r.status, headers: { 'Content-Type': r.headers.get('Content-Type') ?? 'application/json', 'Cache-Control': 'no-store' } });
-  // Renewal: when an email session has under a minute left, Hot Aisle answers any call with a new key and its
-  // expiry. The old key keeps working until its own expiry, so requests already in flight finish; the session
-  // switches to the new key only if it lasts at least as long as the one it has (expiries come in whole seconds),
-  // so a slow, older answer can't undo it.
-  const fresh = r.headers.get('X-New-Session-Key');
-  const until = Date.parse(r.headers.get('X-Session-Key-Expires') ?? '');
-  if (cred.kind === 'email' && fresh && Number.isFinite(until) && until >= (session.tokenExp ?? 0) && fresh !== session.token) {
-    const days = Math.min(30, Math.max(1 / 1440, (until - Date.now()) / 86400_000));
-    out.headers.set('Set-Cookie', await sessionCookie(env.SESSION_SECRET, { token: fresh, kind: 'email', account: session.account, tokenExp: until }, days));
-  }
-  return withHeaders(out);
+async function proxy(
+	req: Request,
+	env: Env,
+	url: URL,
+	session: TokenSession
+): Promise<Response> {
+	const cred = credentialOf(session);
+	const path = url.pathname.slice("/api".length) + url.search;
+	const read = req.method === "GET" || req.method === "HEAD";
+	const limited = await rateLimitResponse(
+		read ? env.API_READ_RATE_LIMITER : env.API_WRITE_RATE_LIMITER,
+		env.SESSION_SECRET,
+		read ? "api-read" : "api-write",
+		read
+			? `${cred.kind}\0${cred.token}\0${url.pathname}`
+			: `${cred.kind}\0${cred.token}`
+	);
+	if (limited) {
+		return limited;
+	}
+	const headers = new Headers();
+	for (const h of FORWARD_HEADERS) {
+		const v = req.headers.get(h);
+		if (v) {
+			headers.set(h, v);
+		}
+	}
+	for (const [k, v] of Object.entries(authHeaders(cred))) {
+		headers.set(k, v);
+	}
+	headers.set("User-Agent", `hotaisle-console/${env.VERSION ?? "dev"}`);
+	let r: Response;
+	try {
+		const body = read ? undefined : await readBody(req, MAX_API_BODY_BYTES);
+		if (body === null) {
+			return fail(413, "API request body is too large.");
+		}
+		r = await send(env, apiBase(env) + path, {
+			body,
+			headers,
+			method: req.method,
+			redirect: "manual",
+		});
+	} catch (e) {
+		return fail(
+			502,
+			`Could not reach the Hot Aisle API: ${(e as Error).message}`
+		);
+	}
+	const out = new Response(r.body, {
+		headers: {
+			"Cache-Control": "no-store",
+			"Content-Type": r.headers.get("Content-Type") ?? "application/json",
+		},
+		status: r.status,
+	});
+	// Renewal: when an email session has under a minute left, Hot Aisle answers any call with a new key and its
+	// expiry. The old key keeps working until its own expiry, so requests already in flight finish; the session
+	// switches to the new key only if it lasts at least as long as the one it has (expiries come in whole seconds),
+	// so a slow, older answer can't undo it.
+	const fresh = r.headers.get("X-New-Session-Key");
+	const until = Date.parse(r.headers.get("X-Session-Key-Expires") ?? "");
+	if (
+		cred.kind === "email" &&
+		fresh &&
+		Number.isFinite(until) &&
+		until >= (session.tokenExp ?? 0) &&
+		fresh !== session.token
+	) {
+		const days = Math.min(
+			30,
+			Math.max(1 / 1440, (until - Date.now()) / 86_400_000)
+		);
+		out.headers.set(
+			"Set-Cookie",
+			await sessionCookie(
+				env.SESSION_SECRET,
+				{
+					kind: "email",
+					token: fresh,
+					tokenExp: until,
+				},
+				days
+			)
+		);
+	}
+	return withHeaders(out);
 }
 
-// ---------------------------------------------------------------- machine records
-
-async function records(req: Request, env: Env, url: URL, session: Session): Promise<Response> {
-  const stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromName(session.account!));
-  const inner = new Request('https://account' + url.pathname.slice('/records'.length) + url.search, {
-    method: req.method,
-    headers: { 'Content-Type': 'application/json' },
-    body: req.method === 'GET' ? undefined : await req.text(),
-  });
-  const r = await stub.fetch(inner);
-  return withHeaders(new Response(r.body, { status: r.status, headers: { 'Content-Type': r.headers.get('Content-Type') ?? 'application/json', 'Cache-Control': 'no-store' } }));
+function keyFromHeader(header: string | null): Credential | undefined {
+	if (!(header && TOKEN_SCHEME_PATTERN.test(header))) {
+		return undefined;
+	}
+	const token = header.replace(TOKEN_SCHEME_PATTERN, "");
+	if (!token || token.length > 4096 || WHITESPACE_PATTERN.test(token)) {
+		return undefined;
+	}
+	return { kind: "key", token };
 }
-
+async function stateless(
+	req: Request,
+	env: Env,
+	url: URL,
+	authorization: string
+): Promise<Response> {
+	const credential = keyFromHeader(authorization);
+	if (!credential) {
+		return fail(401, "Invalid API-key authorization header.");
+	}
+	const identity: TokenSession = {
+		exp: Date.now(),
+		kind: "key",
+		token: credential.token,
+		v: 1,
+	};
+	return await proxy(req, env, url, identity);
+}

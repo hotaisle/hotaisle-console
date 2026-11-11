@@ -1,8 +1,11 @@
 /bin/
 /web/node_modules/
-/web/dist/*
-!/web/dist/.gitkeep
+/worker/node_modules/
+/web/dist/
+/web/preview-dist/
 .DS_Store
 /node_modules/
 .dev.vars
 .wrangler/
+.cloudflare/
+.env*

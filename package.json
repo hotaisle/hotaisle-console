@@ -1,28 +1,52 @@
 {
-  "name": "hotaisle-ui",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "build": "npm --prefix web ci --no-audit --no-fund && npm --prefix web run build",
-    "dev": "npm run build && wrangler dev",
-    "dev:fake": "npm run build && node worker/dev/fake-api.mjs",
-    "deploy": "wrangler deploy",
-    "typecheck": "tsc -p worker && npm --prefix web run typecheck",
-    "test": "vitest run",
-    "test:ui": "npm run build && node web/tests/stability.mjs"
-  },
-  "devDependencies": {
-    "@cloudflare/vitest-plugin": "1.5.0",
-    "@cloudflare/workers-types": "5.20261102.1",
-    "typescript": "5.6.3",
-    "vitest": "4.1.11",
-    "wrangler": "4.156.2"
-  },
-  "cloudflare": {
-    "bindings": {
-      "SESSION_SECRET": {
-        "description": "Encrypts sign-in sessions. 32 or more random characters: `openssl rand -base64 32`."
-      }
-    }
-  }
+	"name": "hotaisle-console",
+	"private": true,
+	"type": "module",
+	"workspaces": [
+		"web",
+		"worker"
+	],
+	"scripts": {
+		"build": "bun run build:web && bun run build:worker",
+		"build:cloudflare": "bun worker/scripts/cloudflare-build.ts",
+		"build:web": "bun run --cwd web build",
+		"build:worker": "bun run --cwd worker build",
+		"check": "bun run --bun ultracite check",
+		"deploy": "bun run build && bun run --cwd worker deploy",
+		"deploy:cloudflare": "bun worker/scripts/cloudflare-deploy.ts",
+		"dev": "bun run build:web && bun run preview && bun run --cwd worker dev",
+		"fix": "bun run --bun ultracite fix",
+		"identity:email-login": "bun run worker/scripts/create-email-login-identity.ts",
+		"preview": "bun run --cwd web build:preview",
+		"test": "vitest run",
+		"test:components": "vitest run --project components",
+		"test:worker": "vitest run --project worker",
+		"typecheck": "bun run --bun tsc -p tsconfig.tools.json && bun run --bun tsc -p worker && bun run --cwd web typecheck"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.6.6",
+		"@cloudflare/vitest-plugin": "1.6.1",
+		"@cloudflare/workers-types": "5.20261109.1",
+		"@types/node": "26.6.6",
+		"typescript": "7.0.2",
+		"ultracite": "8.1.1",
+		"vitest": "5.1.0"
+	},
+	"packageManager": "bun@1.4.4",
+	"engines": {
+		"node": "^26.13.0"
+	},
+	"cloudflare": {
+		"bindings": {
+			"EMAIL_LOGIN_SIGNING_KEY": {
+				"description": "Dedicated Ed25519 email-login identity key: PKCS#8 DER as standard base64. Register its SSH public key as hotaisle-console in hotManager EMAIL_AUTH_CLIENTS. Never reuse session or history secrets."
+			},
+			"HISTORY_SECRET": {
+				"description": "Stable, dedicated 32+ character secret for browser history. Back up securely; changing it makes existing encrypted history unreadable."
+			},
+			"SESSION_SECRET": {
+				"description": "Encrypts sign-in sessions. 32 or more random characters: `openssl rand -base64 32`."
+			}
+		}
+	}
 }

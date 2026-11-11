@@ -1,88 +1,171 @@
 # AGENTS.md
 
-A guide for coding agents (and people) working on hotaisle-ui: a web app for renting Hot Aisle MI300X GPUs, running
-on Cloudflare Workers. The README has the product description.
+hotaisle-console is a React and TypeScript console for Hot Aisle GPU rentals, served by a Cloudflare Worker.
+Keep the original developer's credit at the top of the README, the imported Git history, and license notices.
 
-## Run it
+## Commands
 
 ```sh
-npm install
-cp .dev.vars.example .dev.vars    # SESSION_SECRET: 32+ random characters
-npm run dev                       # http://localhost:8787 (add ?demo for sample data)
-npm run dev:fake                  # against a local stand-in API: email sign-in, keys tok-alice / tok-bob
-npm test                          # Worker tests in the Workers runtime; run before every commit
-npm run typecheck
-npm run test:ui                   # layout and motion checks in headless Chrome (~3 min)
+bun install --frozen-lockfile
+bun run check
+bun run typecheck
+bun run test
+bun run build
+bun run --cwd worker cf deploy --prebuilt --dry-run
 ```
 
-Node 20+. The Worker serves `web/dist` as static assets, so run `npm run build` after changing the app (or keep
-`cd web && npm run watch` running).
+Run the Worker suite before every commit. Component tests are colocated with their source components and hooks;
+Worker tests run in Cloudflare's isolated runtime with a test-only upstream fixture. Never use real accounts,
+credentials, purchases, or machine operations in automated tests.
 
-## Where things are
+Use Bun 1.4.4 for package management, frontend tools, TypeScript checks, and helper scripts. Source, configuration,
+fixtures, and helpers must be TypeScript, not JavaScript module scripts. Cloudflare's configuration loader requires
+Node module hooks, so the `cf` CLI, Worker build, and Vitest orchestration use Node 26 LTS. Do not force `--bun` on them.
 
-| Path | What |
+Use Ultracite/Biome with tabs and fix reported issues. Do not add rule suppressions to make checks pass. YAML uses
+spaces. Generated `web/dist`, Worker output, and dependency directories are ignored and must not be committed.
+`bun run build` recreates frontend assets before packaging the Worker.
+
+## Source layout
+
+| Path | Responsibility |
 | --- | --- |
-| `wrangler.jsonc` | the Worker: static assets, the `Account` Durable Object, vars |
-| `worker/src/index.ts` | routes, the guard, sign-in (`/auth/*`), the API proxy (`/api/*`), records (`/records/*`) |
-| `worker/src/session.ts` | the session cookie: AES-GCM, keys derived from `SESSION_SECRET` |
-| `worker/src/account.ts` | one Durable Object per account: launch records and history (no logins) |
-| `worker/src/hotaisle.ts` | calls the Worker itself makes to Hot Aisle; the email sign-in adapter |
-| `worker/dev/fake-api.mjs` | a stand-in Hot Aisle API for tests and `npm run dev:fake` |
-| `shared/records.ts` | records and history logic, shared by the Worker and sample data |
-| `web/src/api.ts` | every call the app makes; sends them to sample data when that's on |
-| `web/src/demo/api.ts` | sample data: an in-browser copy of the API and of `/records` |
-| `web/src/Connect.tsx` | the sign-in screen (email link, API key, sample data) |
-| `web/src/App.tsx` | views, state, what the drawing is told to show |
-| `web/src/Launch.tsx`, `Machines.tsx` | ordering, the hold-to-launch key, machine cards, receipts, history |
-| `web/src/Stage.tsx`, `web/src/iso/` | the drawing and its frame loop |
-| `web/tests/stability.mjs` | drives the app (via `wrangler dev`) in headless Chrome; fails on any layout shift |
+| `web/src/app/` | App entry, Router route tree, URL validation, Query client |
+| `web/src/features/auth/` | Email approval, API-key encryption and unlock forms, sign-in layout |
+| `web/src/features/console/` | Console orchestration, data hooks, panel views, credits |
+| `web/src/features/launch/` | Size selection, launch guards and images |
+| `web/src/features/machines/` | Machine readings, actions, confirmations, receipts and history |
+| `web/src/features/settings/` | Account, browser preferences and SSH key management |
+| `web/src/features/stage/` | Server layout, animation controller, SVG rendering and geometry |
+| `web/src/components/` | Shared controls and readouts |
+| `web/src/hooks/` | Query-backed resources and session cache lifecycle |
+| `web/src/lib/` | Typed API, encrypted key vault, formatting and browser utilities |
+| `web/src/styles/`, `web/src/assets/` | Stylesheets and licensed static assets |
+| `web/test/` | Component test setup and providers |
+| `web/dev/`, `web/__preview/` | Local-only machine preview, simulated transport and scenario entry |
+| `worker/src/index.ts` | Request guard, email sign-in, stateless key proxy |
+| `worker/src/session.ts` | Encrypted email-session cookies |
+| `worker/src/history-key.ts` | Stateless, authenticated browser-history key derivation |
+| `worker/src/hotaisle.ts` | Upstream API and email protocol adapter |
+| `worker/test/fixtures/upstream.ts` | Isolated upstream fixture; never imported by production code |
+| `worker/cloudflare.config.ts` | Worker assets, secrets and retired namespace deletion exports |
+| `worker/vite.config.ts` | Worker build and local development configuration |
+| `shared/records.ts` | Pure machine-record and recent-history logic |
 
-## Connecting it to the real API
+## Navigation and state
 
-The page calls `/api/*`, which the Worker forwards verbatim to `https://admin.hotaisle.app/api` with the session's
-credential: `Authorization: Token <key>` for an API key, `X-Session-Key: <token>` for an email sign-in
-(`authHeaders` in `worker/src/hotaisle.ts`). The API surface the app depends on is what `web/src/demo/api.ts` implements;
-compare its routes and JSON shapes with the live API to find mismatches, fix them in `web/src/api.ts`, and keep the
-sample data in step.
+Use TanStack Router for every page. Team, selected machine, history run, and launch choices belong in validated
+URL parameters, so links, reloads, and browser back/forward work. Do not reintroduce an in-memory page stack.
+The custom cloud-init URL is the exception: keep it in account-scoped browser ciphertext, never route search
+or plaintext preferences. Migrate legacy `hotaisle-ui:prefs.customURL` only after an encrypted save succeeds.
+A protected link must retain its destination through sign-in. Unknown machines and missing history must not
+silently display another machine or an unrelated page.
+Keep ended runs in the dedicated history view, with pagination and page size in URL parameters and no search UI.
+Fit each page to the panel's visible height, keeping text fully readable. Persist launch records and receipts only as AES-GCM encrypted, append-only browser entries.
+Never automatically delete or overwrite saved entries on logout, account changes, retention limits, quota
+errors, decryption errors, or upgrades. Clear only decrypted memory and keys on logout and authentication
+failure. Do not persist plaintext or history keys. Never persist history to Cloudflare. There is no notes feature.
 
-**Email sign-in.** `POST /user/email/login/ {email}` returns a private `claim_ticket` (kept in the encrypted session,
-never sent to the page); `POST /user/email/wait/ {claim_ticket}` holds up to 20 s and answers 202 (waiting) or 204
-(approved); `POST /user/email/complete/ {claim_ticket}` answers 204 with the session token in `X-New-Session-Key` and
-its expiry in `X-Session-Key-Expires`, or 401. All of it is in `worker/src/hotaisle.ts`.
+Use TanStack Query for API state and polling. Scope resource keys by team and clear private caches when the
+account changes or signs out. Cancel older polls before optimistic cache writes; await those writes before
+refreshing. Keep component behavior covered by focused tests instead of a whole-app stability script.
 
-**Passkeys.** Not in the API yet. They would add `/auth/passkey/*` routes that relay the WebAuthn ceremony to Hot
-Aisle and store the resulting token in the session, the same way email sign-in does.
+Availability polls from the browser every ten seconds through the stateless proxy and refreshes on focus.
+Do not add server-side rooms, tickets, or user-data storage. The old Account and Availability Durable Object
+exports are deletion tombstones; never re-export or bind the retired classes. Workers Logs and Issues are
+enabled, with invocation logs and traces disabled. Query-string redaction is required and was verified
+in the 2026-11-11 follow-up; recheck effective settings after observability changes. Never add credentials, account
+identifiers, request bodies, or other user data to application logs or issue context.
+The only Worker-side rate state is Cloudflare's temporary counters keyed by purpose-separated HMAC digests;
+never send raw emails, IP addresses, or API keys to a rate-limit binding. Binding limits are approximate
+per Cloudflare location, not strict global quotas.
 
-**Staying signed in.** Email sessions last 20 minutes. With under a minute left, Hot Aisle answers any authenticated
-call with `X-New-Session-Key` and `X-Session-Key-Expires`; the proxy switches the session cookie to the new key when its
-expiry is at least the current one's, so an older answer arriving late can't undo it. The old key keeps working until
-its own expiry. The app calls the API at least every 15 seconds while it's open, so no separate keep-alive is needed.
+Use TanStack Form for form values, field validation, and submission state. Reuse the bound controls in
+`web/src/components/forms/`. Team creation and invitation acceptance use the upstream API; keep pending
+invitations visible and update the account cache from the successful response before navigating.
+Do not leave empty directories behind when moving source files.
 
-**No auto-end, on purpose.** Hot Aisle's API has no scheduled shutdown, and an app-side timer could miss one (an
-outage, an expired or revoked session) and leave a machine billing. Don't add one back unless the API itself can take
-a shutdown time.
+`bun run preview` builds a local-only scenario explorer for the already-running development process at
+`http://preview.localhost:8787/__preview/`. It uses the real app components with browser-only fixtures and no
+real API fallback. Keep preview imports outside production entry points. Its separate origin isolates browser
+storage; reload resets simulated state. Preview assets use the independent `web/preview-dist` output, served
+only by local Vite middleware; production builds must not overwrite it. Missing preview assets must fail
+clearly, never use the normal SPA fallback. Reject real `/api` and `/auth` requests from the preview origin.
+Normal builds exclude the preview and Worker packaging must reject
+preview assets. Never deploy the preview build or use real credentials for it.
 
-## Rules that must hold
+## Credentials and privacy
 
-Money:
-- **Ending a machine must really end it.** End releases a VM through `DELETE virtual_machines/{name}/` (shutting it
-  down doesn't stop billing; releasing does, and deletes its data) and bare metal through `bare_metal/{name}/`. Say so
-  before the person confirms. Never show a failure as success.
-- Minimum charges: 30 minutes for a VM, 8 hours for bare metal. Estimates and receipts apply them.
+API keys are saved only as browser-local ciphertext, using a passphrase-derived, non-extractable AES-GCM key.
+Use a new random salt and IV for every save. The passphrase never leaves the browser. After unlocking, the
+browser sends the API key to the same-origin Worker in an authorization header for each request. The Worker
+may see the key while forwarding it; it must never persist it in a cookie, database, cache, or application log.
+The Worker must never persist account records or history.
 
-Keys and privacy:
-- A token never reaches the page: not in a response body, a URL, or a readable cookie. It is only ever in the
-  encrypted session cookie. Nothing stores logins on the server.
-- Never log tokens, emails or claim tickets. Durable Objects are named by a hash of the email, not the email.
-- The guard stays: `X-Requested-With: hotaisle-ui` on `/auth`, `/api`, `/records`, same-origin only,
-  `SameSite=Strict` cookie, strict CSP.
+Browser history unlocks with either sign-in method through `POST /auth/history-key`. Verify the credential
+with Hot Aisle on every key request; derive only from the verified account identity, never client-supplied
+identity fields. Use the dedicated `HISTORY_SECRET`, origin separation, and `Cache-Control: no-store`.
+Do not fall back to `SESSION_SECRET`. Preserve `HISTORY_SECRET` across deployments and back it up securely;
+rotation requires a recovery/migration plan. The current API identity is email plus account creation time,
+so an email change requires migration too. The Worker can derive the key but stores no per-account keys.
+Keep the preview's fixtures memory-only. Failed unlock or storage writes must show a visible warning and
+preserve ciphertext; new entries may remain memory-only while storage is unavailable.
 
-Layout and motion (checked by `npm run test:ui`):
-- Nothing moves unless the person asked: no layout shift, fixed-width numbers, the order fits its sheet.
-- The drawing writes to the DOM only when a value changes and sleeps when nothing moves. Fans are WebGL, not SVG.
-- One drawer out at a time, and none reverses on load.
+Email sign-in uses an encrypted HttpOnly, Secure, SameSite=Strict cookie. Its claim ticket and email-session
+token never enter frontend response bodies. Old API-key session cookies are rejected. Never log credentials,
+passphrases, claim tickets, or emails. Login sessions live in encrypted browser cookies; there is no account database.
 
-## Not verified yet
+Keep the same-origin guard, custom request header, CSP, fixed upstream destination, and manual redirect handling.
+Do not add endpoints that store API keys or return session secrets to the page.
 
-Everything has run against sample data and the stand-in API only (which follows Hot Aisle's documented email
-sign-in): not a real account, not the live email sign-in, not bare metal for real, and not the deploy button.
+The upstream email flow uses `/user/email/login/`, `/user/email/wait/`, and `/user/email/complete/`. Approval uses
+202 while waiting and 204 when approved; completion returns its token through response headers. Renewal keeps
+the later expiry so an older response cannot replace a newer session.
+Email-login issuance must use the `hotaisle-console` RFC 9421 Ed25519 client identity. Keep its dedicated
+`EMAIL_LOGIN_SIGNING_KEY` private to the Worker and register only the public key in hotManager's
+`EMAIL_AUTH_CLIENTS`. Sign the exact JSON bytes, canonical HTTPS upstream URL, and POST method with a
+fresh 32-byte nonce and at most 60-second lifetime. Never fall back to unsigned issuance, reuse session/history
+secrets, follow signed redirects, or sign unrelated endpoints. Tests use only a public test-vector key.
+
+## Money and behavior
+
+- End must release the machine through `DELETE`; shutdown does not stop billing. Explain that release deletes data.
+- Prefer the API's `MinimumReservationMinutes`. HotManager's current fallback is one minute for a 1-GPU VM,
+  30 minutes per GPU for larger VMs, and eight hours for bare metal.
+- Failed releases, launches, and purchases must stay failures in the UI. Never synthesize successful results.
+- There is no browser-managed auto-end timer. The API must support scheduled shutdown before one can be promised.
+- Keep instrument widths stable and respect reduced motion. The drawing sleeps while idle and writes only changed values.
+- Use native controls and labels, native dialogs for modal interaction, and accessible links for navigation.
+
+## GitHub workflow
+
+Treat all tracked documentation as public, including security records. Follow
+`docs/SECURITY-PUBLICATION.md` before updating them. Do not include credentials, production key material,
+personal/local paths, private upstream internals, host inventories, raw diagnostics, or control-plane
+access inventories. Coordinate unresolved exploitable issues privately before publishing reproduction
+details. Docs remain outside production assets, but that does not make Git history confidential.
+
+Use a descriptive non-default branch; never commit directly to the default branch. Use `gh` for GitHub operations.
+Keep commits small, coherent, and conventional. PRs by `jon-hotaisle` or `clint-hotaisle` do not require approval;
+other PRs require either maintainer's current-commit approval through the pinned organization-required
+`required-maintainer-review.yml` workflow. Do not replace it with a status-name-only rule.
+Keep signed commits, resolved review threads, and the `test` CI job required; do not add ruleset bypasses.
+See `docs/pull-request-approval.md` for controller trust and activation. Never switch accounts to manufacture
+approval. This public repository uses GitHub-hosted
+Actions, not Hot Aisle's private runners. GitHub CI validates without production credentials.
+Cloudflare Workers Builds watches only protected `main`, with previews disabled. Use Bun 1.4.4 and Node 26,
+`bun run build:cloudflare` to install frozen dependencies and validate/build, then `bun run deploy:cloudflare`
+to publish that prebuilt output through `cf`. Keep build credentials in Cloudflare, without an expiration;
+do not pass runtime session/history/signing secrets through either CI system or rotate them during deployment.
+Production build helpers verify the main source commit and resolve its merged PR from public metadata.
+An older build must skip publication when main advances. Never deploy local preview assets or PR branches.
+
+## Compatibility and verification limits
+
+Use Google Chrome's Hot Aisle profile through the Chrome relay for browser work on this project.
+If that profile is unavailable, report it; do not use another profile as a fallback.
+
+Keep the existing `hotaisle-ui:prefs` and `hotaisle-ui:team` browser identifiers so preferences remain readable.
+Preserve the HKDF salt unless an explicit credential migration is implemented.
+Local component tests, isolated Worker tests, builds, and deployment dry-runs do not validate live sign-in,
+real purchases, real machine lifecycle operations, or production deployment.

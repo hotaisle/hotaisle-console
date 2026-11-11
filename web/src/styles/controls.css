@@ -1,0 +1,452 @@
+/* ---------------------------------------------------------------- controls */
+select {
+	width: 100%;
+	height: 36px;
+	padding: 0 32px 0 12px;
+	font-size: 14px;
+	color: var(--ink);
+	appearance: none;
+	cursor: pointer;
+	background-color: var(--card);
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2374746d' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 12px center;
+	border: 1px solid var(--line-2);
+	border-radius: 10px;
+}
+kbd {
+	display: inline-grid;
+	place-items: center;
+	min-width: 22px;
+	height: 22px;
+	padding: 0 6px;
+	font-size: 12px;
+	color: var(--ink);
+	background: var(--card);
+	border: 1px solid var(--line-2);
+	border-bottom-width: 2px;
+	border-radius: 6px;
+}
+.btn {
+	display: inline-flex;
+	gap: 8px;
+	align-items: center;
+	justify-content: center;
+	height: 36px;
+	padding: 0 14px;
+	font-size: 14px;
+	font-weight: 500;
+	color: var(--ink);
+	white-space: nowrap;
+	text-decoration: none;
+	appearance: none;
+	cursor: pointer;
+	background: var(--card);
+	border: 1px solid var(--line-2);
+	border-radius: 10px;
+	transition:
+		background var(--d-1),
+		border-color var(--d-1),
+		transform var(--d-1) var(--ease);
+}
+.btn-text {
+	padding: 0;
+	font-size: inherit;
+	color: var(--ink-2);
+	text-decoration: underline;
+	text-decoration-color: var(--line-2);
+	text-underline-offset: 3px;
+	appearance: none;
+	cursor: pointer;
+	background: none;
+	border: 0;
+	transition: color var(--d-1);
+}
+.plus {
+	position: relative;
+	flex: none;
+	width: 20px;
+	height: 20px;
+	background: var(--signal);
+	border-radius: 50%;
+}
+
+.note-in {
+	min-width: 0;
+	height: 38px;
+	padding: 0 12px;
+	font-size: 14.5px;
+	color: var(--ink);
+	background: var(--card);
+	border: 1px solid var(--line-2);
+	border-radius: 10px;
+}
+.choice {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.seg {
+	display: inline-flex;
+	gap: 2px;
+	justify-self: start;
+	padding: 3px;
+	background: var(--card-2);
+	border-radius: 10px;
+	box-shadow: inset 0 0 0 1px var(--line);
+}
+.check {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	font-size: 14.5px;
+	cursor: pointer;
+}
+.hold {
+	position: relative;
+	overflow: hidden;
+	width: 100%;
+	height: 58px;
+	border: 0;
+	border-radius: 14px;
+	cursor: pointer;
+	margin-bottom: 4px;
+	box-shadow:
+		0 4px 0 0 var(--signal-deep),
+		0 12px 20px -10px rgb(0 0 0 / 40%),
+		inset 0 1px 0 rgb(255 255 255 / 22%),
+		inset 0 -1px 0 rgb(0 0 0 / 12%);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 0 20px;
+	background: var(--signal);
+	color: #fff;
+	font-size: 16px;
+	font-weight: 600;
+	touch-action: none;
+	-webkit-touch-callout: none;
+	transition:
+		transform var(--d-2) var(--ease),
+		background var(--d-2);
+}
+@supports (user-select: none) {
+	.hold {
+		user-select: none;
+	}
+}
+.hold-fill {
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		90deg,
+		rgb(255 255 255 / 12%),
+		rgb(255 255 255 / 20%) calc(100% - 36px),
+		rgb(255 255 255 / 42%) calc(100% - 2px),
+		rgb(255 255 255 / 0%) 100%
+	);
+	transform: translateX(calc((var(--p, 0) - 1) * 100%));
+	will-change: transform;
+}
+.hold-flash {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background: rgb(255 255 255 / 0%);
+}
+.hold-label {
+	position: relative;
+	display: grid;
+}
+.hold-trail {
+	position: relative;
+	font-weight: 500;
+	font-variant-numeric: tabular-nums;
+	opacity: 0.9;
+}
+.plus::before {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 9px;
+	height: 1.6px;
+	content: "";
+	background: #fff;
+	border-radius: 1px;
+	transform: translate(-50%, -50%);
+}
+.plus::after {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 9px;
+	height: 1.6px;
+	content: "";
+	background: #fff;
+	border-radius: 1px;
+	transform: translate(-50%, -50%) rotate(90deg);
+}
+
+input.url {
+	min-width: 0;
+	height: 38px;
+	padding: 0 12px;
+	font-size: 14.5px;
+	color: var(--ink);
+	background: var(--card);
+	border: 1px solid var(--line-2);
+	border-radius: 10px;
+}
+
+.field input {
+	min-width: 0;
+	height: 38px;
+	padding: 0 12px;
+	font-size: 14.5px;
+	color: var(--ink);
+	background: var(--card);
+	border: 1px solid var(--line-2);
+	border-radius: 10px;
+}
+
+.pasterow input {
+	min-width: 0;
+	height: 38px;
+	padding: 0 12px;
+	font-size: 14.5px;
+	color: var(--ink);
+	background: var(--card);
+	border: 1px solid var(--line-2);
+	border-radius: 10px;
+}
+.choice button {
+	min-width: 48px;
+	height: 34px;
+	padding: 0 12px;
+	font-size: 13.5px;
+	font-weight: 500;
+	color: var(--ink-2);
+	appearance: none;
+	cursor: pointer;
+	background: var(--card);
+	border: 1px solid var(--line-2);
+	border-radius: 9px;
+	transition:
+		background var(--d-1),
+		color var(--d-1);
+}
+.seg label {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	height: 30px;
+	padding: 0 11px;
+	font-size: 13.5px;
+	font-weight: 500;
+	line-height: 1;
+	color: var(--muted);
+	appearance: none;
+	cursor: pointer;
+	background: none;
+	border: 0;
+	border-radius: 7px;
+	transition:
+		background var(--d-2) var(--ease),
+		color var(--d-1),
+		box-shadow var(--d-2);
+}
+@supports (text-box: trim-both cap alphabetic) {
+	.seg label > span {
+		text-box: trim-both cap alphabetic;
+	}
+}
+.check input {
+	flex: none;
+	width: 16px;
+	height: 16px;
+	margin: 0;
+}
+@supports (accent-color: var(--signal)) {
+	.check input {
+		accent-color: var(--signal);
+	}
+}
+.hold-label > span {
+	grid-area: 1 / 1;
+	white-space: nowrap;
+	opacity: 0;
+	transform: translateY(4px);
+	transition:
+		opacity var(--d-2) var(--ease),
+		transform var(--d-2) var(--ease);
+}
+.btn:disabled {
+	cursor: not-allowed;
+	opacity: 0.45;
+}
+.btn.on {
+	background: var(--card-2);
+	box-shadow: inset 0 0 0 1px var(--line-2);
+}
+.btn.primary {
+	color: var(--page);
+	background: var(--ink);
+	border-color: var(--ink);
+}
+.btn.big {
+	height: 48px;
+	font-size: 15.5px;
+	border-radius: 12px;
+}
+.btn.icon {
+	width: 36px;
+	padding: 0;
+	color: var(--ink-2);
+}
+.btn.end {
+	color: var(--bad);
+}
+.btn.copy {
+	padding: 0 14px;
+}
+.btn .labels {
+	display: grid;
+}
+.btn.new {
+	gap: 10px;
+	padding: 0 14px 0 10px;
+}
+.btn-text:hover {
+	color: var(--ink);
+	text-decoration-color: currentColor;
+}
+.hold.holding {
+	transform: translateY(calc(2px + var(--p, 0) * 2px));
+	transition: background var(--d-2);
+}
+.hold.done {
+	box-shadow:
+		0 1px 0 0 var(--signal-deep),
+		0 4px 8px -6px rgb(0 0 0 / 40%),
+		inset 0 1px 0 rgb(255 255 255 / 14%),
+		inset 0 -1px 0 rgb(0 0 0 / 12%);
+	transform: translateY(3px);
+}
+.hold.busy {
+	box-shadow:
+		0 1px 0 0 var(--signal-deep),
+		0 4px 8px -6px rgb(0 0 0 / 40%),
+		inset 0 1px 0 rgb(255 255 255 / 14%),
+		inset 0 -1px 0 rgb(0 0 0 / 12%);
+	transform: translateY(3px);
+}
+.hold:disabled {
+	color: var(--faint);
+	cursor: not-allowed;
+	background: var(--card-2);
+	box-shadow:
+		0 3px 0 0 var(--line-2),
+		inset 0 0 0 1px var(--line);
+}
+.hold.danger {
+	justify-content: center;
+	height: 46px;
+	font-size: 15px;
+	background: var(--bad);
+	border-radius: 12px;
+	box-shadow:
+		0 3px 0 0 var(--bad-deep),
+		0 10px 18px -10px rgb(0 0 0 / 40%),
+		inset 0 1px 0 rgb(255 255 255 / 20%);
+}
+.btn .labels > span {
+	grid-area: 1 / 1;
+	text-align: center;
+	transition: opacity var(--d-2) var(--ease);
+}
+.choice button:hover {
+	color: var(--ink);
+	background: var(--card-2);
+}
+.seg label:hover {
+	color: var(--ink);
+}
+.seg label.on {
+	color: var(--ink);
+	background: var(--card);
+	box-shadow:
+		0 1px 2px rgb(0 0 0 / 8%),
+		0 0 0 1px var(--line);
+}
+.hold-label > span[data-on="true"] {
+	opacity: 1;
+	transform: none;
+}
+.btn:hover:not(:disabled) {
+	background: var(--card-2);
+}
+.btn:active:not(:disabled) {
+	transform: scale(0.97);
+}
+.btn.copy.done {
+	color: var(--on);
+}
+.hold:hover:not(:disabled) {
+	background: var(--signal-press);
+}
+.hold.done .hold-flash {
+	animation: hold-flash 520ms var(--ease) both;
+}
+.hold.danger .hold-label {
+	justify-items: center;
+}
+.hold:active:not(:disabled) {
+	transform: translateY(3px);
+}
+.hold.danger.holding {
+	box-shadow:
+		0 1px 0 0 var(--bad-deep),
+		inset 0 1px 0 rgb(255 255 255 / 14%);
+	transform: translateY(2px);
+}
+.btn.primary:hover:not(:disabled) {
+	background: var(--ink);
+	opacity: 0.88;
+}
+.hold.busy .hold-label > span[data-on="true"]::after {
+	display: inline-block;
+	width: 13px;
+	height: 13px;
+	margin-left: 10px;
+	vertical-align: -2px;
+	content: "";
+	border: 2px solid currentColor;
+	border-right-color: transparent;
+	border-radius: 50%;
+	animation: spin 0.8s linear infinite;
+}
+.btn.copy:not(.done) .labels > span:last-child {
+	opacity: 0;
+}
+.btn.copy.done .labels > span:first-child {
+	opacity: 0;
+}
+/* both labels share one grid cell, so the button is always as wide as the longer one */
+
+/* hold to confirm: fills left to right while you hold */
+/* the charge: a layer slid in from the left, brighter at its leading edge; a flash when it lands */
+@keyframes hold-flash {
+	0% {
+		background: rgb(255 255 255 / 34%);
+	}
+	100% {
+		background: rgb(255 255 255 / 0%);
+	}
+}
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}

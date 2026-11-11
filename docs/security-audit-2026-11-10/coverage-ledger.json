@@ -1,0 +1,1453 @@
+[
+	{
+		"coverage_id": ".github%2Fworkflows%2Fci.yml%23ci::worker%2Fcloudflare.config.ts%23bindings::build%2Fdeploy::ATTACK-CLASSES.md%23Obvious%20things",
+		"canonical_refs": {
+			"surface": ".github/workflows/ci.yml#ci",
+			"boundary": "worker/cloudflare.config.ts#bindings",
+			"subsystem": "build/deploy",
+			"attack_class": "ATTACK-CLASSES.md#Obvious things"
+		},
+		"surface": "CI and Cloudflare configuration",
+		"boundary": "Deployment and secret controls",
+		"subsystem": "Release process",
+		"attack_class": "Obvious things",
+		"starting_paths": [
+			".github/workflows/ci.yml",
+			"worker/cloudflare.config.ts",
+			"worker/vitest.config.ts",
+			"package.json"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Obvious things",
+		"selected_companion_blocks": [
+			"CLOUD-AND-DEPLOYMENT.md#Core discipline",
+			"CLOUD-AND-DEPLOYMENT.md#Universal moves",
+			"CLOUD-AND-DEPLOYMENT.md#Validation rules",
+			"CLOUD-AND-DEPLOYMENT.md#Ingress, network, and control-plane attack classes",
+			"CLOUD-AND-DEPLOYMENT.md#Configuration and secret lifecycle attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 1,
+		"status": "covered",
+		"agent_id": "hunt_release",
+		"reviewed_paths": [
+			".github/workflows/ci.yml",
+			"worker/cloudflare.config.ts",
+			"worker/vitest.config.ts",
+			"package.json",
+			"AGENTS.md",
+			"README.md"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_release",
+				"reviewed_paths": [
+					".github/workflows/ci.yml",
+					"worker/cloudflare.config.ts",
+					"worker/vitest.config.ts",
+					"package.json",
+					"AGENTS.md",
+					"README.md"
+				],
+				"invariant": "CI cannot publish and source config does not intentionally persist raw user payloads",
+				"method": "source",
+				"result": "Read-only CI with pinned actions and no deploy; source config enables logs and Issues with invocation logs and traces disabled and query redaction requested. A later dashboard settings change left live query redaction off; retention and access remain unverified.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": [],
+		"unresolved": []
+	},
+	{
+		"coverage_id": "bun.lock%23dependencies::package.json%23dependencyResolution::build%2Fdeploy::ATTACK-CLASSES.md%23Obvious%20things",
+		"canonical_refs": {
+			"surface": "bun.lock#dependencies",
+			"boundary": "package.json#dependencyResolution",
+			"subsystem": "build/deploy",
+			"attack_class": "ATTACK-CLASSES.md#Obvious things"
+		},
+		"surface": "Dependency graph",
+		"boundary": "Locked build input",
+		"subsystem": "Supply chain",
+		"attack_class": "Obvious things",
+		"starting_paths": [
+			"bun.lock",
+			"package.json",
+			"web/package.json",
+			"worker/package.json",
+			".github/workflows/ci.yml"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Obvious things",
+		"selected_companion_blocks": [
+			"SUPPLY-CHAIN-AND-RELEASE.md#Core discipline",
+			"SUPPLY-CHAIN-AND-RELEASE.md#Universal moves",
+			"SUPPLY-CHAIN-AND-RELEASE.md#Validation rules",
+			"SUPPLY-CHAIN-AND-RELEASE.md#Dependency and build-input attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 3,
+		"status": "covered",
+		"agent_id": "hunt_supply3",
+		"reviewed_paths": [
+			"bun.lock",
+			"package.json",
+			"web/package.json",
+			"worker/package.json",
+			".github/workflows/ci.yml"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_supply3",
+				"reviewed_paths": [
+					"bun.lock",
+					"package.json",
+					"web/package.json",
+					"worker/package.json",
+					".github/workflows/ci.yml"
+				],
+				"invariant": "Published build uses locked dependencies and constrained CI permissions",
+				"method": "source",
+				"result": "Direct versions exact, registry dependencies hashed in lockfile, frozen CI install, pinned Actions, read-only token and no publish step. Advisory status unverified.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": [],
+		"unresolved": []
+	},
+	{
+		"coverage_id": "web%2Fsrc%2Fapp%2Fapp.tsx%23AccountView::web%2Fsrc%2Fapp%2Fapp.tsx%23selectedTeam::web%2Fteams::ATTACK-CLASSES.md%23Access%20control",
+		"canonical_refs": {
+			"surface": "web/src/app/app.tsx#AccountView",
+			"boundary": "web/src/app/app.tsx#selectedTeam",
+			"subsystem": "web/teams",
+			"attack_class": "ATTACK-CLASSES.md#Access control"
+		},
+		"surface": "Team selection and invitations",
+		"boundary": "Account membership and cache",
+		"subsystem": "Team access",
+		"attack_class": "Access control",
+		"starting_paths": [
+			"web/src/app/app.tsx",
+			"web/src/features/teams/team-invitation.tsx",
+			"web/src/lib/api.ts",
+			"web/src/hooks/use-session.ts"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Access control",
+		"selected_companion_blocks": [
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Universal moves",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Validation rules",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Tenant and object-isolation attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [
+			{
+				"wave": 2,
+				"status": "covered",
+				"agent_id": "hunt_web2",
+				"reviewed_paths": [
+					"web/src/app/app.tsx",
+					"web/src/features/teams/team-choice.tsx",
+					"web/src/features/teams/team-invitation.tsx",
+					"web/src/lib/api.ts",
+					"web/src/hooks/use-session.ts"
+				],
+				"local_checks": [
+					{
+						"agent_id": "hunt_web2",
+						"reviewed_paths": [
+							"web/src/app/app.tsx",
+							"web/src/features/teams/team-choice.tsx",
+							"web/src/features/teams/team-invitation.tsx",
+							"web/src/lib/api.ts",
+							"web/src/hooks/use-session.ts"
+						],
+						"invariant": "Team navigation and membership cache follow authenticated account",
+						"method": "source",
+						"result": "Selection uses account teams; successful invitation updates account cache after older polls cancel; sign-out clears private queries.",
+						"artifact": null
+					}
+				],
+				"result_fingerprints": [],
+				"unresolved": [],
+				"reassignment_reason": "Coverage critic found team-details update path outside first team selection check."
+			}
+		],
+		"wave": 3,
+		"status": "blocked",
+		"agent_id": "hunt_supply3",
+		"reviewed_paths": [
+			"web/src/app/app.tsx",
+			"web/src/features/teams/team-details.tsx",
+			"web/src/features/teams/edit-team-form.tsx",
+			"web/src/lib/api.ts"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_supply3",
+				"reviewed_paths": [
+					"web/src/app/app.tsx",
+					"web/src/features/teams/team-details.tsx",
+					"web/src/features/teams/edit-team-form.tsx",
+					"web/src/lib/api.ts"
+				],
+				"invariant": "Only a team owner can edit that team's details",
+				"method": "source",
+				"result": "UI shows edit form only with owner role; PATCH is authenticated but upstream must enforce authorization.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": [],
+		"unresolved": [
+			"Deployed upstream team update owner-role enforcement is unavailable."
+		]
+	},
+	{
+		"coverage_id": "web%2Fsrc%2Ffeatures%2Fconsole%2Fcredits-view.tsx%23checkout::web%2Fsrc%2Ffeatures%2Fconsole%2Fcheckout-window.ts%23checkoutURL::web%2Fcredits::ATTACK-CLASSES.md%23Business%20logic",
+		"canonical_refs": {
+			"surface": "web/src/features/console/credits-view.tsx#checkout",
+			"boundary": "web/src/features/console/checkout-window.ts#checkoutURL",
+			"subsystem": "web/credits",
+			"attack_class": "ATTACK-CLASSES.md#Business logic"
+		},
+		"surface": "Credits checkout",
+		"boundary": "Amount and destination",
+		"subsystem": "Payments",
+		"attack_class": "Business logic",
+		"starting_paths": [
+			"web/src/features/console/credits-view.tsx",
+			"web/src/features/console/checkout-window.ts",
+			"web/src/lib/api.ts"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Business logic",
+		"selected_companion_blocks": [
+			"CLIENT-SIDE.md#Core discipline",
+			"CLIENT-SIDE.md#Universal moves",
+			"CLIENT-SIDE.md#Validation rules",
+			"CLIENT-SIDE.md#UI-redress and navigation attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 2,
+		"status": "covered",
+		"agent_id": "hunt_web2",
+		"reviewed_paths": [
+			"web/src/features/console/credits-view.tsx",
+			"web/src/features/console/checkout-window.ts",
+			"web/src/lib/api.ts"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_web2",
+				"reviewed_paths": [
+					"web/src/features/console/credits-view.tsx",
+					"web/src/features/console/checkout-window.ts",
+					"web/src/lib/api.ts"
+				],
+				"invariant": "Checkout amount and destination are validated",
+				"method": "source",
+				"result": "Client checks amount bounds, requires https checkout.stripe.com, clears popup opener, and preserves failures.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": [],
+		"unresolved": []
+	},
+	{
+		"coverage_id": "web%2Fsrc%2Ffeatures%2Flaunch%2Forder-view.tsx%23launch::web%2Fsrc%2Flib%2Fapi.ts%23provision::web%2Flaunch::ATTACK-CLASSES.md%23Business%20logic",
+		"canonical_refs": {
+			"surface": "web/src/features/launch/order-view.tsx#launch",
+			"boundary": "web/src/lib/api.ts#provision",
+			"subsystem": "web/launch",
+			"attack_class": "ATTACK-CLASSES.md#Business logic"
+		},
+		"surface": "GPU launch",
+		"boundary": "Offer, balance, and resulting resource",
+		"subsystem": "Machine provisioning",
+		"attack_class": "Business logic",
+		"starting_paths": [
+			"web/src/features/launch/order-view.tsx",
+			"web/src/features/launch/offers.ts",
+			"web/src/lib/api.ts"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Business logic",
+		"selected_companion_blocks": [
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Universal moves",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Validation rules",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Tenant and object-isolation attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 3,
+		"status": "blocked",
+		"agent_id": "hunt_launch3",
+		"reviewed_paths": [
+			"web/src/features/launch/order-view.tsx",
+			"web/src/features/launch/offers.ts",
+			"web/src/features/launch/use-order.ts",
+			"web/src/features/console/use-console.ts",
+			"web/src/lib/history-vault.ts",
+			"web/src/lib/api.ts",
+			"web/src/components/ui/use-hold.ts"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_launch3",
+				"reviewed_paths": [
+					"web/src/features/launch/order-view.tsx",
+					"web/src/features/launch/offers.ts",
+					"web/src/features/launch/use-order.ts",
+					"web/src/features/console/use-console.ts",
+					"web/src/lib/history-vault.ts",
+					"web/src/lib/api.ts",
+					"web/src/components/ui/use-hold.ts"
+				],
+				"invariant": "Launch respects team authority, availability, balance, and billing rules",
+				"method": "source",
+				"result": "UI guards and hold control are present and API failures stay failures; upstream decides final authority, inventory, quota, and billing.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": [],
+		"unresolved": [
+			"Deployed upstream launch authorization and billing enforcement are unavailable."
+		]
+	},
+	{
+		"coverage_id": "web%2Fsrc%2Ffeatures%2Flaunch%2Fuse-order.ts%23cloudInitUrl::web%2Fsrc%2Flib%2Fprefs.ts%23writePrefs::web%2Flaunch::ATTACK-CLASSES.md%23Feature%20abuse%20and%20data%20leakage",
+		"canonical_refs": {
+			"surface": "web/src/features/launch/use-order.ts#cloudInitUrl",
+			"boundary": "web/src/lib/prefs.ts#writePrefs",
+			"subsystem": "web/launch",
+			"attack_class": "ATTACK-CLASSES.md#Feature abuse and data leakage"
+		},
+		"surface": "Cloud-init URL",
+		"boundary": "Browser persistence and navigation",
+		"subsystem": "Launch settings",
+		"attack_class": "Feature abuse and data leakage",
+		"starting_paths": [
+			"web/src/features/launch/use-order.ts",
+			"web/src/lib/prefs.ts",
+			"web/src/features/launch/order-view.tsx"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Feature abuse and data leakage",
+		"selected_companion_blocks": [
+			"CLIENT-SIDE.md#Core discipline",
+			"CLIENT-SIDE.md#Universal moves",
+			"CLIENT-SIDE.md#Validation rules",
+			"CLIENT-SIDE.md#Service-worker and browser-storage attack classes",
+			"CLIENT-SIDE.md#UI-redress and navigation attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 1,
+		"status": "candidate",
+		"agent_id": "hunt_browser",
+		"reviewed_paths": [
+			"web/src/lib/prefs.ts",
+			"web/src/features/settings/defaults.tsx",
+			"web/src/features/console/console-panel.tsx",
+			"web/src/features/launch/use-order.ts",
+			"web/src/app/route-state.ts",
+			"web/src/features/launch/order-view.tsx"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_browser",
+				"reviewed_paths": [
+					"web/src/lib/prefs.ts",
+					"web/src/features/settings/defaults.tsx",
+					"web/src/features/console/console-panel.tsx",
+					"web/src/features/launch/use-order.ts",
+					"web/src/app/route-state.ts",
+					"web/src/features/launch/order-view.tsx"
+				],
+				"invariant": "Credential-bearing cloud-init URLs are not retained in plaintext browser storage",
+				"method": "source",
+				"result": "Custom HTTPS URL is saved to persistent plaintext preferences and URL search state.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": ["browser-cloud-init-url-plaintext"],
+		"unresolved": [
+			"Whether actual users supply credential-bearing URLs is unknown."
+		]
+	},
+	{
+		"coverage_id": "web%2Fsrc%2Ffeatures%2Fmachines%2Fconnection-actions.tsx%23copy::web%2Fsrc%2Flib%2Fformat.ts%23ssh::web%2Fmachines::ATTACK-CLASSES.md%23Injection",
+		"canonical_refs": {
+			"surface": "web/src/features/machines/connection-actions.tsx#copy",
+			"boundary": "web/src/lib/format.ts#ssh",
+			"subsystem": "web/machines",
+			"attack_class": "ATTACK-CLASSES.md#Injection"
+		},
+		"surface": "Copied connection instructions",
+		"boundary": "Upstream machine metadata",
+		"subsystem": "SSH command and config",
+		"attack_class": "Injection",
+		"starting_paths": [
+			"web/src/features/machines/connection-actions.tsx",
+			"web/src/lib/format.ts",
+			"web/src/features/machines/console-link.tsx"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Injection",
+		"selected_companion_blocks": [
+			"CLIENT-SIDE.md#Core discipline",
+			"CLIENT-SIDE.md#Universal moves",
+			"CLIENT-SIDE.md#Validation rules",
+			"CLIENT-SIDE.md#DOM and object-state attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 1,
+		"status": "candidate",
+		"agent_id": "hunt_release",
+		"reviewed_paths": [
+			"web/src/features/machines/connection-actions.tsx",
+			"web/src/lib/format.ts",
+			"web/src/features/machines/use-trip.ts"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_release",
+				"reviewed_paths": [
+					"web/src/features/machines/connection-actions.tsx",
+					"web/src/lib/format.ts",
+					"web/src/features/machines/use-trip.ts"
+				],
+				"invariant": "Copied terminal instructions cannot be altered by lower-trust machine metadata",
+				"method": "source",
+				"result": "API-provided machine fields are interpolated into SSH commands and config without escaping.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": ["ssh-unescaped-metadata"],
+		"unresolved": [
+			"Source does not establish another principal can control these API fields."
+		]
+	},
+	{
+		"coverage_id": "web%2Fsrc%2Ffeatures%2Fmachines%2Fconsole-link.tsx%23ConsoleLink::web%2Fsrc%2Ffeatures%2Fmachines%2Fconsole-link.tsx%23safeURL::web%2Fmachines::ATTACK-CLASSES.md%23Feature%20abuse%20and%20data%20leakage",
+		"canonical_refs": {
+			"surface": "web/src/features/machines/console-link.tsx#ConsoleLink",
+			"boundary": "web/src/features/machines/console-link.tsx#safeURL",
+			"subsystem": "web/machines",
+			"attack_class": "ATTACK-CLASSES.md#Feature abuse and data leakage"
+		},
+		"surface": "Privileged console link",
+		"boundary": "External navigation",
+		"subsystem": "Console link",
+		"attack_class": "Feature abuse and data leakage",
+		"starting_paths": [
+			"web/src/features/machines/console-link.tsx",
+			"web/src/features/machines/cloud-init-link.tsx",
+			"web/src/lib/api.ts"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Feature abuse and data leakage",
+		"selected_companion_blocks": [
+			"CLIENT-SIDE.md#Core discipline",
+			"CLIENT-SIDE.md#Universal moves",
+			"CLIENT-SIDE.md#Validation rules",
+			"CLIENT-SIDE.md#UI-redress and navigation attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 3,
+		"status": "covered",
+		"agent_id": "hunt_dom3",
+		"reviewed_paths": [
+			"web/src/features/machines/console-link.tsx",
+			"web/src/features/machines/console-link.test.tsx",
+			"web/src/features/machines/cloud-init-link.tsx",
+			"web/src/features/machines/machine-operations.tsx",
+			"web/src/lib/api.ts"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_dom3",
+				"reviewed_paths": [
+					"web/src/features/machines/console-link.tsx",
+					"web/src/features/machines/console-link.test.tsx",
+					"web/src/features/machines/cloud-init-link.tsx",
+					"web/src/features/machines/machine-operations.tsx",
+					"web/src/lib/api.ts"
+				],
+				"invariant": "One-time API console URL is safe navigation and not retained",
+				"method": "source",
+				"result": "HTTPS without embedded credentials required; isolated preview exception; noopener noreferrer and zero query cache time.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": [],
+		"unresolved": []
+	},
+	{
+		"coverage_id": "web%2Fsrc%2Ffeatures%2Fmachines%2Ftrip-confirmation.tsx%23EndOrRebuildConfirmation::web%2Fsrc%2Ffeatures%2Fmachines%2Fuse-trip.ts%23end::web%2Fmachines::ATTACK-CLASSES.md%23Business%20logic",
+		"canonical_refs": {
+			"surface": "web/src/features/machines/trip-confirmation.tsx#EndOrRebuildConfirmation",
+			"boundary": "web/src/features/machines/use-trip.ts#end",
+			"subsystem": "web/machines",
+			"attack_class": "ATTACK-CLASSES.md#Business logic"
+		},
+		"surface": "Destructive machine action",
+		"boundary": "Hold confirmation and release result",
+		"subsystem": "Machine lifecycle",
+		"attack_class": "Business logic",
+		"starting_paths": [
+			"web/src/features/machines/trip-confirmation.tsx",
+			"web/src/features/machines/power-action-confirmation.tsx",
+			"web/src/features/machines/use-trip.ts",
+			"web/src/components/ui/hold-button.tsx"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Business logic",
+		"selected_companion_blocks": [
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Universal moves",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Validation rules",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Deletion, revocation, and lifecycle attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 4,
+		"status": "covered",
+		"agent_id": "hunt_end4",
+		"reviewed_paths": [
+			"web/src/features/machines/trip-confirmation.tsx",
+			"web/src/features/machines/power-action-confirmation.tsx",
+			"web/src/features/machines/use-trip.ts",
+			"web/src/features/machines/trip-actions.tsx",
+			"web/src/features/machines/machine-operations.tsx",
+			"web/src/components/ui/hold-button.tsx",
+			"web/src/components/ui/hold-controller.ts",
+			"web/src/features/console/machine-list.tsx",
+			"web/src/features/console/use-console.ts",
+			"web/src/lib/api.ts",
+			"shared/availability.ts"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_end4",
+				"reviewed_paths": [
+					"web/src/features/machines/trip-confirmation.tsx",
+					"web/src/features/machines/power-action-confirmation.tsx",
+					"web/src/features/machines/use-trip.ts",
+					"web/src/features/machines/trip-actions.tsx",
+					"web/src/features/machines/machine-operations.tsx",
+					"web/src/components/ui/hold-button.tsx",
+					"web/src/components/ui/hold-controller.ts",
+					"web/src/features/console/machine-list.tsx",
+					"web/src/features/console/use-console.ts",
+					"web/src/lib/api.ts",
+					"shared/availability.ts"
+				],
+				"invariant": "Destructive action needs deliberate confirmation and updates UI only after accepted API result",
+				"method": "source",
+				"result": "End/rebuild hold confirms; DELETE success precedes receipt and errors remain visible; power reports request sent and refreshes.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": [],
+		"unresolved": []
+	},
+	{
+		"coverage_id": "web%2Fsrc%2Ffeatures%2Fsettings%2Fssh-keys%2Fssh-keys.tsx%23SshKeys::web%2Fsrc%2Flib%2Fapi.ts%23sshKeys::web%2Fsettings::ATTACK-CLASSES.md%23Access%20control",
+		"canonical_refs": {
+			"surface": "web/src/features/settings/ssh-keys/ssh-keys.tsx#SshKeys",
+			"boundary": "web/src/lib/api.ts#sshKeys",
+			"subsystem": "web/settings",
+			"attack_class": "ATTACK-CLASSES.md#Access control"
+		},
+		"surface": "SSH key management",
+		"boundary": "Account key ownership",
+		"subsystem": "Settings",
+		"attack_class": "Access control",
+		"starting_paths": [
+			"web/src/features/settings/ssh-keys/ssh-keys.tsx",
+			"web/src/features/settings/ssh-keys/remove-key-dialog.tsx",
+			"web/src/lib/api.ts"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Access control",
+		"selected_companion_blocks": [
+			"WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+			"WEB-PROTOCOL-AND-AUTH.md#Universal moves",
+			"WEB-PROTOCOL-AND-AUTH.md#Validation rules",
+			"WEB-PROTOCOL-AND-AUTH.md#API-key and mTLS attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 3,
+		"status": "blocked",
+		"agent_id": "hunt_launch3",
+		"reviewed_paths": [
+			"web/src/features/settings/ssh-keys/ssh-keys.tsx",
+			"web/src/features/settings/ssh-keys/remove-key-dialog.tsx",
+			"web/src/features/settings/ssh-keys/key-row.tsx",
+			"web/src/features/settings/ssh-keys/ssh-keys.test.tsx",
+			"web/src/lib/api.ts"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_launch3",
+				"reviewed_paths": [
+					"web/src/features/settings/ssh-keys/ssh-keys.tsx",
+					"web/src/features/settings/ssh-keys/remove-key-dialog.tsx",
+					"web/src/features/settings/ssh-keys/key-row.tsx",
+					"web/src/features/settings/ssh-keys/ssh-keys.test.tsx",
+					"web/src/lib/api.ts"
+				],
+				"invariant": "Only account owner can manage that account's SSH keys",
+				"method": "source",
+				"result": "Removal has key-specific confirmation and errors remain visible; upstream decides key ownership/role.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": [],
+		"unresolved": [
+			"Deployed upstream SSH key ownership and role checks are unavailable."
+		]
+	},
+	{
+		"coverage_id": "web%2Fsrc%2Ffeatures%2Fstage%2Fsvg-markup.tsx%23SvgMarkup::web%2Fsrc%2Ffeatures%2Fstage%2Fsvg-markup.tsx%23sanitize::web%2Fstage::ATTACK-CLASSES.md%23Injection",
+		"canonical_refs": {
+			"surface": "web/src/features/stage/svg-markup.tsx#SvgMarkup",
+			"boundary": "web/src/features/stage/svg-markup.tsx#sanitize",
+			"subsystem": "web/stage",
+			"attack_class": "ATTACK-CLASSES.md#Injection"
+		},
+		"surface": "Stage SVG markup",
+		"boundary": "DOM sanitizer",
+		"subsystem": "Stage rendering",
+		"attack_class": "Injection",
+		"starting_paths": [
+			"web/src/features/stage/svg-markup.tsx",
+			"web/src/features/stage/stage.tsx",
+			"web/src/features/stage/iso/hall.ts"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Injection",
+		"selected_companion_blocks": [
+			"CLIENT-SIDE.md#Core discipline",
+			"CLIENT-SIDE.md#Universal moves",
+			"CLIENT-SIDE.md#Validation rules",
+			"CLIENT-SIDE.md#DOM and object-state attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 3,
+		"status": "covered",
+		"agent_id": "hunt_dom3",
+		"reviewed_paths": [
+			"web/src/features/stage/svg-markup.tsx",
+			"web/src/features/stage/svg-markup.test.tsx",
+			"web/src/features/stage/stage.tsx",
+			"web/src/features/stage/model.ts",
+			"web/src/features/stage/iso/hall.ts",
+			"web/src/features/stage/iso/kit.ts",
+			"web/src/features/stage/stage-animation.ts"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_dom3",
+				"reviewed_paths": [
+					"web/src/features/stage/svg-markup.tsx",
+					"web/src/features/stage/svg-markup.test.tsx",
+					"web/src/features/stage/stage.tsx",
+					"web/src/features/stage/model.ts",
+					"web/src/features/stage/iso/hall.ts",
+					"web/src/features/stage/iso/kit.ts",
+					"web/src/features/stage/stage-animation.ts"
+				],
+				"invariant": "API-derived stage strings cannot become executable DOM",
+				"method": "source",
+				"result": "Generated SVG is sanitized by DOMPurify SVG profile before replaceChildren; colocated test covers script and handler removal.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": [],
+		"unresolved": []
+	},
+	{
+		"coverage_id": "web%2Fsrc%2Ffeatures%2Fteams%2Fcreate-team-form.tsx%23CreateTeamForm::web%2Fsrc%2Flib%2Fapi.ts%23createTeam::web%2Fteams::ATTACK-CLASSES.md%23Access%20control",
+		"canonical_refs": {
+			"surface": "web/src/features/teams/create-team-form.tsx#CreateTeamForm",
+			"boundary": "web/src/lib/api.ts#createTeam",
+			"subsystem": "web/teams",
+			"attack_class": "ATTACK-CLASSES.md#Access control"
+		},
+		"surface": "Team creation",
+		"boundary": "Account tenant creation",
+		"subsystem": "Teams",
+		"attack_class": "Access control",
+		"starting_paths": [
+			"web/src/features/teams/create-team-form.tsx",
+			"web/src/app/app.tsx",
+			"web/src/lib/api.ts"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Access control",
+		"selected_companion_blocks": [
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Universal moves",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Validation rules",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Tenant and object-isolation attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 4,
+		"status": "candidate",
+		"agent_id": "hunt_teamcreate4",
+		"reviewed_paths": [
+			"web/src/features/teams/create-team-form.tsx",
+			"web/src/features/teams/team-invitation.tsx",
+			"web/src/features/teams/team-choice.tsx",
+			"web/src/app/app.tsx",
+			"web/src/hooks/use-session.ts",
+			"web/src/lib/api.ts",
+			"web/src/features/teams/create-team-form.test.tsx"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_teamcreate4",
+				"reviewed_paths": [
+					"web/src/features/teams/create-team-form.tsx",
+					"web/src/features/teams/team-invitation.tsx",
+					"web/src/features/teams/team-choice.tsx",
+					"web/src/app/app.tsx",
+					"web/src/hooks/use-session.ts",
+					"web/src/lib/api.ts",
+					"web/src/features/teams/create-team-form.test.tsx"
+				],
+				"invariant": "A team mutation completion updates only the account that initiated it",
+				"method": "source",
+				"result": "Create/invitation responses flow to AccountView.available, which appends to current ACCOUNT_KEY and navigates without checking the initiating account after sign-out/login.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": ["teams:stale-available-cross-account"],
+		"unresolved": [
+			"An isolated dummy two-account race fixture is needed to establish visible cross-account metadata leakage."
+		]
+	},
+	{
+		"coverage_id": "web%2Fsrc%2Flib%2Fapi.ts%23machineActions::web%2Fsrc%2Flib%2Fapi.ts%23isMetal::web%2Fmachines::ATTACK-CLASSES.md%23Business%20logic",
+		"canonical_refs": {
+			"surface": "web/src/lib/api.ts#machineActions",
+			"boundary": "web/src/lib/api.ts#isMetal",
+			"subsystem": "web/machines",
+			"attack_class": "ATTACK-CLASSES.md#Business logic"
+		},
+		"surface": "Machine action",
+		"boundary": "Machine kind and selected team",
+		"subsystem": "Machine operations",
+		"attack_class": "Business logic",
+		"starting_paths": [
+			"web/src/lib/api.ts",
+			"web/src/features/machines/machine-operations.tsx",
+			"web/src/features/console/use-console-data.ts"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Business logic",
+		"selected_companion_blocks": [
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Universal moves",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Validation rules",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Tenant and object-isolation attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 1,
+		"status": "candidate",
+		"agent_id": "hunt_browser",
+		"reviewed_paths": [
+			"web/src/lib/api.ts",
+			"web/src/lib/power-api.test.ts",
+			"web/src/features/machines/machine-operations.tsx",
+			"web/src/features/machines/use-trip.ts",
+			"web/src/features/console/use-console-data.ts"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_browser",
+				"reviewed_paths": [
+					"web/src/lib/api.ts",
+					"web/src/lib/power-api.test.ts",
+					"web/src/features/machines/machine-operations.tsx",
+					"web/src/features/machines/use-trip.ts",
+					"web/src/features/console/use-console-data.ts"
+				],
+				"invariant": "Machine actions target the selected machine kind in the selected team",
+				"method": "source",
+				"result": "A process-global name-only set chooses VM versus bare-metal action endpoints.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": ["machine-kind-name-collision"],
+		"unresolved": [
+			"Upstream machine-name collision and reuse invariants are unavailable."
+		]
+	},
+	{
+		"coverage_id": "web%2Fsrc%2Flib%2Fhistory-vault.ts%23createHistoryVault::web%2Fsrc%2Flib%2Fhistory-vault.ts%23unlock::web%2Fhistory::ATTACK-CLASSES.md%23Feature%20abuse%20and%20data%20leakage",
+		"canonical_refs": {
+			"surface": "web/src/lib/history-vault.ts#createHistoryVault",
+			"boundary": "web/src/lib/history-vault.ts#unlock",
+			"subsystem": "web/history",
+			"attack_class": "ATTACK-CLASSES.md#Feature abuse and data leakage"
+		},
+		"surface": "Machine history",
+		"boundary": "Encrypted account-scoped local storage",
+		"subsystem": "History lifecycle",
+		"attack_class": "Feature abuse and data leakage",
+		"starting_paths": [
+			"web/src/lib/history-vault.ts",
+			"web/src/features/auth/history-access.tsx",
+			"web/src/features/machines/history-view.tsx"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Feature abuse and data leakage",
+		"selected_companion_blocks": [
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Universal moves",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Validation rules",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Deletion, revocation, and lifecycle attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 2,
+		"status": "covered",
+		"agent_id": "hunt_web2",
+		"reviewed_paths": [
+			"web/src/lib/history-vault.ts",
+			"web/src/features/auth/history-access.tsx",
+			"web/src/features/machines/history-view.tsx",
+			"web/src/hooks/use-session.ts"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_web2",
+				"reviewed_paths": [
+					"web/src/lib/history-vault.ts",
+					"web/src/features/auth/history-access.tsx",
+					"web/src/features/machines/history-view.tsx",
+					"web/src/hooks/use-session.ts"
+				],
+				"invariant": "History is account-scoped ciphertext inaccessible after sign-out",
+				"method": "source",
+				"result": "Entries are encrypted and append-only; authenticated key unlocks; storage failures warn and preserve ciphertext.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": [],
+		"unresolved": []
+	},
+	{
+		"coverage_id": "web%2Fsrc%2Flib%2Fkey-vault.ts%23save::web%2Fsrc%2Flib%2Fkey-vault.ts%23encrypt::web%2Fbrowser-vaults::ATTACK-CLASSES.md%23Cryptography%20and%20secrets",
+		"canonical_refs": {
+			"surface": "web/src/lib/key-vault.ts#save",
+			"boundary": "web/src/lib/key-vault.ts#encrypt",
+			"subsystem": "web/browser-vaults",
+			"attack_class": "ATTACK-CLASSES.md#Cryptography and secrets"
+		},
+		"surface": "Browser credential storage",
+		"boundary": "Passphrase encryption",
+		"subsystem": "Key vault",
+		"attack_class": "Cryptography and secrets",
+		"starting_paths": [
+			"web/src/lib/key-vault.ts",
+			"web/src/lib/history-vault.ts",
+			"web/src/hooks/use-session.ts"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Cryptography and secrets",
+		"selected_companion_blocks": [
+			"CLIENT-SIDE.md#Core discipline",
+			"CLIENT-SIDE.md#Universal moves",
+			"CLIENT-SIDE.md#Validation rules",
+			"CLIENT-SIDE.md#Service-worker and browser-storage attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 1,
+		"status": "covered",
+		"agent_id": "hunt_browser",
+		"reviewed_paths": [
+			"web/src/lib/key-vault.ts",
+			"web/src/lib/history-vault.ts",
+			"web/src/hooks/use-session.ts",
+			"web/src/lib/api.ts"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_browser",
+				"reviewed_paths": [
+					"web/src/lib/key-vault.ts",
+					"web/src/lib/history-vault.ts",
+					"web/src/hooks/use-session.ts",
+					"web/src/lib/api.ts"
+				],
+				"invariant": "Browser credentials and history are ciphertext at rest with keys cleared on sign-out",
+				"method": "source",
+				"result": "Fresh salt and IV with PBKDF2/AES-GCM protect API keys, separate AES-GCM protects history, and sign-out locks decrypted state.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": [],
+		"unresolved": []
+	},
+	{
+		"coverage_id": "worker%2Fcloudflare.config.ts%23observability::worker%2Fcloudflare.config.ts%23logsAndIssues::worker%2Ftelemetry::ATTACK-CLASSES.md%23Feature%20abuse%20and%20data%20leakage",
+		"canonical_refs": {
+			"surface": "worker/cloudflare.config.ts#observability",
+			"boundary": "worker/cloudflare.config.ts#logsAndIssues",
+			"subsystem": "worker/telemetry",
+			"attack_class": "ATTACK-CLASSES.md#Feature abuse and data leakage"
+		},
+		"surface": "Worker logs and Issues",
+		"boundary": "Telemetry retention",
+		"subsystem": "Cloudflare observability",
+		"attack_class": "Feature abuse and data leakage",
+		"starting_paths": [
+			"worker/cloudflare.config.ts",
+			"worker/src/index.ts",
+			"worker/src/hotaisle.ts"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Feature abuse and data leakage",
+		"selected_companion_blocks": [
+			"CLOUD-AND-DEPLOYMENT.md#Core discipline",
+			"CLOUD-AND-DEPLOYMENT.md#Universal moves",
+			"CLOUD-AND-DEPLOYMENT.md#Validation rules",
+			"CLOUD-AND-DEPLOYMENT.md#Managed storage, events, and edge attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 2,
+		"status": "candidate",
+		"agent_id": "hunt_edge2",
+		"reviewed_paths": [
+			"worker/cloudflare.config.ts",
+			"worker/src/index.ts",
+			"worker/src/hotaisle.ts",
+			"web/src/lib/api.ts"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_edge2",
+				"reviewed_paths": [
+					"worker/cloudflare.config.ts",
+					"worker/src/index.ts",
+					"worker/src/hotaisle.ts",
+					"web/src/lib/api.ts"
+				],
+				"invariant": "Telemetry does not retain credentials or user data",
+				"method": "source",
+				"result": "Source config requests Logs/Issues with persistence, invocation logs/traces off, and query redaction on. A later dashboard change enabled Logs/Issues and disabled invocation logs, but live query redaction remains off. Issues may capture request and exception details.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": ["cloudflare-issues-request-metadata"],
+		"unresolved": [
+			"Deployed Issues fields, access, and retention are unverified."
+		]
+	},
+	{
+		"coverage_id": "worker%2Fsrc%2Fhotaisle.ts%23upstream::worker%2Fsrc%2Fhotaisle.ts%23send::worker%2Fupstream::ATTACK-CLASSES.md%23Resource%20and%20file%20handling",
+		"canonical_refs": {
+			"surface": "worker/src/hotaisle.ts#upstream",
+			"boundary": "worker/src/hotaisle.ts#send",
+			"subsystem": "worker/upstream",
+			"attack_class": "ATTACK-CLASSES.md#Resource and file handling"
+		},
+		"surface": "Credential-bearing internal fetch",
+		"boundary": "Redirect destination",
+		"subsystem": "Upstream adapter",
+		"attack_class": "Resource and file handling",
+		"starting_paths": ["worker/src/hotaisle.ts", "worker/src/index.ts"],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Resource and file handling",
+		"selected_companion_blocks": [
+			"WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+			"WEB-PROTOCOL-AND-AUTH.md#Universal moves",
+			"WEB-PROTOCOL-AND-AUTH.md#Validation rules",
+			"WEB-PROTOCOL-AND-AUTH.md#HTTP framing and cache attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 2,
+		"status": "candidate",
+		"agent_id": "hunt_auth2",
+		"reviewed_paths": [
+			"worker/src/hotaisle.ts",
+			"worker/src/index.ts",
+			"worker/cloudflare.config.ts"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_auth2",
+				"reviewed_paths": [
+					"worker/src/hotaisle.ts",
+					"worker/src/index.ts",
+					"worker/cloudflare.config.ts"
+				],
+				"invariant": "Credential-bearing internal fetches stay at fixed upstream origin",
+				"method": "source",
+				"result": "upstream omits redirect manual; Cloudflare documentation says followed redirects forward sensitive headers across domains.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": ["worker:internal-upstream-redirect"],
+		"unresolved": [
+			"Attacker-influenced external redirects at fixed upstream endpoints are unverified."
+		]
+	},
+	{
+		"coverage_id": "worker%2Fsrc%2Findex.ts%23%2F__preview::worker%2Fsrc%2Findex.ts%23previewOriginGuard::web%2Fpreview::ATTACK-CLASSES.md%23Feature%20abuse%20and%20data%20leakage",
+		"canonical_refs": {
+			"surface": "worker/src/index.ts#/__preview",
+			"boundary": "worker/src/index.ts#previewOriginGuard",
+			"subsystem": "web/preview",
+			"attack_class": "ATTACK-CLASSES.md#Feature abuse and data leakage"
+		},
+		"surface": "Preview origin",
+		"boundary": "Real API and production asset separation",
+		"subsystem": "Local preview",
+		"attack_class": "Feature abuse and data leakage",
+		"starting_paths": [
+			"worker/src/index.ts",
+			"web/dev/serve-preview.ts",
+			"web/dev/transport.ts",
+			"web/vite.config.ts"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Feature abuse and data leakage",
+		"selected_companion_blocks": [
+			"CLIENT-SIDE.md#Core discipline",
+			"CLIENT-SIDE.md#Universal moves",
+			"CLIENT-SIDE.md#Validation rules",
+			"CLIENT-SIDE.md#Cross-origin messaging and network attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 2,
+		"status": "covered",
+		"agent_id": "hunt_edge2",
+		"reviewed_paths": [
+			"worker/src/index.ts",
+			"web/dev/serve-preview.ts",
+			"web/dev/transport.ts",
+			"web/vite.config.ts",
+			"worker/scripts/assert-assets.ts"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_edge2",
+				"reviewed_paths": [
+					"worker/src/index.ts",
+					"web/dev/serve-preview.ts",
+					"web/dev/transport.ts",
+					"web/vite.config.ts",
+					"worker/scripts/assert-assets.ts"
+				],
+				"invariant": "Preview assets and requests cannot reach production API or asset bundle",
+				"method": "source",
+				"result": "Worker rejects public preview and preview-origin API/auth; local middleware is serve-only; preview transport intercepts fetch and blocks sockets.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": [],
+		"unresolved": []
+	},
+	{
+		"coverage_id": "worker%2Fsrc%2Findex.ts%23%2Fapi%2F%2A::worker%2Fsrc%2Findex.ts%23apiProxy::worker%2Fproxy::ATTACK-CLASSES.md%23Access%20control",
+		"canonical_refs": {
+			"surface": "worker/src/index.ts#/api/*",
+			"boundary": "worker/src/index.ts#apiProxy",
+			"subsystem": "worker/proxy",
+			"attack_class": "ATTACK-CLASSES.md#Access control"
+		},
+		"surface": "Authenticated API request",
+		"boundary": "Fixed upstream and session authority",
+		"subsystem": "Worker proxy",
+		"attack_class": "Access control",
+		"starting_paths": [
+			"worker/src/index.ts",
+			"worker/src/hotaisle.ts",
+			"worker/src/session.ts"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Access control",
+		"selected_companion_blocks": [
+			"WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+			"WEB-PROTOCOL-AND-AUTH.md#Universal moves",
+			"WEB-PROTOCOL-AND-AUTH.md#Validation rules",
+			"WEB-PROTOCOL-AND-AUTH.md#HTTP framing and cache attack classes",
+			"WEB-PROTOCOL-AND-AUTH.md#API-key and mTLS attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [
+			{
+				"wave": 1,
+				"status": "candidate",
+				"agent_id": "hunt_worker",
+				"reviewed_paths": [
+					"worker/src/index.ts",
+					"worker/src/hotaisle.ts",
+					"worker/src/session.ts",
+					"worker/test/worker.test.ts"
+				],
+				"local_checks": [
+					{
+						"agent_id": "hunt_worker",
+						"reviewed_paths": [
+							"worker/src/index.ts",
+							"worker/src/hotaisle.ts",
+							"worker/src/session.ts",
+							"worker/test/worker.test.ts"
+						],
+						"invariant": "Proxy requests stay within authority and bounded resources",
+						"method": "source",
+						"result": "Fixed upstream, selected headers and manual redirects preserve destination; non-GET bodies are fully buffered without a source-visible byte cap.",
+						"artifact": null
+					}
+				],
+				"result_fingerprints": ["worker:proxy-body-buffer"],
+				"unresolved": [
+					"Cloudflare body and isolate limits and upstream authorization are unobserved."
+				],
+				"reassignment_reason": "Post-wave critic separated resource/redirect candidates from the assigned access and cryptography boundaries."
+			}
+		],
+		"wave": 2,
+		"status": "blocked",
+		"agent_id": "hunt_auth2",
+		"reviewed_paths": [
+			"worker/src/index.ts",
+			"worker/src/hotaisle.ts",
+			"worker/src/session.ts"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_auth2",
+				"reviewed_paths": [
+					"worker/src/index.ts",
+					"worker/src/hotaisle.ts",
+					"worker/src/session.ts"
+				],
+				"invariant": "Authenticated callers cannot act on another team's resources",
+				"method": "source",
+				"result": "Worker authenticates and fixes upstream destination but delegates team/resource authorization to upstream.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": [],
+		"unresolved": [
+			"Deployed upstream ACL behavior is unavailable from this repository."
+		]
+	},
+	{
+		"coverage_id": "worker%2Fsrc%2Findex.ts%23%2Fapi%2F%2A::worker%2Fsrc%2Findex.ts%23readBody::worker%2Fproxy::ATTACK-CLASSES.md%23Resource%20and%20file%20handling",
+		"canonical_refs": {
+			"surface": "worker/src/index.ts#/api/*",
+			"boundary": "worker/src/index.ts#readBody",
+			"subsystem": "worker/proxy",
+			"attack_class": "ATTACK-CLASSES.md#Resource and file handling"
+		},
+		"surface": "API proxy body before upstream authentication",
+		"boundary": "Worker isolate resources",
+		"subsystem": "Request buffering",
+		"attack_class": "Resource and file handling",
+		"starting_paths": ["worker/src/index.ts", "worker/test/worker.test.ts"],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Resource and file handling",
+		"selected_companion_blocks": [
+			"RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Core discipline",
+			"RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Universal moves",
+			"RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Validation rules",
+			"RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Resource accumulation attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 2,
+		"status": "candidate",
+		"agent_id": "hunt_edge2",
+		"reviewed_paths": ["worker/src/index.ts", "worker/test/worker.test.ts"],
+		"local_checks": [
+			{
+				"agent_id": "hunt_edge2",
+				"reviewed_paths": ["worker/src/index.ts", "worker/test/worker.test.ts"],
+				"invariant": "A syntactically valid but unverified credential cannot consume unbounded Worker memory",
+				"method": "source",
+				"result": "A non-browser caller can supply a syntactically valid fake Token and reach full arrayBuffer buffering before the upstream rejects it; there is no source-visible byte cap.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": ["worker:proxy-body-buffer"],
+		"unresolved": [
+			"Cloudflare effective request and isolate limits and concrete shared availability impact are unverified."
+		]
+	},
+	{
+		"coverage_id": "worker%2Fsrc%2Findex.ts%23POST%20%2Fauth%2Femail%2Fstart::worker%2Fsrc%2Findex.ts%23requestGuard::worker%2Fauth::ATTACK-CLASSES.md%23Resource%20and%20file%20handling",
+		"canonical_refs": {
+			"surface": "worker/src/index.ts#POST /auth/email/start",
+			"boundary": "worker/src/index.ts#requestGuard",
+			"subsystem": "worker/auth",
+			"attack_class": "ATTACK-CLASSES.md#Resource and file handling"
+		},
+		"surface": "Anonymous email flow",
+		"boundary": "Request and origin gate",
+		"subsystem": "Worker authentication",
+		"attack_class": "Resource handling",
+		"starting_paths": ["worker/src/index.ts", "worker/src/hotaisle.ts"],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Resource and file handling",
+		"selected_companion_blocks": [
+			"WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+			"WEB-PROTOCOL-AND-AUTH.md#Universal moves",
+			"WEB-PROTOCOL-AND-AUTH.md#Validation rules",
+			"WEB-PROTOCOL-AND-AUTH.md#Browser-session attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 1,
+		"status": "candidate",
+		"agent_id": "hunt_worker",
+		"reviewed_paths": [
+			"worker/src/index.ts",
+			"worker/src/hotaisle.ts",
+			"worker/test/worker.test.ts"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_worker",
+				"reviewed_paths": [
+					"worker/src/index.ts",
+					"worker/src/hotaisle.ts",
+					"worker/test/worker.test.ts"
+				],
+				"invariant": "Anonymous sign-in work is bounded before parsing and sending mail",
+				"method": "source",
+				"result": "Request body is fully buffered before its 1024-character limit; no Worker-local email throttle is visible, while upstream may return 429.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": [
+			"worker:email-start-body-buffer",
+			"worker:email-start-abuse"
+		],
+		"unresolved": [
+			"Cloudflare effective request limits and deployed email throttling are unknown."
+		]
+	},
+	{
+		"coverage_id": "worker%2Fsrc%2Findex.ts%23POST%20%2Fauth%2Femail%2Fwait::worker%2Fsrc%2Fsession.ts%23readSession::worker%2Fauth::ATTACK-CLASSES.md%23Business%20logic",
+		"canonical_refs": {
+			"surface": "worker/src/index.ts#POST /auth/email/wait",
+			"boundary": "worker/src/session.ts#readSession",
+			"subsystem": "worker/auth",
+			"attack_class": "ATTACK-CLASSES.md#Business logic"
+		},
+		"surface": "Email approval completion",
+		"boundary": "Session ticket and renewal",
+		"subsystem": "Worker authentication",
+		"attack_class": "Business logic",
+		"starting_paths": [
+			"worker/src/index.ts",
+			"worker/src/session.ts",
+			"worker/src/hotaisle.ts"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Business logic",
+		"selected_companion_blocks": [
+			"WEB-PROTOCOL-AND-AUTH.md#Core discipline",
+			"WEB-PROTOCOL-AND-AUTH.md#Universal moves",
+			"WEB-PROTOCOL-AND-AUTH.md#Validation rules",
+			"WEB-PROTOCOL-AND-AUTH.md#Browser-session attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 2,
+		"status": "covered",
+		"agent_id": "hunt_auth2",
+		"reviewed_paths": [
+			"worker/src/index.ts",
+			"worker/src/session.ts",
+			"worker/src/hotaisle.ts",
+			"worker/test/worker.test.ts"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_auth2",
+				"reviewed_paths": [
+					"worker/src/index.ts",
+					"worker/src/session.ts",
+					"worker/src/hotaisle.ts",
+					"worker/test/worker.test.ts"
+				],
+				"invariant": "Approval requires a valid pending ticket and upstream-verified session",
+				"method": "source",
+				"result": "Encrypted pending cookie expires; completion exchanges the ticket, verifies the token, then sets an HttpOnly Secure SameSite cookie.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": [],
+		"unresolved": []
+	},
+	{
+		"coverage_id": "worker%2Fsrc%2Findex.ts%23POST%20%2Fauth%2Fhistory-key::worker%2Fsrc%2Fhistory-key.ts%23deriveHistoryKey::worker%2Fhistory-key::ATTACK-CLASSES.md%23Cryptography%20and%20secrets",
+		"canonical_refs": {
+			"surface": "worker/src/index.ts#POST /auth/history-key",
+			"boundary": "worker/src/history-key.ts#deriveHistoryKey",
+			"subsystem": "worker/history-key",
+			"attack_class": "ATTACK-CLASSES.md#Cryptography and secrets"
+		},
+		"surface": "History key request",
+		"boundary": "Verified account identity",
+		"subsystem": "History key derivation",
+		"attack_class": "Cryptography and secrets",
+		"starting_paths": [
+			"worker/src/index.ts",
+			"worker/src/history-key.ts",
+			"worker/src/session.ts"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Cryptography and secrets",
+		"selected_companion_blocks": [
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Universal moves",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Validation rules",
+			"DATA-ISOLATION-AND-LIFECYCLE.md#Derived-data and disclosure attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [
+			{
+				"wave": 1,
+				"status": "candidate",
+				"agent_id": "hunt_worker",
+				"reviewed_paths": [
+					"worker/src/index.ts",
+					"worker/src/hotaisle.ts",
+					"worker/src/history-key.ts",
+					"worker/src/session.ts",
+					"worker/test/history-key.test.ts"
+				],
+				"local_checks": [
+					{
+						"agent_id": "hunt_worker",
+						"reviewed_paths": [
+							"worker/src/index.ts",
+							"worker/src/hotaisle.ts",
+							"worker/src/history-key.ts",
+							"worker/src/session.ts",
+							"worker/test/history-key.test.ts"
+						],
+						"invariant": "Verified identity and credential-bearing upstream calls remain on the intended origin",
+						"method": "source",
+						"result": "Identity is verified and key derivation is scoped; internal upstream fetches omit manual redirect handling.",
+						"artifact": null
+					}
+				],
+				"result_fingerprints": ["worker:internal-upstream-redirect"],
+				"unresolved": [
+					"Redirect behavior and upstream routing must be validated."
+				],
+				"reassignment_reason": "Post-wave critic separated resource/redirect candidates from the assigned access and cryptography boundaries."
+			}
+		],
+		"wave": 2,
+		"status": "covered",
+		"agent_id": "hunt_auth2",
+		"reviewed_paths": [
+			"worker/src/index.ts",
+			"worker/src/history-key.ts",
+			"worker/src/hotaisle.ts",
+			"worker/src/session.ts",
+			"worker/test/history-key.test.ts"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_auth2",
+				"reviewed_paths": [
+					"worker/src/index.ts",
+					"worker/src/history-key.ts",
+					"worker/src/hotaisle.ts",
+					"worker/src/session.ts",
+					"worker/test/history-key.test.ts"
+				],
+				"invariant": "Only a verified account obtains its origin-scoped history key",
+				"method": "source",
+				"result": "whoIs verifies credential; derivation uses verified account identity and dedicated secret; missing facts fail closed.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": [],
+		"unresolved": []
+	},
+	{
+		"coverage_id": "worker%2Fvite.config.ts%23assets::worker%2Fscripts%2Fassert-assets.ts%23checkDirectory::build%2Fdeploy::ATTACK-CLASSES.md%23Feature%20abuse%20and%20data%20leakage",
+		"canonical_refs": {
+			"surface": "worker/vite.config.ts#assets",
+			"boundary": "worker/scripts/assert-assets.ts#checkDirectory",
+			"subsystem": "build/deploy",
+			"attack_class": "ATTACK-CLASSES.md#Feature abuse and data leakage"
+		},
+		"surface": "Build inputs",
+		"boundary": "Production asset root",
+		"subsystem": "Documentation and preview packaging",
+		"attack_class": "Feature abuse and data leakage",
+		"starting_paths": [
+			"worker/vite.config.ts",
+			"worker/scripts/assert-assets.ts",
+			"web/vite.config.ts",
+			"web/index.html"
+		],
+		"ordinary_attack_class_block": "ATTACK-CLASSES.md#Feature abuse and data leakage",
+		"selected_companion_blocks": [
+			"SUPPLY-CHAIN-AND-RELEASE.md#Core discipline",
+			"SUPPLY-CHAIN-AND-RELEASE.md#Universal moves",
+			"SUPPLY-CHAIN-AND-RELEASE.md#Validation rules",
+			"SUPPLY-CHAIN-AND-RELEASE.md#Release and update attack classes"
+		],
+		"excluded_blocks": [],
+		"prior_status": "none",
+		"attempts": [],
+		"wave": 1,
+		"status": "covered",
+		"agent_id": "hunt_release",
+		"reviewed_paths": [
+			"worker/vite.config.ts",
+			"worker/scripts/assert-assets.ts",
+			"web/vite.config.ts",
+			"web/index.html"
+		],
+		"local_checks": [
+			{
+				"agent_id": "hunt_release",
+				"reviewed_paths": [
+					"worker/vite.config.ts",
+					"worker/scripts/assert-assets.ts",
+					"web/vite.config.ts",
+					"web/index.html"
+				],
+				"invariant": "Audit and preview documents are excluded from production assets",
+				"method": "source",
+				"result": "Production serves only web/dist; root docs and preview-dist are outside it, and the new source guard rejects docs and audit artifacts copied into dist.",
+				"artifact": null
+			}
+		],
+		"result_fingerprints": [],
+		"unresolved": []
+	}
+]

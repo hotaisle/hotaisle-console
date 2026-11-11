@@ -1,0 +1,27 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"extends": [
+		"ultracite/biome/core",
+		"ultracite/biome/react",
+		"ultracite/biome/vitest"
+	],
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"formatter": {
+		"indentStyle": "tab"
+	},
+	"json": {
+		"formatter": {
+			"indentStyle": "tab"
+		}
+	},
+	"overrides": [
+		{
+			"includes": ["worker/**/*.ts"],
+			"javascript": { "globals": ["WebSocketPair"] }
+		}
+	]
+}

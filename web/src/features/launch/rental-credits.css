@@ -1,0 +1,22 @@
+.rental-credits {
+	display: grid;
+	gap: 14px;
+	padding: 16px;
+	background: var(--card-2);
+	border: 1px solid var(--line-2);
+	border-radius: 12px;
+}
+.rental-credits h2 {
+	display: flex;
+	gap: 16px;
+	justify-content: space-between;
+}
+.rental-credits p {
+	margin-top: 8px;
+	font-size: 0.875rem;
+	line-height: 1.5;
+	color: var(--ink-2);
+}
+.rental-credits .btn {
+	justify-self: start;
+}
