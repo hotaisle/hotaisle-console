@@ -38,8 +38,8 @@ The controller executes trusted default-branch code, never PR source, artifacts,
 dependencies, or caches. It can read source/reviews and rerun Actions workflows.
 It does not approve reviews, publish successful statuses, change code, or merge PRs.
 Its rerun requests are limited to matching review-policy workflows. Production deployment
-is a separate main-only CI job using the protected production environment. Normal CI
-and the review signal do not gain GitHub write permissions.
+is handled by Cloudflare Workers Builds watching protected main. Normal CI and the
+review signal do not gain GitHub write permissions or Cloudflare deployment credentials.
 
 Until these controller workflows are merged to main, review changes may require a
 manual rerun of the required workflow in GitHub. The organization rule itself can

@@ -8,10 +8,12 @@
 	],
 	"scripts": {
 		"build": "bun run build:web && bun run build:worker",
+		"build:cloudflare": "bun worker/scripts/cloudflare-build.ts",
 		"build:web": "bun run --cwd web build",
 		"build:worker": "bun run --cwd worker build",
 		"check": "bun run --bun ultracite check",
 		"deploy": "bun run build && bun run --cwd worker deploy",
+		"deploy:cloudflare": "bun worker/scripts/cloudflare-deploy.ts",
 		"dev": "bun run build:web && bun run preview && bun run --cwd worker dev",
 		"fix": "bun run --bun ultracite fix",
 		"identity:email-login": "bun run worker/scripts/create-email-login-identity.ts",

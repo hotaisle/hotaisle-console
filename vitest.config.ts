@@ -8,7 +8,7 @@ export default defineConfig({
 			{
 				test: {
 					environment: "node",
-					include: [".github/scripts/*.test.ts"],
+					include: [".github/scripts/*.test.ts", "worker/scripts/*.test.ts"],
 					name: "tooling",
 				},
 			},

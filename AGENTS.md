@@ -152,10 +152,13 @@ other PRs require either maintainer's current-commit approval through the pinned
 Keep signed commits, resolved review threads, and the `test` CI job required; do not add ruleset bypasses.
 See `docs/pull-request-approval.md` for controller trust and activation. Never switch accounts to manufacture
 approval. This public repository uses GitHub-hosted
-Actions, not Hot Aisle's private runners. PR CI validates without production credentials. Successful main
-CI passes its exact prebuilt bundle to the production environment for deployment through `cf`.
-Restrict that environment and its Cloudflare token to the main branch. Do not rebuild or deploy PR artifacts,
-pass runtime application secrets through Actions, or rotate existing Worker secrets during deployment.
+Actions, not Hot Aisle's private runners. GitHub CI validates without production credentials.
+Cloudflare Workers Builds watches only protected `main`, with previews disabled. Use Bun 1.4.4 and Node 26,
+`bun run build:cloudflare` to install frozen dependencies and validate/build, then `bun run deploy:cloudflare`
+to publish that prebuilt output through `cf`. Keep build credentials in Cloudflare, without an expiration;
+do not pass runtime session/history/signing secrets through either CI system or rotate them during deployment.
+Production build helpers verify the main source commit and resolve its merged PR from public metadata.
+An older build must skip publication when main advances. Never deploy local preview assets or PR branches.
 
 ## Compatibility and verification limits
 
