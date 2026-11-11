@@ -22,7 +22,7 @@ The baseline's strongest source controls were encrypted HttpOnly email sessions,
 
 ## Needs validation
 
-The [current validation list](NEEDS-VALIDATION.md) has no remaining items. The last three questions were resolved in [RESOLUTION-2026-11-11.md](RESOLUTION-2026-11-11.md): ambiguous machine lists are rejected before entering name-based UI state, hotManager's email attempt limits are documented, and effective Issues redaction/settings and dashboard access were inspected. These were not severity-ranked vulnerabilities. The original nine records in [findings.json](findings.json) retain their baseline verdicts and traces; do not use them as the current work queue.
+The [current validation list](NEEDS-VALIDATION.md) has no remaining items. The last three questions were resolved in [RESOLUTION-2026-11-11.md](RESOLUTION-2026-11-11.md): machine identity includes team, API collection and deployment ID throughout UI state and routing, hotManager's email attempt limits are documented, and effective Issues redaction/settings and dashboard access were inspected. These were not severity-ranked vulnerabilities. The original nine records in [findings.json](findings.json) retain their baseline verdicts and traces; do not use them as the current work queue.
 
 ## Post-audit resource limits
 
@@ -36,7 +36,12 @@ The final follow-up verified hotManager's policy at `ba6751a5fe5f4a6153899e149a3
 attempts per normalized mailbox and fifty per valid client IP per ten-minute fixed window, held in
 bounded process-local counters. These limits precede delivery and do not promise a fleet-wide budget.
 The naming guard added two fixture cases, bringing the passing total to 205 tests, and was deployed as
-source `2743ea8`, Worker version `c153e747-f0bb-461b-aa3b-8a72d5f80d23`.
+source `2743ea8`, Worker version `c153e747-f0bb-461b-aa3b-8a72d5f80d23`. That temporary
+restriction was subsequently replaced by composite identity handling; see the current implementation
+and regression details in [the resolution evidence](RESOLUTION-2026-11-11.md). Source `cb73a79` now
+replaces that guard in production as version `752d54d1-6560-4e25-840b-3df422d1a8b5`, confirmed at
+100% traffic after passing CI, 238 tests, the build and deployment dry-run. The served script matches
+the local production artifact by SHA-256.
 
 ## Deployment and privacy
 

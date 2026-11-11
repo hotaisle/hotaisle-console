@@ -13,16 +13,65 @@ not reserve names against inventory devices. `api/teams/resources/vm/virtual_mac
 name; `api/teams/resources/baremetal/bare_metal.go` independently returns the device's name. There is no
 source guarantee of cross-kind uniqueness on which the Console can rely.
 
-The Console now rejects duplicate names in the combined machine response before returning it to Query,
-selection, routing, or presentation state. It does not silently choose one of the ambiguous resources.
-The visible error directs the user to support. Existing successful cached data can remain visible after
-a failed background refresh, but the ambiguous replacement list is not installed. Actions continue to
-use the selected machine's explicit kind. This deliberately blocks a colliding response rather than
-claiming that the current name-based interface can represent both resources at once.
+The initial mitigation rejected duplicate names in the combined response (commit `2743ea8`, Worker
+version `c153e747-f0bb-461b-aa3b-8a72d5f80d23`). That restriction is superseded by composite identity
+handling: `shared/machine-identity.ts` uses **team handle, API collection, deployment ID**. The API’s
+`getVirtualMachineByName` and
+`getServerByName` also accept deployment UUIDs: their assignment lookup checks active state, object type
+and the selected tenant before resolving the resource. The collections are `virtual_machines` and
+`bare_metal`; names remain display labels and need not be globally unique. Deployment IDs distinguish
+successive rentals that reuse a name, as well as same-kind resources with the same display name.
 
-`web/src/lib/power-api.test.ts` now covers duplicate VM names and VM/bare-metal collisions. All 205 tests
-across 45 files pass, including existing same-name action endpoint routing. The guard is committed as
-`2743ea8` and deployed as Worker version `c153e747-f0bb-461b-aa3b-8a72d5f80d23`.
+The combined response now accepts a same-name VM and bare-metal server. Query status keys, UI selection,
+React keys, launch metadata, optimistic launch/release updates, receipt deduplication, stage tags and
+animation identities all retain the tuple. Actions continue to use the selected resource's explicit kind.
+Canonical machine and history URLs include the API collection and deployment ID. A unique legacy
+name-only link upgrades in place; an ambiguous link shows a choice/error instead of silently selecting either kind. Unknown
+collections and missing resources cannot resolve to an unrelated machine. Page routing distinguishes
+route segments from resource names such as “settings” or “history”.
+
+The encrypted journal schema, account scope, cryptographic keys and storage prefix are unchanged.
+New entries also retain the API deployment ID. Existing entries carry team/name and an optional metal
+flag (omitted means VM) and remain readable. Name-only launch metadata is associated with an active
+resource only when its kind/name match is unambiguous; an exact deployment record takes precedence.
+Older receipts without IDs retain their legacy name-based identity; missing IDs cannot be reconstructed.
+Replay builds the indexes in memory; unlocking performs no ciphertext rewrite or deletion. Ending one kind
+preserves the other kind's launch metadata and receipts. No history migration or Cloudflare storage is
+introduced.
+
+Focused regressions cover same-name and repeated-rental IDs, API listing/action endpoints; independent
+polls; typed deep links, reload and back; ambiguous and unique legacy machine/history links; optimistic release/relaunch;
+separate stage status/host/focus; record pruning and encrypted journal replay. The local-only “Same-name
+VM + bare metal” scenario exercises the real components with simulated transport. Production packaging
+continues to reject preview assets and audit documents. No real machine operation is used for validation.
+
+### Verification and rollout of the replacement
+
+The composite identity and contextual TanStack keyboard changes pass Ultracite, TypeScript, and all
+238 tests across 50 files. The production build and deployment dry-run pass with 28 packaged assets;
+the asset guard excludes local preview code and audit documents. Chrome verification used the existing
+local preview process and browser-only fixtures. Same-name resources select distinct deployment URLs,
+retain their type-specific operations, and restore through navigation. No real upstream credentials,
+purchases or machine actions were exercised. Signed commit `8d1289a` contains the machine identity
+change, and signed commit `cb73a79` contains the contextual keyboard controls. The required GitHub CI
+job passed for `cb73a79` before deployment. The 31-test Worker suite also passed before each commit.
+
+The production build of `cb73a794f6b823bae2c4e1a3f699d4adca7e6cfb` was deployed on 2026-11-11 at
+18:54 UTC as Worker version `752d54d1-6560-4e25-840b-3df422d1a8b5`. The active deployment response
+confirmed this version receives 100% of traffic. An anonymous sign-in request returned 200 with the
+expected CSP and `/assets/index-Brn2dxcv.js`; the served script's SHA-256 matched the local production
+artifact (`4e87a7aac53a7a10d26470a6984124e52c77dac51465f58fc7ef3f89d2abbc12`). The build links to
+PR #1. Existing secrets were retained. This replaces the temporary duplicate-name guard above; later
+audit-documentation commits do not change the deployed code or its excluded documentation assets.
+
+Keyboard shortcuts now use TanStack Hotkeys with exclusive dialog/action scopes. The native help modal
+lists only active, enabled registrations from the page or section where it was opened. Chrome checks
+confirmed that question-mark typing remains in the public-key field, Settings omits machine/launch
+commands, end confirmation lists its own cancel command, launch lists only available sizes and its
+eligible hold action, and Escape closes help before it can navigate the underlying page. Automated
+regressions also cover nested editable content, IME composition, disabled commands, route changes,
+release-before-confirmation and cancellation of a held background command when another scope opens.
+This is ordinary engineering verification, separate from the original source-only security audit.
 
 ## Upstream email limits
 
