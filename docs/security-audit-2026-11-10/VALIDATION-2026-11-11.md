@@ -44,3 +44,13 @@ do not establish the audit skill's full sandbox contract, upstream authorization
 accuracy, or production Issues retention/access. Those limits do not turn completed regression checks
 back into open implementation tasks; the three remaining external questions are listed separately in
 [NEEDS-VALIDATION.md](NEEDS-VALIDATION.md).
+
+## Default-branch dependency alerts
+
+The push reported eleven open Dependabot alerts. Read-only `gh api` inspection showed that they target
+the default branch's `web/package-lock.json` and `package-lock.json`, neither of which is tracked in this
+branch. The reported vulnerable ranges cover Vite through 6.4.3, esbuild through 0.24.2, and affected
+`@vitest/mocker` versions below 4.1.12. This branch's `bun.lock` resolves Vite 8.3.7, esbuild 0.28.2,
+and `@vitest/mocker` 5.1.0, outside those reported ranges. The default-branch alerts were not dismissed.
+This comparison covers the eleven displayed alerts only; it is not a complete current dependency or
+historical-secret scan.
