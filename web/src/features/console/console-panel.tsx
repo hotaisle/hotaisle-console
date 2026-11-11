@@ -132,8 +132,11 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 	let body: React.ReactNode;
 	let sub: string | undefined;
 	const action: React.ReactNode = null;
+	const launchSubtitle = sizes.some((size) => size.Quantity > 0)
+		? "Pick a size, hold the button, and SSH in a minute later."
+		: undefined;
 	if (view === "home" && rootIsOrder) {
-		sub = "Pick a size, hold the button, and SSH in a minute later.";
+		sub = launchSubtitle;
 		body = orderView;
 	} else if (view === "home") {
 		body = (
@@ -169,7 +172,7 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 			</>
 		);
 	} else if (view === "order") {
-		sub = "Pick a size, hold the button, and SSH in a minute later.";
+		sub = launchSubtitle;
 		body = orderView;
 	} else if (view === "settings") {
 		body = (

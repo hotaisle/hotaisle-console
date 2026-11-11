@@ -87,6 +87,11 @@ describe("rental availability and credits", () => {
 				screen.getByRole("region", { name: "Launch a machine" })
 			).getByRole("status")
 		).toHaveTextContent("No machines are available");
+		expect(
+			within(
+				screen.getByRole("region", { name: "Launch a machine" })
+			).getByRole("status")
+		).toHaveClass("availability-empty");
 		expect(screen.queryByRole("radio")).not.toBeInTheDocument();
 		expect(screen.queryByText("Loading prices")).not.toBeInTheDocument();
 		expect(screen.getByRole("button", { name: HOLD })).toBeDisabled();
@@ -101,6 +106,15 @@ describe("rental availability and credits", () => {
 			screen.getByRole("link", { name: "Add an SSH key in Settings" })
 		).toHaveAttribute("href", "/teams/lab/settings#ssh-keys");
 		expect(provision).not.toHaveBeenCalled();
+	});
+	it("treats an inventory with zero available quantities as empty", () => {
+		open({ offers: [{ ...OFFER, Quantity: 0 }] });
+		expect(
+			within(
+				screen.getByRole("region", { name: "Launch a machine" })
+			).getByRole("status")
+		).toHaveClass("availability-empty");
+		expect(screen.getByRole("button", { name: HOLD })).toBeDisabled();
 	});
 	it("only presents loading while the availability request is pending", () => {
 		open({ offers: undefined });

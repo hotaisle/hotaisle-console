@@ -6,6 +6,10 @@
 	gap: 14px;
 }
 
+.availability-empty {
+	color: var(--amber);
+}
+
 .options {
 	display: flex;
 	flex-direction: column;

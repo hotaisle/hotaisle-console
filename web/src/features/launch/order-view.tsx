@@ -214,7 +214,7 @@ export function OrderView({
 			style={{ ["--vt" as string]: "launcher" }}
 		>
 			<OfferStatus
-				empty={sizes.length === 0}
+				empty={sizes.every((size) => size.Quantity <= 0)}
 				error={offersError}
 				loading={availabilityLoading}
 				onRefresh={onRefreshOffers}

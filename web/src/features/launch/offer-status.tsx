@@ -25,7 +25,7 @@ export function OfferStatus({
 				<p role="alert">Couldn't load sizes and prices. {error.message}</p>
 			) : null}
 			{!(loading || error) && empty ? (
-				<p role="status">
+				<p className="availability-empty" role="status">
 					No machines are available right now. Availability updates
 					automatically.
 				</p>

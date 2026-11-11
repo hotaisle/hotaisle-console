@@ -17,7 +17,7 @@ export function availabilityBlocker({
 	if (offers === undefined) {
 		return "Loading sizes and prices…";
 	}
-	if (!sizes.length) {
+	if (sizes.every((size) => size.Quantity <= 0)) {
 		return "No machines are available right now.";
 	}
 	if (offer?.OnDemandPrice === undefined) {
