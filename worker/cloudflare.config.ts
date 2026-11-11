@@ -40,7 +40,19 @@ export default defineConfig({
 			Account: exports.durableObject({ state: "deleted" }),
 			Availability: exports.durableObject({ state: "deleted" }),
 		},
+		limits: { cpuMs: 1000, subrequests: 10 },
 		name: "hotaisle-console",
-		observability: { enabled: false },
+		observability: {
+			enabled: true,
+			issues: { enabled: true },
+			logs: {
+				enabled: true,
+				headSamplingRate: 1,
+				invocationLogs: false,
+				persist: true,
+			},
+			redactQueryString: true,
+			traces: { enabled: false },
+		},
 	},
 });

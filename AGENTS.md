@@ -72,8 +72,13 @@ refreshing. Keep component behavior covered by focused tests instead of a whole-
 
 Availability polls from the browser every ten seconds through the stateless proxy and refreshes on focus.
 Do not add server-side rooms, tickets, or user-data storage. The old Account and Availability Durable Object
-exports are deletion tombstones; never re-export or bind the retired classes. Keep Worker observability
-disabled so application request logs do not retain user data.
+exports are deletion tombstones; never re-export or bind the retired classes. Workers Logs and Issues are
+enabled, with invocation logs and traces disabled. The repository config enables query-string redaction on
+the next code deployment; verify it live afterward. Never add credentials, account
+identifiers, request bodies, or other user data to application logs or issue context.
+The only Worker-side rate state is Cloudflare's temporary counters keyed by purpose-separated HMAC digests;
+never send raw emails, IP addresses, or API keys to a rate-limit binding. Binding limits are approximate
+per Cloudflare location, not strict global quotas.
 
 Use TanStack Form for form values, field validation, and submission state. Reuse the bound controls in
 `web/src/components/forms/`. Team creation and invitation acceptance use the upstream API; keep pending

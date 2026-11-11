@@ -173,11 +173,27 @@ unreadable unless a key migration is implemented. Account email changes likewise
 the current upstream user response has no immutable user ID. Missing configuration disables persistent
 history with a visible warning; it never silently falls back to another key or replaces encrypted entries.
 
-All active `/auth` and `/api` requests require the console's custom request header and reject cross-origin
-requests. The proxy uses a configured upstream URL, forwards only the required headers, and does not follow
-upstream redirects. The Worker serves a Content Security Policy. Retired `/records/*` and `/live/*` endpoints
-return 410 without accessing data bindings. Worker observability is disabled. Cloudflare still processes
-proxied requests; this application does not write user data to Cloudflare storage.
+All active `/auth` and `/api` requests require the console's custom request header and reject a nonmatching
+`Origin` when one is present. The proxy uses a configured upstream URL, forwards only the required headers,
+and rejects upstream redirects. The Worker serves a Content Security Policy. Retired `/records/*` and `/live/*` endpoints
+return 410 without accessing data bindings. Production Workers Logs and Issues are enabled, with invocation
+logs and traces disabled. The current dashboard configuration does not redact query strings; the repository
+configuration enables that protection on the next code deployment. Cloudflare may retain exception and issue
+metadata, including request details. The application must not log credentials, account identifiers, or request bodies.
+
+The Worker configuration caps each production invocation at 1000 ms of CPU time and 10 subrequests.
+Cloudflare enforces these resource caps only on its network. The Worker also rejects email-start bodies
+over 1024 bytes and proxied API bodies over 1 MiB with HTTP 413, reading them incrementally instead of
+calling `req.text()` or `req.arrayBuffer()`. CPU time does not include waiting on the Hot Aisle API.
+
+Cloudflare Rate Limiting bindings guard the upstream calls. Email starts allow 3 per address and 10 per
+client IP per minute; upstream credential checks allow 60 per IP per minute. Proxied API reads allow 120
+per credential and path per minute, while writes allow 30 per credential per minute. This per-path read
+limit leaves room for the console's polling across many machines. Exceeded limits return HTTP 429 with
+`Retry-After: 60`; a limiter error returns 503 before the upstream call. The Worker sends only
+purpose-separated HMAC digests to Cloudflare's temporary rate counters, never raw email addresses,
+IP addresses, or API keys. These counters are separate from browser history and account data. Cloudflare
+enforces binding limits approximately per location, so this is an abuse brake, not a strict global quota.
 
 The next deployment permanently deletes the old `Account` and `Availability` Durable Object namespaces through
 explicit `state: "deleted"` exports. Keep these deletion entries until Cloudflare confirms the classes are gone.
