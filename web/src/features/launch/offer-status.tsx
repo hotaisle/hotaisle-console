@@ -27,7 +27,7 @@ export function OfferStatus({
 			{!(loading || error) && empty ? (
 				<p className="availability-empty" role="status">
 					No machines are available right now. Availability updates
-					automatically.
+					automatically. A balance does not have an effect on availability.
 				</p>
 			) : null}
 			{error ? (
