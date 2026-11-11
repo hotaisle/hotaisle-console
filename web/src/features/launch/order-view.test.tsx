@@ -1,16 +1,24 @@
 import {
 	createMemoryHistory,
+	createRootRoute,
+	createRoute,
+	createRouter,
+	Outlet,
 	RouterContextProvider,
+	RouterProvider,
+	useRouterState,
 } from "@tanstack/react-router";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { validateSearch } from "../../app/route-state";
 import { createAppRouter } from "../../app/router";
 import { ToastHost } from "../../components/ui/toast";
 import { api, type Offer } from "../../lib/api";
 import { signal } from "../../lib/signal";
 import { OrderView } from "./order-view";
+import { useOrder } from "./use-order";
 
 const OFFER: Offer = {
 	MinimumReservationMinutes: 30,
@@ -23,7 +31,7 @@ const OFFER: Offer = {
 		ram_capacity: 64,
 	},
 };
-function open(overrides: Partial<ComponentProps<typeof OrderView>> = {}) {
+function makeProps(overrides: Partial<ComponentProps<typeof OrderView>> = {}) {
 	const props: ComponentProps<typeof OrderView> = {
 		balance: {
 			available_balance: 50_000,
@@ -55,6 +63,10 @@ function open(overrides: Partial<ComponentProps<typeof OrderView>> = {}) {
 		vmCount: 0,
 		...overrides,
 	};
+	return props;
+}
+function open(overrides: Partial<ComponentProps<typeof OrderView>> = {}) {
+	const props = makeProps(overrides);
 	render(
 		<RouterContextProvider
 			router={createAppRouter(
@@ -68,8 +80,56 @@ function open(overrides: Partial<ComponentProps<typeof OrderView>> = {}) {
 	);
 	return props;
 }
+function RoutedOrderView() {
+	useRouterState();
+	const { order, setOrder } = useOrder();
+	// Query updates can deliver new offer arrays while a fallback navigation is pending.
+	const props = makeProps({
+		offers: [{ ...OFFER, Specs: { ...OFFER.Specs, gpus: [{ count: 2 }] } }],
+		order,
+		setOrder,
+	});
+	return <OrderView {...props} />;
+}
+function openRouted(path: string) {
+	const root = createRootRoute({ component: Outlet, validateSearch });
+	const route = createRoute({
+		component: RoutedOrderView,
+		getParentRoute: () => root,
+		path: "/teams/$team/launch",
+	});
+	const router = createRouter({
+		history: createMemoryHistory({ initialEntries: [path] }),
+		routeTree: root.addChildren([route]),
+	});
+	const navigate = router.navigate.bind(router);
+	vi.spyOn(router, "navigate").mockImplementation((options) => {
+		if (vi.mocked(router.navigate).mock.calls.length > 20) {
+			throw new Error("Launch kept navigating.");
+		}
+		return navigate(options);
+	});
+	render(
+		<ToastHost>
+			<RouterProvider router={router} />
+		</ToastHost>
+	);
+	return router;
+}
 const HOLD = /Hold to launch/u;
+const HOLD_TWO = /Hold to launch 2×/u;
 describe("rental availability and credits", () => {
+	it("settles the automatic size fallback when offers are freshly derived during navigation", async () => {
+		const router = openRouted("/teams/lab/launch?gpus=1");
+		await screen.findByRole("button", { name: HOLD_TWO });
+		expect(router.state.location.search.gpus).toBe(2);
+		expect(router.navigate).toHaveBeenCalledOnce();
+		await act(async () => {
+			await router.navigate({ search: { gpus: 8 }, to: "/teams/lab/launch" });
+		});
+		await waitFor(() => expect(router.state.location.search.gpus).toBe(2));
+		expect(router.navigate).toHaveBeenCalledTimes(3);
+	});
 	it("shows an empty inventory and a working credits option without fake sizes", async () => {
 		const provision = vi.spyOn(api, "provision");
 		const input = open({

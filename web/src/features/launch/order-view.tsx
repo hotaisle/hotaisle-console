@@ -1,6 +1,6 @@
 import type { HotkeyChord } from "@tanstack/react-hotkeys";
 import { Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isPresent } from "../../../../shared/present";
 import type { ConsoleSearch } from "../../app/route-state";
 import { HoldButton } from "../../components/ui/hold-button";
@@ -68,21 +68,28 @@ export function OrderView({
 	const { count, image, customURL } = order;
 
 	// Fall back to the nearest size in stock when the preferred one is gone.
-	useEffect(() => {
-		const cur = sizes.find((o) => o.Specs.gpus?.[0]?.count === count);
-		if (sizes.length && (!cur || cur.Quantity === 0)) {
-			const [near] = sizes
+	const currentSize = sizes.find((o) => o.Specs.gpus?.[0]?.count === count);
+	const fallbackCount = currentSize?.Quantity
+		? undefined
+		: sizes
 				.filter((o) => o.Quantity > 0)
 				.sort(
 					(a, b) =>
 						Math.abs((a.Specs.gpus?.[0]?.count ?? 0) - count) -
 						Math.abs((b.Specs.gpus?.[0]?.count ?? 0) - count)
-				);
-			if (near) {
-				setOrder({ count: near.Specs.gpus?.[0]?.count });
-			}
+				)[0]?.Specs.gpus?.[0]?.count;
+	const requestedCount = useRef<number>(undefined);
+	useEffect(() => {
+		if (!fallbackCount) {
+			requestedCount.current = undefined;
+			return;
 		}
-	}, [sizes, count, setOrder]);
+		if (requestedCount.current === fallbackCount) {
+			return;
+		}
+		requestedCount.current = fallbackCount;
+		setOrder({ count: fallbackCount });
+	}, [fallbackCount, setOrder]);
 
 	useShortcuts(
 		sizes
@@ -102,7 +109,7 @@ export function OrderView({
 			}))
 	);
 
-	const offer = sizes.find((o) => o.Specs.gpus?.[0]?.count === count);
+	const offer = currentSize;
 	const g = offer?.Specs.gpus?.[0];
 	const price = offer?.OnDemandPrice;
 	const minCharge =
