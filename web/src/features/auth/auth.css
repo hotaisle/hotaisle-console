@@ -42,7 +42,7 @@
 	flex: 1;
 	width: 100%;
 	max-width: 780px;
-	padding-block: clamp(64px, 12vh, 144px) 80px;
+	padding-block: clamp(32px, 5vh, 56px) 80px;
 }
 .auth-address {
 	width: fit-content;
@@ -175,7 +175,7 @@
 		display: none;
 	}
 	.auth-content {
-		padding-block: 64px;
+		padding-block: 32px 64px;
 	}
 	.auth-content .pasterow {
 		flex-direction: column;
