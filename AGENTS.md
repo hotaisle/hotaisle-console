@@ -121,6 +121,11 @@ Do not add endpoints that store API keys or return session secrets to the page.
 The upstream email flow uses `/user/email/login/`, `/user/email/wait/`, and `/user/email/complete/`. Approval uses
 202 while waiting and 204 when approved; completion returns its token through response headers. Renewal keeps
 the later expiry so an older response cannot replace a newer session.
+Email-login issuance must use the `hotaisle-console` RFC 9421 Ed25519 client identity. Keep its dedicated
+`EMAIL_LOGIN_SIGNING_KEY` private to the Worker and register only the public key in hotManager's
+`EMAIL_AUTH_CLIENTS`. Sign the exact JSON bytes, canonical HTTPS upstream URL, and POST method with a
+fresh 32-byte nonce and at most 60-second lifetime. Never fall back to unsigned issuance, reuse session/history
+secrets, follow signed redirects, or sign unrelated endpoints. Tests use only a public test-vector key.
 
 ## Money and behavior
 

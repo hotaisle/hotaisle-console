@@ -1,4 +1,6 @@
 // Isolated upstream fixture: no server, real credentials, or live API calls.
+import { verifyTestEmailLogin } from "./email-login-identity.ts";
+
 const API_PREFIX_PATTERN = /^\/api/u;
 const TOKEN_PREFIX_PATTERN = /^Token /u;
 const LIFETIME = 20 * 60_000;
@@ -19,6 +21,7 @@ interface FixtureRequest {
 	headers: { get: (name: string) => string | null };
 	json: () => Promise<unknown>;
 	method: string;
+	text: () => Promise<string>;
 	url: string;
 }
 interface TicketRequest {
@@ -86,7 +89,11 @@ export function fakeHotAisle() {
 	const tokens = new Map(Object.entries(KEYS));
 	const sessions = new Map<string, Session>();
 	async function login(request: FixtureRequest) {
-		const { email } = (await request.json()) as { email: string };
+		const body = await request.text();
+		if (!(await verifyTestEmailLogin(request, body))) {
+			return json({ message: "Unverified fixture client" }, 401);
+		}
+		const { email } = JSON.parse(body) as { email: string };
 		const ticket = `ticket-${crypto.randomUUID()}`;
 		const pending = {
 			email: String(email).toLowerCase(),

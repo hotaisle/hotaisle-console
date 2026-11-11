@@ -12,7 +12,7 @@
 	"include": [
 		"vitest.config.ts",
 		"worker/cloudflare.config.ts",
-		"worker/scripts/assert-assets.ts",
+		"worker/scripts/*.ts",
 		"worker/vite.config.ts",
 		"worker/vitest.config.ts",
 		"web/vite.config.ts",

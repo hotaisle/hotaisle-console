@@ -14,6 +14,7 @@
 		"deploy": "bun run build && bun run --cwd worker deploy",
 		"dev": "bun run build:web && bun run preview && bun run --cwd worker dev",
 		"fix": "bun run --bun ultracite fix",
+		"identity:email-login": "bun run worker/scripts/create-email-login-identity.ts",
 		"preview": "bun run --cwd web build:preview",
 		"test": "vitest run",
 		"test:components": "vitest run --project components",
@@ -35,6 +36,9 @@
 	},
 	"cloudflare": {
 		"bindings": {
+			"EMAIL_LOGIN_SIGNING_KEY": {
+				"description": "Dedicated Ed25519 email-login identity key: PKCS#8 DER as standard base64. Register its SSH public key as hotaisle-console in hotManager EMAIL_AUTH_CLIENTS. Never reuse session or history secrets."
+			},
 			"HISTORY_SECRET": {
 				"description": "Stable, dedicated 32+ character secret for browser history. Back up securely; changing it makes existing encrypted history unreadable."
 			},

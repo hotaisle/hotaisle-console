@@ -7,6 +7,9 @@
 		"deploy": "bun run scripts/assert-assets.ts && cf deploy --prebuilt",
 		"dev": "cf dev"
 	},
+	"dependencies": {
+		"http-message-sig": "0.3.0"
+	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "2.0.0-beta.v.13",
 		"@cloudflare/vitest-plugin": "1.6.1",

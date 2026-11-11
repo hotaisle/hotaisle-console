@@ -1,3 +1,9 @@
+import {
+	EMAIL_LOGIN_PATH,
+	EmailLoginSigningError,
+	emailLoginIdentityHeaders,
+} from "./email-login-identity";
+
 const TRAILING_SLASH_PATTERN = /\/+$/u;
 // Calls to the Hot Aisle API made by the Worker itself (sign-in).
 // Everything the page asks for goes through the proxy in index.ts instead.
@@ -11,6 +17,8 @@ export interface Env {
 	AUTH_RATE_LIMITER: RateLimit;
 	EMAIL_LOGIN_EMAIL_RATE_LIMITER: RateLimit;
 	EMAIL_LOGIN_IP_RATE_LIMITER: RateLimit;
+	/** Dedicated Ed25519 PKCS#8 DER private key, encoded as base64. Worker secret only. */
+	EMAIL_LOGIN_SIGNING_KEY?: string;
 	/** Dedicated, stable secret for browser-history keys. Never rotate without a recovery plan. */
 	HISTORY_SECRET?: string;
 	/** At least 32 random characters. Encrypts session cookies. A Worker secret. */
@@ -60,8 +68,20 @@ export async function upstream(
 	if (opts.body !== undefined) {
 		headers["Content-Type"] = "application/json";
 	}
-	const response = await send(env, apiBase(env) + path, {
-		body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+	const body = opts.body === undefined ? undefined : JSON.stringify(opts.body);
+	const target = apiBase(env) + path;
+	if (method === "POST" && path === EMAIL_LOGIN_PATH) {
+		Object.assign(
+			headers,
+			await emailLoginIdentityHeaders(
+				target,
+				body ?? "",
+				env.EMAIL_LOGIN_SIGNING_KEY
+			)
+		);
+	}
+	const response = await send(env, target, {
+		body,
 		headers,
 		method,
 		redirect: "manual",
@@ -133,7 +153,6 @@ export async function whoIs(
 //
 // The claim ticket is private to this Worker (it lives in the encrypted session); the emailed link only approves.
 
-const EMAIL_LOGIN = "/user/email/login/";
 const EMAIL_WAIT = "/user/email/wait/";
 const EMAIL_COMPLETE = "/user/email/complete/";
 
@@ -152,12 +171,15 @@ export async function startEmailLogin(
 > {
 	let r: Response;
 	try {
-		r = await upstream(env, "POST", EMAIL_LOGIN, { body: { email } });
+		r = await upstream(env, "POST", EMAIL_LOGIN_PATH, { body: { email } });
 	} catch (e) {
 		return {
-			message: `Could not reach the Hot Aisle API: ${(e as Error).message}`,
+			message:
+				e instanceof EmailLoginSigningError
+					? e.message
+					: "Could not reach the Hot Aisle API. Try again shortly.",
 			ok: false,
-			status: 502,
+			status: e instanceof EmailLoginSigningError ? 503 : 502,
 		};
 	}
 	const text = await r.text();

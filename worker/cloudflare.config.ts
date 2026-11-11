@@ -33,6 +33,7 @@ export default defineConfig({
 				namespace: "173240202",
 				simple: { limit: 10, period: 60 },
 			}),
+			EMAIL_LOGIN_SIGNING_KEY: bindings.secret(),
 			HISTORY_SECRET: bindings.secret(),
 			SESSION_SECRET: bindings.secret(),
 		},

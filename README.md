@@ -257,7 +257,40 @@ Authenticate the CLI with a user who has access to that account before the first
 bun run --cwd worker cf auth login
 ```
 
-For the first deployment, configure independent random `SESSION_SECRET` and `HISTORY_SECRET` values in
+Email-login issuance uses a dedicated Ed25519 identity to appear as **Hot Aisle Console** on hotManager's
+approval page. Generate it once:
+
+```sh
+bun run identity:email-login
+```
+
+This writes an ignored, owner-only `.cloudflare/email-login-identity/worker-secrets.json` containing
+`EMAIL_LOGIN_SIGNING_KEY` (base64 PKCS#8 DER), plus `hotmanager-client.json` containing only its public
+registration entry. The command refuses to overwrite an existing identity. Back up the private key securely;
+never commit it, expose it to the browser, or reuse `SESSION_SECRET` or `HISTORY_SECRET` for signing.
+Merge the public entry into hotManager's existing `EMAIL_AUTH_CLIENTS` JSON array, preserving other clients,
+and activate that configuration before deploying the signed Worker. The client ID is `hotaisle-console`;
+the server-configured display name is `Hot Aisle Console`.
+
+The Worker signs only `POST /api/user/email/login/` using RFC 9421 with a SHA-256 content digest, a new
+32-byte nonce, and a 60-second signature lifetime. The signature covers the method, canonical upstream
+HTTPS URL, and exact serialized body. Redirects are never followed, and a missing or invalid key disables
+email-login issuance instead of falling back to an unverified request. Existing sessions and API-key sign-in
+are unaffected. Wait/completion requests are not signed. Start a new sign-in after rollout to see the verified
+client name; existing unsigned approval links remain unverified.
+
+For an existing Worker, upload the signing secret with the new build while retaining its existing secrets:
+
+```sh
+bun run build
+bun run --cwd worker cf deploy --prebuilt --secrets-file ../.cloudflare/email-login-identity/worker-secrets.json
+```
+
+For local email-login development, add this generated `EMAIL_LOGIN_SIGNING_KEY` to the ignored `.dev.vars`
+file using a local editor or secret tool; never paste it into shell command arguments or logs. Automated
+tests use a public RFC 8032 test vector and an isolated verifier, with no real identity key or account.
+
+For the first deployment, also configure independent random `SESSION_SECRET` and `HISTORY_SECRET` values in
 the ignored `.dev.vars` file (32+ characters each), and back them up securely. Then upload them:
 
 ```sh
@@ -266,7 +299,7 @@ bun run --cwd worker cf deploy --prebuilt --secrets-file ../.dev.vars
 ```
 
 For an existing deployment, add `HISTORY_SECRET` once while preserving its current `SESSION_SECRET`.
-For later deployments, use `bun run deploy` to retain both secrets. Never generate a new history secret as
+For later deployments, use `bun run deploy` to retain all existing secrets. Never generate a new history secret as
 part of routine deployment; saved browser history depends on it.
 
 Deployment uses the `cf` CLI and Cloudflare Vite plugin to package and publish the prebuilt Worker. Their beta
