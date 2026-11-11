@@ -22,18 +22,20 @@ export async function refreshApprovals(api: RefreshAPI, force = false) {
 	await Promise.all(
 		pulls.map(async (pr) => {
 			const runs = await api.runs(pr);
-			const [latest] = runs.sort((a, b) => b.id - a.id);
-			if (latest?.status !== "completed") {
+			const completed = runs.filter((run) => run.status === "completed");
+			if (!completed.length) {
 				return;
 			}
 			if (force) {
-				await api.rerun(latest.id);
+				await Promise.all(completed.map((run) => api.rerun(run.id)));
 				return;
 			}
 			const allowed = hasMaintainerApproval(pr, await api.reviews(pr.number));
-			if ((latest.conclusion === "success") !== allowed) {
-				await api.rerun(latest.id);
-			}
+			await Promise.all(
+				completed
+					.filter((run) => (run.conclusion === "success") !== allowed)
+					.map((run) => api.rerun(run.id))
+			);
 		})
 	);
 }

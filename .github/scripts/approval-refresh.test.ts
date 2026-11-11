@@ -87,4 +87,16 @@ describe("required review workflow refresh", () => {
 		expect(api.reviews).not.toHaveBeenCalled();
 		expect(api.rerun).toHaveBeenCalledWith(1);
 	});
+	it("refreshes both ordinary and organization-required runs for the same PR commit", async () => {
+		const api = fixture({
+			openPullRequests: () => Promise.resolve([MAINTAINER]),
+			runs: () =>
+				Promise.resolve([
+					run({ conclusion: "success", id: 2 }),
+					run({ id: 1 }),
+				]),
+		});
+		await refreshApprovals(api);
+		expect(api.rerun).toHaveBeenCalledExactlyOnceWith(1);
+	});
 });

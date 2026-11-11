@@ -55,3 +55,20 @@ Fixture tests cover both author exemptions, both valid reviewers, other users/bo
 stale approval, comments, dismissals, change requests, independent PR refreshes,
 and review-event invalidation. These tests do not simulate GitHub's event delivery.
 Observe an actual required-workflow run before removing blanket native approval.
+
+## Activation verified: 2026-11-11
+
+The organization rule is active and scoped to this repository's default branch, with
+no bypass actors. Its workflow source is pinned to `98a2f95`; that workflow checks
+out policy implementation `c7d1c57`. The review workflow and `test` both passed on
+PR #1, and GitHub reported that maintainer-authored PR as mergeable after the native
+blanket approval requirement was replaced. Effective rules still require signatures,
+CI, an up-to-date branch and resolved threads. No PR was merged during activation.
+Third-party decisions were verified with fixtures, not by submitting a synthetic
+approval or changing another contributor's PR.
+
+The controller matches every policy run for the PR's current commit, including both
+ordinary and organization-required runs when GitHub produces both. A successful
+ordinary run must not prevent a failed required run from being refreshed after review.
+Automatic review-event and scheduled reconciliation starts when the controller lands
+on main; before then a manual rerun of the required workflow is necessary after review.
