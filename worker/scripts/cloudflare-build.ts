@@ -27,12 +27,14 @@ execFileSync("bun", ["run", "typecheck"], {
 	stdio: "inherit",
 	timeout: 120_000,
 });
-execFileSync("bun", ["run", "test"], {
+// Worker asset/CSP tests require the generated frontend, including on a fresh
+// build image without a dependency or output cache.
+execFileSync("bun", ["run", "build"], {
 	env,
 	stdio: "inherit",
 	timeout: 300_000,
 });
-execFileSync("bun", ["run", "build"], {
+execFileSync("bun", ["run", "test"], {
 	env,
 	stdio: "inherit",
 	timeout: 300_000,

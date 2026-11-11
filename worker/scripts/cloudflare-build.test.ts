@@ -47,6 +47,15 @@ describe("native build PR metadata", () => {
 				env: expect.objectContaining({ VITE_BUILD_PR_URL: PR.html_url }),
 			})
 		);
+		const commands = vi
+			.mocked(execFileSync)
+			.mock.calls.map(([, args]) => (args as string[]).join(" "));
+		expect(commands.indexOf("run build")).toBeLessThan(
+			commands.indexOf("run test")
+		);
+		expect(commands.indexOf("run test")).toBeLessThan(
+			commands.indexOf("run --cwd worker cf deploy --prebuilt --dry-run")
+		);
 	});
 	it("does not build when the associated PR is unmerged or targets another repository", async () => {
 		vi.stubGlobal(
