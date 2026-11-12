@@ -18,7 +18,12 @@ These views use simulated machines from the local development preview.
 
 ### Your machines
 
-![Your machines dashboard with a running MI300X machine and server illustration](docs/machine.jpg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/machine-dark.jpg">
+  <img alt="Your machines dashboard with a running MI300X machine and server illustration" src="docs/machine.jpg">
+</picture>
+
+The dashboard screenshot follows your light or dark theme. Both versions show simulated machines.
 
 ### New machine
 
