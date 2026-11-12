@@ -19,6 +19,77 @@ function request(
 	);
 }
 describe("development preview machine lifecycle", () => {
+	it("signs into only the fixture account after simulated email approval", async () => {
+		const api = new PreviewAPI("sign-in");
+		expect(
+			await (await request(api, "GET", "/auth/status")).json()
+		).toMatchObject({ signed_in: false });
+		expect((await request(api, "GET", "/api/user/")).status).toBe(401);
+		expect(
+			(
+				await request(api, "POST", "/auth/email/start", {
+					email: "someone@example.com",
+				})
+			).status
+		).toBe(422);
+		api.approveEmail();
+		expect((await request(api, "POST", "/auth/email/wait")).status).toBe(404);
+		expect(
+			(
+				await request(api, "POST", "/auth/email/start", {
+					email: "preview@example.invalid",
+				})
+			).status
+		).toBe(200);
+		expect(
+			await (await request(api, "POST", "/auth/email/wait")).json()
+		).toEqual({ done: false });
+		api.approveEmail();
+		expect(
+			await (await request(api, "POST", "/auth/email/wait")).json()
+		).toEqual({ done: true });
+		expect(
+			await (await request(api, "GET", "/auth/status")).json()
+		).toMatchObject({ signed_in: true });
+		expect((await request(api, "GET", "/api/user/")).status).toBe(200);
+		expect(
+			await (await request(api, "GET", "/api/user/")).json()
+		).toMatchObject({ teams: [] });
+		expect((await request(api, "GET", `${MACHINES}available/`)).status).toBe(
+			403
+		);
+		expect(
+			(
+				await request(api, "POST", "/api/teams/", {
+					handle: "bad handle",
+					name: "Research",
+				})
+			).status
+		).toBe(422);
+		const created = await request(api, "POST", "/api/teams/", {
+			handle: "research",
+			name: "Research team",
+		});
+		expect(await created.json()).toMatchObject({
+			effective_roles: ["owner"],
+			handle: "research",
+			name: "Research team",
+		});
+		expect(
+			await (await request(api, "GET", "/api/user/")).json()
+		).toMatchObject({ teams: [{ handle: "research" }] });
+		expect(
+			await (await request(api, "GET", "/api/teams/research/balance/")).json()
+		).toMatchObject({ available_balance: 50_000 });
+		expect(
+			(
+				await request(api, "POST", "/api/teams/", {
+					handle: "another",
+					name: "Another",
+				})
+			).status
+		).toBe(409);
+	});
 	it.each([
 		[1, 1],
 		[2, 60],

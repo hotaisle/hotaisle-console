@@ -9,3 +9,10 @@
 .wrangler/
 .cloudflare/
 .env*
+/web/dev/showcase/narration.generated.ts
+/web/dev/showcase/music.generated.ts
+/artifacts/showcase/
+/tools/showcase/node_modules/
+/tools/showcase/.cache/
+/tools/showcase/.venv/
+/web/dev/showcase/narration.generated.ts.pending

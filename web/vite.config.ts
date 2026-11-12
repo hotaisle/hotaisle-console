@@ -86,6 +86,10 @@ export default defineConfig(({ command, mode }) => {
 								app: resolve(import.meta.dirname, "index.html"),
 								console: resolve(import.meta.dirname, "__preview/console.html"),
 								preview: resolve(import.meta.dirname, "__preview/index.html"),
+								showcase: resolve(
+									import.meta.dirname,
+									"__preview/showcase.html"
+								),
 							},
 						}
 					: undefined,

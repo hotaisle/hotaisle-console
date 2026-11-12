@@ -12,11 +12,14 @@ export const SCENARIOS = [
 	{ id: "launch-error", label: "Launch failure" },
 ] as const;
 
-export type Scenario = (typeof SCENARIOS)[number]["id"];
+export type Scenario = (typeof SCENARIOS)[number]["id"] | "sign-in";
 export function scenarioOf(value: string | null): Scenario {
 	return SCENARIOS.find((scenario) => scenario.id === value)?.id ?? "running";
 }
 export function initialRoute(scenario: Scenario) {
+	if (scenario === "sign-in") {
+		return "/sign-in?returnTo=%2Fteams";
+	}
 	if (scenario === "history") {
 		return "/teams/preview/history";
 	}
