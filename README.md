@@ -74,6 +74,11 @@ Run `bun run preview` again after changing preview components, or use `bun run -
 in a development session when you want preview rebuilds on file changes. A missing preview shows build
 instructions instead of redirecting into the real account. The normal console stays at `localhost:8787`.
 
+For the scripted walkthrough, run `bun run showcase` and open
+[Showcase studio](http://preview.localhost:8787/__preview/showcase.html). It follows sign-in, team creation,
+Add credits, launch, release, history, and settings with captions and optional local voiceover.
+See [the recording guide](docs/showcase.md) for beat timing, capture, and MP4 export.
+
 ```sh
 bun run check             # Ultracite/Biome lint and formatting
 bun run fix               # Apply supported fixes, then resolve remaining findings

@@ -1,0 +1,10 @@
+{
+	"name": "hotaisle-console-showcase-tools",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@huggingface/transformers": "3.8.1",
+		"@napi-rs/canvas": "1.1.0",
+		"kokoro-js": "1.2.1"
+	}
+}
