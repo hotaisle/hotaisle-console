@@ -141,6 +141,7 @@
 	flex-direction: column;
 	gap: 18px;
 	padding: 16px 16px 32px;
+	padding-inline-end: max(0px, calc(16px - var(--panel-scrollbar-size, 0px)));
 }
 .panel-content > * {
 	flex-shrink: 0;
