@@ -117,7 +117,7 @@ export function OrderView({
 		team.effective_roles.includes("owner");
 	const atLimit =
 		!!team.maximum_virtual_machines && vmCount >= team.maximum_virtual_machines;
-	const noKey = isPresent(keys) && keys.length === 0;
+	const noKey = keys?.length === 0;
 	function resolveUserData() {
 		if (image === "vllm") {
 			return VLLM_URL;
@@ -136,6 +136,10 @@ export function OrderView({
 		isPresent(spendable) && isPresent(minCharge) && spendable < minCharge;
 
 	const availabilityLoading = offers === undefined && !offersError;
+	const inventoryEmpty =
+		offers !== undefined &&
+		!offersError &&
+		sizes.every((size) => size.Quantity <= 0);
 	const blocker =
 		availabilityBlocker({ error: offersError, offer, offers, sizes }) ||
 		launchBlocker({
@@ -213,17 +217,19 @@ export function OrderView({
 			style={{ ["--vt" as string]: "launcher" }}
 		>
 			<OfferStatus
-				empty={sizes.every((size) => size.Quantity <= 0)}
+				empty={inventoryEmpty}
 				error={offersError}
 				loading={availabilityLoading}
 				onRefresh={onRefreshOffers}
 			/>
-			<MachineOptions
-				count={count}
-				loading={availabilityLoading}
-				onChange={setOrder}
-				sizes={sizes}
-			/>
+			{!inventoryEmpty && (
+				<MachineOptions
+					count={count}
+					loading={availabilityLoading}
+					onChange={setOrder}
+					sizes={sizes}
+				/>
+			)}
 			<RentalCredits
 				balance={balance}
 				minimumCharge={minCharge}
@@ -231,39 +237,45 @@ export function OrderView({
 				team={team}
 			/>
 
-			<RentalImage
-				image={image}
-				metal={offer?.metal}
-				noKey={noKey}
-				onChange={handleOnChange}
-				onEdit={onImage}
-				team={team.handle}
-			/>
+			{!inventoryEmpty && (
+				<>
+					<RentalImage
+						image={image}
+						metal={offer?.metal}
+						noKey={noKey}
+						onChange={handleOnChange}
+						onEdit={onImage}
+						team={team.handle}
+					/>
 
-			<RentalEstimate
-				balance={balance}
-				error={offersError}
-				loading={availabilityLoading}
-				offer={offer}
-			/>
+					<RentalEstimate
+						balance={balance}
+						error={offersError}
+						loading={availabilityLoading}
+						offer={offer}
+					/>
+				</>
+			)}
 			{children}
-			<div className="go foot">
-				<HoldButton
-					busy={busy}
-					busyLabel={offer?.metal ? "Reserving" : "Launching"}
-					disabled={!!blocker || !offer}
-					hint="Press and hold, or hold L. Billing starts once the machine is yours."
-					hotkey="L"
-					id="launch"
-					label={resolveLabel()}
-					onConfirm={launch}
-					onProgress={handleOnProgress}
-					trailing={isPresent(price) ? `${money(price)}/hr` : undefined}
-				/>
-				<p className={`fine ${blocker ? "blocked" : ""}`}>
-					{blocker || resolveValue3()}
-				</p>
-			</div>
+			{!inventoryEmpty && (
+				<div className="go foot">
+					<HoldButton
+						busy={busy}
+						busyLabel={offer?.metal ? "Reserving" : "Launching"}
+						disabled={!!blocker || !offer}
+						hint="Press and hold, or hold L. Billing starts once the machine is yours."
+						hotkey="L"
+						id="launch"
+						label={resolveLabel()}
+						onConfirm={launch}
+						onProgress={handleOnProgress}
+						trailing={isPresent(price) ? `${money(price)}/hr` : undefined}
+					/>
+					<p className={`fine ${blocker ? "blocked" : ""}`}>
+						{blocker || resolveValue3()}
+					</p>
+				</div>
+			)}
 		</section>
 	);
 }

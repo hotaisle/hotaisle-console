@@ -7,7 +7,18 @@
 }
 
 .availability-empty {
-	color: var(--amber);
+	display: grid;
+	gap: 8px;
+	font-size: 1rem;
+	line-height: 1.5;
+	color: var(--ink-2);
+}
+.availability-empty strong {
+	font-size: 1.375rem;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var(--heat-ink);
+	letter-spacing: -0.02em;
 }
 
 .options {
