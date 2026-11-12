@@ -49,11 +49,11 @@ The older main revision lacked both native commands; each was checked against it
 actual package and failed with `Script not found`, so it could not publish older
 code through this configuration.
 
-The first successful native build requires the build helpers to be merged into
-main. Successful local checks and GitHub CI do not verify Cloudflare's build image,
-GitHub webhook delivery, or a live deployment. Check the first main build and the
-active Worker version after that merge. Never test this path by enabling preview
-deployments or merging without the required repository checks.
+The first main builds exposed the issues recorded below. Native builds, webhook
+delivery and production deployment were subsequently verified after PR #4 merged.
+Never test this path by enabling preview deployments or merging without the
+required repository checks. Real email approval, purchases and machine lifecycle
+operations were not exercised during rollout verification.
 
 ## Current GitHub PR response
 
@@ -105,6 +105,22 @@ redirects and interactive prompts are disabled for that read. It has a bounded
 timeout and rejects malformed responses and transport failures before deployment.
 Tests cover the API-independent path and preserve stale-build rejection. Both Git
 lookups were also checked against the actual merged source and remote main ref.
+
+## Verified native rollout
+
+On November 11, 2026, merging PR #4 triggered a successful native build and
+deployment without a manual deploy command. Cloudflare's build log confirmed all
+303 tests across 56 files passed, followed by successful packaging and deployment.
+The active deployment served 100% of traffic from a version tagged with the
+merged source commit.
+
+The public sign-in page returned HTTP 200 with the expected CSP. Its served
+JavaScript referenced PR #4, and a read-only check in Chrome's Hot Aisle profile
+confirmed the visible build footer linked to that PR with the local build time.
+Runtime session, history and signing secret bindings remained present; no secrets
+were rotated during these repairs. Preview and audit documents remained excluded
+by the production asset guard. No credentials were entered and no real machine
+operations were performed during these checks.
 
 This document belongs under `docs/` and must remain outside the frontend assets
 and Worker upload. The production asset guard enforces that exclusion.
