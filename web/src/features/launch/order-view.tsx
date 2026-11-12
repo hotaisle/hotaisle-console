@@ -1,10 +1,7 @@
 import type { HotkeyChord } from "@tanstack/react-hotkeys";
-import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isPresent } from "../../../../shared/present";
-import type { ConsoleSearch } from "../../app/route-state";
 import { HoldButton } from "../../components/ui/hold-button";
-import { Picker } from "../../components/ui/picker";
 import { useToast } from "../../components/ui/toast";
 import { useShortcuts } from "../../hooks/use-shortcut";
 import {
@@ -17,19 +14,18 @@ import {
 	type VM,
 } from "../../lib/api";
 import { hoursOr, money } from "../../lib/format";
-import { IMAGES, type Image, VLLM_URL } from "../../lib/prefs";
+import { type Image, VLLM_URL } from "../../lib/prefs";
 import type { Signal } from "../../lib/signal";
 import { sound } from "../../lib/sound";
-import { ImageFooter } from "./image-footer";
 import { MachineOptions } from "./machine-options";
 import { OfferStatus } from "./offer-status";
 import { availabilityBlocker, sizesOf } from "./offers";
 import { RentalCredits } from "./rental-credits";
 import { RentalEstimate } from "./rental-estimate";
+import { RentalImage } from "./rental-image";
 import type { LaunchMeta, Order } from "./types";
 
 export const HTTPS_URL_PATTERN = /^https:\/\/\S+$/u;
-const preserveSearch = (previous: ConsoleSearch) => previous;
 
 export function OrderView({
 	team,
@@ -235,36 +231,14 @@ export function OrderView({
 				team={team}
 			/>
 
-			<div className="details">
-				<Picker<Image>
-					fixed={offer?.metal ? "Hot Aisle's standard image" : undefined}
-					footer={
-						offer?.metal ? null : (
-							<ImageFooter image={image} onChange={onImage} />
-						)
-					}
-					label="Image"
-					onChange={handleOnChange}
-					options={(Object.keys(IMAGES) as Image[]).map((k) => ({
-						hint: IMAGES[k].note,
-						label: IMAGES[k].name,
-						value: k,
-					}))}
-					value={image}
-				/>
-				{noKey ? (
-					<Link
-						className="missing-ssh-key"
-						hash="ssh-keys"
-						hashScrollIntoView={{ block: "start" }}
-						params={{ team: team.handle }}
-						search={preserveSearch}
-						to="/teams/$team/settings"
-					>
-						Add an SSH key in Settings <span aria-hidden="true">→</span>
-					</Link>
-				) : null}
-			</div>
+			<RentalImage
+				image={image}
+				metal={offer?.metal}
+				noKey={noKey}
+				onChange={handleOnChange}
+				onEdit={onImage}
+				team={team.handle}
+			/>
 
 			<RentalEstimate
 				balance={balance}
