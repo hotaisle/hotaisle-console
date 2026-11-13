@@ -17,6 +17,7 @@
 		"worker/vite.config.ts",
 		"worker/vitest.config.ts",
 		"web/vite.config.ts",
+		"web/vite.config.test.ts",
 		"web/vitest.config.ts"
 	]
 }

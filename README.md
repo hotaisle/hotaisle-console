@@ -90,9 +90,11 @@ bun run build             # Frontend, then Worker packaging
 ```
 
 Keep the existing development process running during browser verification. Frontend changes need
-`bun run build:web`, or an already-running `bun run --cwd web watch` process.
+`bun run build:web:dev`, or an already-running `bun run --cwd web watch` process.
 
-The build footer links to the source pull request. Normal builds require a valid PR URL, resolved with
+Local builds (`bun run dev`, `bun run build:web:dev`, and the frontend watcher) and preview builds work
+without GitHub access or a pull request. Their footer shows the build time without a PR link.
+The production build footer links to the source pull request. Production builds require a valid PR URL, resolved with
 the authenticated `gh` CLI from the branch or commit. For an offline build, supply the verified URL with
 `VITE_BUILD_PR_URL=https://github.com/hotaisle/hotaisle-console/pull/<number> bun run build`.
 CI supplies the PR URL directly for pull-request builds and resolves it from the merged commit on `main`.
