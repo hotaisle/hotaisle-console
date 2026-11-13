@@ -6,7 +6,7 @@ import { type Clip, narrationClip } from "../../web/dev/showcase/narration";
 import { subtitles } from "../../web/dev/showcase/runner";
 import { STORYBOARD } from "../../web/dev/showcase/storyboard";
 import { showcaseArtwork } from "./showcase-artwork";
-import { captionTrack } from "./showcase-captions";
+import { captionTrack, spokenCaptions } from "./showcase-captions";
 import {
 	editTiming,
 	type Frame,
@@ -141,7 +141,13 @@ try {
 				""
 			)}file '${quote(editedFrames.at(-1)?.file ?? "")}'\noption framerate 1000\n`
 	);
-	const captionsPath = await captionTrack(timing.cues, width, temporary);
+	const captionCues = spokenCaptions(timing.cues, clips);
+	const captionsPath = await captionTrack(
+		captionCues,
+		width,
+		temporary,
+		duration
+	);
 	const captionsIndex = audioInputs.length + (musicPath ? 2 : 1);
 	const filters = timing.cues.map(
 		(cue, index) =>
@@ -222,12 +228,12 @@ try {
 		],
 		{ stdio: "inherit", timeout: 600_000 }
 	);
-	writeFileSync(`${outputBase}.srt`, subtitles(timing.cues));
+	writeFileSync(`${outputBase}.srt`, subtitles(captionCues));
 	writeFileSync(
 		`${outputBase}.timing.json`,
 		JSON.stringify(
 			{
-				cues: timing.cues,
+				cues: captionCues,
 				duration,
 				musicBPM: musicBPM ? Number(musicBPM) : 125,
 				sourceStartedAt: timing.startedAt,

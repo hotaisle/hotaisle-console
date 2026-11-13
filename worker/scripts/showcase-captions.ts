@@ -1,15 +1,28 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
+import type { Clip } from "../../web/dev/showcase/narration";
 import type { Cue } from "../../web/dev/showcase/runner";
 import type { CanvasTools } from "./showcase-canvas";
 import { loadShowcaseTool } from "./showcase-tools";
+
+export function spokenCaptions(cues: Cue[], clips: Record<string, Clip>) {
+	return cues.map((cue, index) => ({
+		...cue,
+		end: Math.min(
+			cue.end,
+			cues[index + 1]?.start ?? cue.end,
+			cue.start + clips[cue.id].duration + 0.25
+		),
+	}));
+}
 
 // Re-render the entire caption strip, so revised speech never leaves older text
 // or chapter numbers baked into an otherwise reusable browser recording.
 export async function captionTrack(
 	cues: Cue[],
 	width: number,
-	directory: string
+	directory: string,
+	duration = cues.at(-1)?.end ?? 0
 ) {
 	const { createCanvas } =
 		await loadShowcaseTool<CanvasTools>("@napi-rs/canvas");
@@ -38,14 +51,20 @@ export async function captionTrack(
 	const initial = render("", "", "caption-blank");
 	const entries = [
 		{ duration: cues[0].start, path: initial },
-		...cues.map((cue, index) => ({
-			duration: (cues[index + 1]?.start ?? cue.end) - cue.start,
-			path: render(
-				cue.text,
-				`${index + 1} / ${cues.length}`,
-				`caption-${index}`
-			),
-		})),
+		...cues.flatMap((cue, index) => [
+			{
+				duration: cue.end - cue.start,
+				path: render(
+					cue.text,
+					`${index + 1} / ${cues.length}`,
+					`caption-${index}`
+				),
+			},
+			{
+				duration: (cues[index + 1]?.start ?? duration) - cue.end,
+				path: initial,
+			},
+		]),
 	];
 	const last = entries.at(-1);
 	const path = join(directory, "captions.txt");
