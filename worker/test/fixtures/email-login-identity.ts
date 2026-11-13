@@ -14,14 +14,15 @@ export async function verifyTestEmailLogin(
 		method: string;
 		url: string;
 	},
-	body: string
+	body: string,
+	nowMs = Date.now()
 ): Promise<boolean> {
 	const input = request.headers.get("Signature-Input") ?? "";
 	const profile = PROFILE.exec(input)?.groups;
 	const signature = SIGNATURE.exec(
 		request.headers.get("Signature") ?? ""
 	)?.groups;
-	const now = Math.floor(Date.now() / 1000);
+	const now = Math.floor(nowMs / 1000);
 	if (
 		!(profile && signature) ||
 		Number(profile.created) > now + 5 ||

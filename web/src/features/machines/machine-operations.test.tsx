@@ -7,6 +7,7 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { TEST_NOW } from "../../../../test/clock";
 import { mockNativeDialogs } from "../../../test/native-dialog";
 import { renderWithQuery } from "../../../test/render";
 import { ToastHost } from "../../components/ui/toast";
@@ -233,6 +234,7 @@ describe("machine operations", () => {
 		});
 		fireEvent.keyUp(hold, { key: "Enter" });
 		vi.useRealTimers();
+		vi.setSystemTime(TEST_NOW);
 		expect(await confirmation.findByRole("alert")).toHaveTextContent(
 			"Reset refused"
 		);
@@ -266,6 +268,7 @@ describe("machine operations", () => {
 		});
 		fireEvent.keyUp(hold, { key: "Enter" });
 		vi.useRealTimers();
+		vi.setSystemTime(TEST_NOW);
 		expect(await confirmation.findByRole("alert")).toHaveTextContent(
 			"Power off the server before an AC reset."
 		);

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderWithQuery } from "../../../test/render";
@@ -78,16 +78,22 @@ describe("shared controls", () => {
 		).not.toBeInTheDocument();
 	});
 	it("resets the copy confirmation and can copy again", async () => {
-		const user = userEvent.setup();
+		vi.useFakeTimers();
+		userEvent.setup();
 		const write = vi
 			.spyOn(navigator.clipboard, "writeText")
 			.mockResolvedValue();
 		renderWithQuery(<CopyButton text="ssh example" />);
-		await user.click(screen.getByRole("button", { name: "Copy" }));
-		await screen.findByRole("button", { name: "Copied" });
-		await screen.findByRole("button", { name: "Copy" }, { timeout: 3000 });
-		await user.click(screen.getByRole("button", { name: "Copy" }));
-		await screen.findByRole("button", { name: "Copied" });
+		fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+		await act(async () => vi.advanceTimersByTimeAsync(1));
+		expect(screen.getByRole("button", { name: "Copied" })).toBeVisible();
+		await act(async () => vi.advanceTimersByTimeAsync(1999));
+		expect(screen.getByRole("button", { name: "Copied" })).toBeVisible();
+		await act(async () => vi.advanceTimersByTimeAsync(2));
+		expect(screen.getByRole("button", { name: "Copy" })).toBeVisible();
+		fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+		await act(async () => vi.advanceTimersByTimeAsync(1));
+		expect(screen.getByRole("button", { name: "Copied" })).toBeVisible();
 		expect(write).toHaveBeenCalledTimes(2);
 	});
 });

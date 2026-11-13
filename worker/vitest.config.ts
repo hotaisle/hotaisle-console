@@ -1,9 +1,10 @@
 import { cloudflareTest } from "@cloudflare/vitest-plugin";
 import { defineConfig } from "vitest/config";
+import { TEST_NOW } from "../test/clock.ts";
 import { TEST_EMAIL_LOGIN_KEY } from "./test/fixtures/email-login-identity.ts";
 import { fakeHotAisle } from "./test/fixtures/upstream.ts";
 
-const fake = fakeHotAisle();
+const fake = fakeHotAisle(() => TEST_NOW);
 
 export default defineConfig({
 	envDir: "..",
@@ -36,5 +37,10 @@ export default defineConfig({
 		}),
 	],
 	root: import.meta.dirname,
-	test: { include: ["test/**/*.test.ts"], name: "worker" },
+	test: {
+		fakeTimers: { now: TEST_NOW },
+		include: ["test/**/*.test.ts"],
+		name: "worker",
+		setupFiles: ["../test/setup.ts"],
+	},
 });

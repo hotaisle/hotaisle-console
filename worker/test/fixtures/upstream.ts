@@ -83,14 +83,14 @@ function accountResponse(request: FixtureRequest, path: string, email: string) {
 	}
 	return json({ message: "the isolated upstream fixture only signs in" }, 400);
 }
-export function fakeHotAisle() {
+export function fakeHotAisle(now: () => number) {
 	const calls: string[] = [];
 	const logins = new Map<string, Login>();
 	const tokens = new Map(Object.entries(KEYS));
 	const sessions = new Map<string, Session>();
 	async function login(request: FixtureRequest) {
 		const body = await request.text();
-		if (!(await verifyTestEmailLogin(request, body))) {
+		if (!(await verifyTestEmailLogin(request, body, now()))) {
 			return json({ message: "Unverified fixture client" }, 401);
 		}
 		const { email } = JSON.parse(body) as { email: string };
@@ -104,7 +104,7 @@ export function fakeHotAisle() {
 		return json({
 			claim_ticket: ticket,
 			email: pending.email,
-			expires_at: new Date(Date.now() + 15 * 60_000).toISOString(),
+			expires_at: new Date(now() + 15 * 60_000).toISOString(),
 		});
 	}
 	async function wait(request: FixtureRequest) {
@@ -112,9 +112,6 @@ export function fakeHotAisle() {
 		const pending = logins.get(claim_ticket);
 		if (!pending) {
 			return json({ message: "unknown ticket" }, 401);
-		}
-		if (!pending.opened) {
-			await new Promise((resolve) => setTimeout(resolve, 300));
 		}
 		return new Response(null, { status: pending.opened ? 204 : 202 });
 	}
@@ -124,7 +121,7 @@ export function fakeHotAisle() {
 		if (!pending?.opened) {
 			return json({ message: "not approved, expired, or already used" }, 401);
 		}
-		const expires = Date.now() + LIFETIME;
+		const expires = now() + LIFETIME;
 		sessions.set(pending.token, { email: pending.email, expires });
 		logins.delete(claim_ticket);
 		return new Response(null, {
@@ -143,7 +140,7 @@ export function fakeHotAisle() {
 			for (const session of sessions.values()) {
 				if (session.email === url.searchParams.get("email")) {
 					session.expires =
-						Date.now() + Number(url.searchParams.get("in") ?? 30) * 1000;
+						now() + Number(url.searchParams.get("in") ?? 30) * 1000;
 				}
 			}
 			return json({ ok: true });
@@ -161,11 +158,11 @@ export function fakeHotAisle() {
 		return undefined;
 	}
 	function renewal(session: Session | undefined, email: string) {
-		if (!session || session.expires - Date.now() >= 60_000) {
+		if (!session || session.expires - now() >= 60_000) {
 			return;
 		}
 		const token = `sess-${crypto.randomUUID()}`;
-		const expires = Date.now() + LIFETIME;
+		const expires = now() + LIFETIME;
 		sessions.set(token, { email, expires });
 		return {
 			"X-New-Session-Key": token,
@@ -210,7 +207,7 @@ export function fakeHotAisle() {
 			return emailRoute(request);
 		}
 		const live = sessions.get(session);
-		if (live !== undefined && live.expires <= Date.now()) {
+		if (live !== undefined && live.expires <= now()) {
 			return json({ message: "Session expired" }, 401);
 		}
 		const email = session ? live?.email : tokens.get(key);
