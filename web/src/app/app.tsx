@@ -7,6 +7,7 @@ import {
 	useSearch,
 } from "@tanstack/react-router";
 import { useCallback, useEffect } from "react";
+import { FormError } from "../components/forms/form-error";
 import { Connect } from "../features/auth/connect";
 import { HistoryAccess } from "../features/auth/history-access";
 import { UnlockKey } from "../features/auth/unlock-key";
@@ -62,9 +63,7 @@ export function ConnectionError({
 		<main className="center">
 			<div className="lone">
 				<h1>Can't reach Hot Aisle</h1>
-				<p className="lede" role="alert">
-					{message}
-				</p>
+				<FormError message={message} />
 				<button className="btn primary" onClick={onRetry} type="button">
 					{label}
 				</button>

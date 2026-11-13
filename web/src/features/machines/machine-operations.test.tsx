@@ -235,15 +235,11 @@ describe("machine operations", () => {
 		fireEvent.keyUp(hold, { key: "Enter" });
 		vi.useRealTimers();
 		vi.setSystemTime(TEST_NOW);
-		expect(await confirmation.findByRole("alert")).toHaveTextContent(
-			"Reset refused"
-		);
+		expect(await screen.findByRole("alert")).toHaveTextContent("Reset refused");
 		expect(input.onChanged).not.toHaveBeenCalled();
-		fireEvent.click(
-			confirmation.getByRole("button", { name: "Dismiss error" })
-		);
+		fireEvent.click(screen.getByRole("button", { name: "Dismiss error" }));
 		await waitFor(() =>
-			expect(confirmation.queryByRole("alert")).not.toBeInTheDocument()
+			expect(screen.queryByRole("alert")).not.toBeInTheDocument()
 		);
 		expect(confirmation.getByRole("button", { name: "Cancel" })).toHaveFocus();
 		expect(input.onChanged).not.toHaveBeenCalled();
@@ -269,7 +265,7 @@ describe("machine operations", () => {
 		fireEvent.keyUp(hold, { key: "Enter" });
 		vi.useRealTimers();
 		vi.setSystemTime(TEST_NOW);
-		expect(await confirmation.findByRole("alert")).toHaveTextContent(
+		expect(await screen.findByRole("alert")).toHaveTextContent(
 			"Power off the server before an AC reset."
 		);
 		expect(inspect).toHaveBeenCalledWith("lab", "fixture-id");

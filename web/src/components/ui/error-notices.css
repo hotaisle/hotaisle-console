@@ -1,0 +1,68 @@
+.error-notices {
+	position: fixed;
+	inset-block: 20px auto;
+	inset-inline: auto 20px;
+	z-index: 100;
+	display: grid;
+	gap: 12px;
+	inline-size: min(32rem, calc(100% - 40px));
+	max-block-size: calc(100dvh - 40px);
+	padding: 0;
+	margin: 0;
+	overflow: auto;
+	font: inherit;
+	color: var(--ink);
+	background: transparent;
+	border: 0;
+}
+.error-notices[data-empty="true"] {
+	display: none;
+}
+.error-notice {
+	display: flex;
+	gap: 12px;
+	align-items: start;
+	padding: 14px;
+	font-size: 1rem;
+	line-height: 1.5;
+	color: var(--ink);
+	background: var(--card);
+	border: 1px solid var(--line-2);
+	border-inline-start: 3px solid var(--bad);
+	border-radius: 10px;
+	box-shadow: var(--pop);
+}
+.error-notice-content {
+	display: grid;
+	flex: 1;
+	gap: 12px;
+	min-inline-size: 0;
+	overflow-wrap: anywhere;
+}
+.error-notice-content p {
+	padding: 0;
+	margin: 0;
+	font-size: inherit;
+	line-height: inherit;
+}
+.error-notice-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.error-notice-dismiss {
+	flex: none;
+	min-inline-size: 28px;
+	min-block-size: 28px;
+	padding: 0;
+	font: inherit;
+	font-size: 20px;
+	color: var(--ink-2);
+	appearance: none;
+	cursor: pointer;
+	background: transparent;
+	border: 0;
+}
+.error-notice-dismiss:hover {
+	color: var(--ink);
+}

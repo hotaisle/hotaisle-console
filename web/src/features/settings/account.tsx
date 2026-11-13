@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { type ChangeEvent, useCallback } from "react";
+import { FormError } from "../../components/forms/form-error";
 import { useSessionActions } from "../../hooks/use-session";
 import type { Status, Team } from "../../lib/api";
 
@@ -51,9 +52,7 @@ export function AccountSettings({
 			) : null}
 			<p className="muted small">{method}</p>
 			{logout.error ? (
-				<p className="error" role="alert">
-					{logout.error.message}
-				</p>
+				<FormError message={logout.error.message} />
 			) : null}
 			<button
 				className="btn"

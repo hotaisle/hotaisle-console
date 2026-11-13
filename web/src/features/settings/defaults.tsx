@@ -5,6 +5,7 @@ import {
 	useState,
 	useSyncExternalStore,
 } from "react";
+import { FormError } from "../../components/forms/form-error";
 import { cloudInitVault } from "../../lib/cloud-init-vault";
 import { IMAGES, type Image, usePrefs } from "../../lib/prefs";
 
@@ -64,11 +65,7 @@ export function DefaultMachineSettings() {
 						type="url"
 						value={urlValue}
 					/>
-					{cloudInit.error ? (
-						<p className="error" role="alert">
-							{cloudInit.error}
-						</p>
-					) : null}
+					{cloudInit.error ? <FormError message={cloudInit.error} /> : null}
 				</div>
 			) : null}
 		</section>

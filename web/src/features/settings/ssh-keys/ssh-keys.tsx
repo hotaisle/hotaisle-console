@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { Form } from "../../../components/forms/form";
+import { FormError } from "../../../components/forms/form-error";
 import { useAppForm } from "../../../components/forms/use-app-form";
 import { useToast } from "../../../components/ui/toast";
 import { APIError, api, type SSHKey } from "../../../lib/api";
@@ -128,24 +129,11 @@ export function SshKeys({
 						None yet. Add one below; every machine you launch will accept it.
 					</p>
 				) : null}
-				{!keys && queryError ? (
-					<p className="muted">Your SSH keys couldn't be loaded.</p>
-				) : null}
-				{keys || queryError ? null : (
+				{keys ? null : (
 					<p className="muted" role="status">
-						Loading SSH keys…
+						{queryError ? "SSH keys unavailable." : "Loading SSH keys…"}
 					</p>
 				)}
-				{queryError ? (
-					<button
-						className="btn"
-						disabled={reload.isPending}
-						onClick={retry}
-						type="button"
-					>
-						Try again
-					</button>
-				) : null}
 			</div>
 			<div className="group">
 				<h3 className="group-h">Add a public key</h3>
@@ -170,9 +158,21 @@ export function SshKeys({
 					</form.AppForm>
 				</Form>
 				{error ? (
-					<p className="error" role="alert">
-						{keyError(error)}
-					</p>
+					<FormError
+						actions={
+							queryError ? (
+								<button
+									className="btn"
+									disabled={reload.isPending}
+									onClick={retry}
+									type="button"
+								>
+									Try again
+								</button>
+							) : undefined
+						}
+						message={keyError(error)}
+					/>
 				) : null}
 				{keys?.length === 0 ? <SshKeyHelp /> : null}
 			</div>

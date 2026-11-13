@@ -1,3 +1,5 @@
+import { FormError } from "../../components/forms/form-error";
+
 export function OfferStatus({
 	loading,
 	error,
@@ -9,35 +11,35 @@ export function OfferStatus({
 	empty: boolean;
 	onRefresh: () => Promise<void>;
 }) {
-	if (!(loading || error || empty)) {
-		return (
-			<p className="small muted availability-state">
-				Availability refreshes automatically every 10 seconds
-			</p>
-		);
-	}
 	return (
-		<div className="offer-status stack">
-			{loading ? (
-				<p role="status">Loading available sizes and prices…</p>
-			) : null}
-			{error ? (
-				<p role="alert">Couldn't load sizes and prices. {error.message}</p>
-			) : null}
+		<>
 			{!(loading || error) && empty ? (
-				<p className="availability-empty" role="status">
-					<strong>No machines are available right now.</strong>
-					<span>
-						Availability updates automatically. A balance does not have an
-						effect on availability.
-					</span>
+				<div className="offer-status stack">
+					<p className="availability-empty" role="status">
+						<strong>No machines are available right now.</strong>
+						<span>
+							Availability updates automatically. A balance does not have an
+							effect on availability.
+						</span>
+					</p>
+				</div>
+			) : (
+				<p className="small muted availability-state" role="status">
+					{loading
+						? "Loading available sizes and prices…"
+						: "Availability refreshes automatically every 10 seconds"}
 				</p>
-			) : null}
-			{error ? (
-				<button className="btn" onClick={onRefresh} type="button">
-					Refresh availability
-				</button>
-			) : null}
-		</div>
+			)}
+			<FormError
+				actions={
+					<button className="btn" onClick={onRefresh} type="button">
+						Refresh availability
+					</button>
+				}
+				message={
+					error ? `Couldn't load sizes and prices. ${error.message}` : undefined
+				}
+			/>
+		</>
 	);
 }

@@ -64,19 +64,19 @@ export function TeamChoice({
 				</p>
 			) : null}
 			{refreshError || refresh.error ? (
-				<div className="team-refresh-error">
-					<p role="alert">
-						Could not update teams. Your current list is still shown.
-					</p>
-					<button
-						className="btn-text"
-						disabled={refresh.isPending}
-						onClick={reload}
-						type="button"
-					>
-						{refresh.isPending ? "Retrying…" : "Retry update"}
-					</button>
-				</div>
+				<FormError
+					actions={
+						<button
+							className="btn-text"
+							disabled={refresh.isPending}
+							onClick={reload}
+							type="button"
+						>
+							{refresh.isPending ? "Retrying…" : "Retry update"}
+						</button>
+					}
+					message={"Could not update teams. Your current list is still shown."}
+				/>
 			) : null}
 			{showCreate ? (
 				<CreateTeamForm onCreated={onAvailable} />

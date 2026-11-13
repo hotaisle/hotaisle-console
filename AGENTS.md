@@ -141,6 +141,9 @@ secrets, follow signed redirects, or sign unrelated endpoints. Tests use only a 
 - There is no browser-managed auto-end timer. The API must support scheduled shutdown before one can be promised.
 - Keep instrument widths stable and respect reduced motion. The drawing sleeps while idle and writes only changed values.
 - Use native controls and labels, native dialogs for modal interaction, and accessible links for navigation.
+- Show transient errors through the shared out-of-flow error notices, never by inserting visible error rows
+  or retry controls into page layout. Keep field errors associated with invalid inputs and dialog notices
+  inside the dialog's accessibility scope; dismissing a notice must not change validation or operation results.
 
 ## GitHub workflow
 

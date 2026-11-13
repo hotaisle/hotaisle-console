@@ -1,3 +1,4 @@
+import { FormError } from "../../components/forms/form-error";
 import { CopyButton } from "../../components/ui/copy-button";
 import { sshCommand } from "../../lib/format";
 import type { TripContext } from "./use-trip";
@@ -10,9 +11,11 @@ export function TripConnection({ context }: { context: TripContext }) {
 	const command = sshCommand(ssh);
 	if (!command) {
 		return (
-			<p className="small muted" role="alert">
-				Connection details are unavailable. Refresh this machine and try again.
-			</p>
+			<FormError
+				message={
+					"Connection details are unavailable. Refresh this machine and try again."
+				}
+			/>
 		);
 	}
 	return (

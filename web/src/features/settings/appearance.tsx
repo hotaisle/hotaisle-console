@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useCallback } from "react";
+import { FormError } from "../../components/forms/form-error";
 import { PreferenceToggle } from "../../components/ui/preference-toggle";
 import {
 	SegmentedControl,
@@ -76,11 +77,7 @@ export function AppearanceSettings() {
 				label="Desktop notification when a machine is ready"
 				onChange={notify.mutate}
 			/>
-			{notify.error ? (
-				<p className="error" role="alert">
-					{notify.error.message}
-				</p>
-			) : null}
+			{notify.error ? <FormError message={notify.error.message} /> : null}
 			{notify.data === false && !prefs.notify ? (
 				<p className="hint">Desktop notifications are off.</p>
 			) : null}

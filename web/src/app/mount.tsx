@@ -7,6 +7,7 @@ import "@fontsource/ibm-plex-mono/500.css";
 import "../features/stage/iso/iso.css";
 import "../styles/main.css";
 import { type RouterHistory, RouterProvider } from "@tanstack/react-router";
+import { ErrorNotices } from "../components/ui/error-notices";
 import { ToastHost } from "../components/ui/toast";
 import { applyStatusMotion, applyTheme, getPrefs } from "../lib/prefs";
 import { createQueryClient } from "./query-client";
@@ -39,7 +40,9 @@ export async function mountApp(
 		<StrictMode>
 			<QueryClientProvider client={queryClient}>
 				<ToastHost>
-					<RouterProvider router={router} />
+					<ErrorNotices>
+						<RouterProvider router={router} />
+					</ErrorNotices>
 				</ToastHost>
 			</QueryClientProvider>
 		</StrictMode>
