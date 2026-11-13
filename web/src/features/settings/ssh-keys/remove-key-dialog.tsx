@@ -25,6 +25,7 @@ export function RemoveKeyDialog({
 			descriptionId={descriptionId}
 			initialFocus={keep}
 			onClose={onClose}
+			showClose={false}
 			title="Remove SSH key?"
 		>
 			<div className="remove-key-details">
