@@ -1,4 +1,19 @@
 /* ---------------------------------------------------------------- frame */
+.top .credits-cta {
+	gap: 8px;
+	min-block-size: 40px;
+	font-weight: 600;
+	color: #fff;
+	background: #b84412;
+	border-color: #b84412;
+}
+.top .credits-cta:hover {
+	background: #96350d;
+	border-color: #96350d;
+}
+.credits-cta svg {
+	flex: none;
+}
 .app {
 	display: grid;
 	grid-template-rows: auto minmax(0, 1fr);
