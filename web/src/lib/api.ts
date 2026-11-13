@@ -62,8 +62,22 @@ export interface Team {
 	handle: string;
 	invitation?: boolean;
 	maximum_virtual_machines?: number;
+	members?: TeamMember[] | null;
 	name: string;
 	roles: string[];
+}
+export type TeamRole = "owner" | "purchaser" | "operator" | "user";
+export interface TeamMember {
+	created: string;
+	email: string;
+	invitation?: boolean;
+	name: string;
+	roles: TeamRole[];
+}
+export interface TeamMemberInvitation {
+	email: string;
+	name: string;
+	roles: TeamRole[];
 }
 export interface User {
 	created: string;
@@ -222,6 +236,8 @@ export const api = {
 		),
 	forgetKey: () => keyVault.forget(),
 	historyKey: () => call<HistoryKey>("POST", "/auth/history-key"),
+	inviteTeamMember: (team: string, invitation: TeamMemberInvitation) =>
+		call<void>("POST", `${t(team)}/members/invitations/`, invitation),
 	keys: () => call<SSHKey[]>("GET", "/api/user/ssh_keys/"),
 	/** Sizes you can launch: virtual machines (1, 2 or 4 GPUs) and whole bare-metal servers (8). */
 	offers: async (team: string) => {

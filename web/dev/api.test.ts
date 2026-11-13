@@ -19,6 +19,59 @@ function request(
 	);
 }
 describe("development preview machine lifecycle", () => {
+	it("simulates invitations in memory and keeps members when team details change", async () => {
+		const api = new PreviewAPI("running");
+		const invitation = {
+			email: "Dana@example.invalid",
+			name: "Dana Doe",
+			roles: ["user", "operator"],
+		};
+		expect(
+			(
+				await request(
+					api,
+					"POST",
+					"/api/teams/preview/members/invitations/",
+					invitation
+				)
+			).status
+		).toBe(204);
+		const team = await (
+			await request(api, "GET", "/api/teams/preview/")
+		).json();
+		expect(team.members).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					email: "dana@example.invalid",
+					invitation: true,
+					roles: ["user", "operator"],
+				}),
+			])
+		);
+		expect(
+			(
+				await request(
+					api,
+					"POST",
+					"/api/teams/preview/members/invitations/",
+					invitation
+				)
+			).status
+		).toBe(409);
+		expect(
+			(
+				await request(api, "POST", "/api/teams/preview/members/invitations/", {
+					...invitation,
+					email: "another@example.invalid",
+					roles: ["admin"],
+				})
+			).status
+		).toBe(422);
+		const saved = await (
+			await request(api, "PATCH", "/api/teams/preview/", { name: "New name" })
+		).json();
+		expect(saved.members).toEqual(team.members);
+	});
 	it("signs into only the fixture account after simulated email approval", async () => {
 		const api = new PreviewAPI("sign-in");
 		expect(

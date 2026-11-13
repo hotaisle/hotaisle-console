@@ -71,7 +71,11 @@ export function EditTeamForm({
 		},
 	});
 	return (
-		<Form className="team-form stack" onSubmit={form.handleSubmit}>
+		<Form
+			aria-label="Edit team details"
+			className="team-form stack"
+			onSubmit={form.handleSubmit}
+		>
 			<form.AppField name="name">
 				{(field) => (
 					<field.TextField
@@ -93,9 +97,6 @@ export function EditTeamForm({
 					/>
 				)}
 			</form.AppField>
-			<p className="hint">
-				Team handle: <code>{team.handle}</code>
-			</p>
 			<FormError message={error} />
 			{saved ? <p role="status">Team details saved.</p> : null}
 			<form.AppForm>

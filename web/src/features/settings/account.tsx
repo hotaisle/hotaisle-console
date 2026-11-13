@@ -28,18 +28,13 @@ export function AccountSettings({
 	return (
 		<section className="group">
 			<h2 className="group-h section-heading">Account</h2>
-			<Link className="btn-text more" to="/teams">
-				Manage teams and invitations
+			<Link
+				className="btn-text more"
+				params={{ team: team.handle }}
+				to="/teams/$team/details"
+			>
+				Manage team
 			</Link>
-			{team.effective_roles.includes("owner") ? (
-				<Link
-					className="btn-text more"
-					params={{ team: team.handle }}
-					to="/teams/$team/details"
-				>
-					Edit team details
-				</Link>
-			) : null}
 			{teams.length > 1 ? (
 				<div className="field">
 					<label className="field-l" htmlFor="team">

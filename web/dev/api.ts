@@ -14,6 +14,7 @@ import {
 	powerView,
 } from "./machines";
 import type { Scenario } from "./scenarios";
+import { PreviewTeamMembers } from "./team-members";
 
 const TEAM_HANDLE = /^[a-z0-9](?:[a-z0-9_-]{0,98}[a-z0-9])?$/u;
 const TEAM = {
@@ -32,6 +33,7 @@ function object(value: unknown): value is Record<string, unknown> {
 /** Browser-only simulator. Unknown endpoints fail; there is no upstream fallback. */
 export class PreviewAPI {
 	private readonly team = { ...TEAM, description: "" };
+	private readonly members = new PreviewTeamMembers();
 	private readonly machines = new Map<string, PreviewMachine>();
 	private readonly records = emptyRecords();
 	private readonly now: () => number;
@@ -207,6 +209,9 @@ export class PreviewAPI {
 	}
 	private async teamResource(request: Request, url: URL, parts: string[]) {
 		const { method } = request;
+		if (parts.join("/") === "members/invitations") {
+			return await this.members.invitations(request, this.now());
+		}
 		if (parts.length === 0) {
 			return this.teamRequest(request);
 		}
@@ -280,7 +285,7 @@ export class PreviewAPI {
 	}
 	private async teamRequest(request: Request) {
 		if (request.method === "GET") {
-			return json(this.team);
+			return json({ ...this.team, members: this.members.all() });
 		}
 		if (request.method !== "PATCH") {
 			return fail(405, "Method not allowed");
@@ -310,7 +315,7 @@ export class PreviewAPI {
 		if (typeof body.description === "string") {
 			this.team.description = body.description;
 		}
-		return json(this.team);
+		return json({ ...this.team, members: this.members.all() });
 	}
 	private balance() {
 		const hourlyRate = [...this.machines.values()].reduce(
