@@ -166,7 +166,8 @@ try {
 		filters.push(
 			"[narration]aformat=sample_rates=48000:channel_layouts=stereo,asplit[voice][sidechain]",
 			`[${musicIndex}:a]atrim=duration=${duration},asetpts=PTS-STARTPTS,loudnorm=I=-20:TP=-2:LRA=9,volume=0.55,afade=t=in:d=1,afade=t=out:st=${Math.max(0, duration - 3)}:d=3[music]`,
-			"[music][sidechain]sidechaincompress=threshold=0.025:ratio=8:attack=15:release=300[ducked]",
+			// Keep half the original music so narration can duck it by at most 6 dB.
+			"[music][sidechain]sidechaincompress=threshold=0.025:ratio=8:attack=15:release=300:mix=0.5[ducked]",
 			"[voice][ducked]amix=inputs=2:normalize=0,alimiter=limit=0.95[mix]"
 		);
 		audioOutput = "[mix]";
