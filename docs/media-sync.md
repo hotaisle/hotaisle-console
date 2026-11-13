@@ -204,16 +204,18 @@ not just JPEGs. Edit the blog source asset directory, never its generated mirror
 ## Compose the video and delivery copy
 
 Follow [music and beat timing](showcase.md#music-and-beat-timing) for the exact
-local excerpt and existing voice configuration. Current composition uses the
+tracked excerpt and existing voice configuration. Current composition uses the
 provided Flavour Trip excerpt beginning at 33.04 seconds, 118 BPM, Bella's original
 voice pitch/speed, and at most 6 dB music ducking. Keep these choices unless the
-user changes them; raw music stays local and its availability is not guaranteed
-by a clone. Do not silently substitute a different song or voice.
+user changes them. The two-minute excerpt is retained in
+`tools/showcase/assets/flavour-trip-brunch-excerpt.m4a`, including roughly 37 seconds
+beyond the current edit; a clone includes it. The full recording stays untracked.
+Do not trim the excerpt again or silently substitute a different song or voice.
 
 From the Console root, with paths to the explicitly chosen take:
 
 ```sh
-bun run showcase:compose artifacts/showcase/<take>/frames.json artifacts/showcase/<take>/timing.json artifacts/showcase/<take>/master.mp4 music-excerpt.m4a 118
+bun run showcase:compose artifacts/showcase/<take>/frames.json artifacts/showcase/<take>/timing.json artifacts/showcase/<take>/master.mp4 tools/showcase/assets/flavour-trip-brunch-excerpt.m4a 118
 ```
 
 The composer creates the master, edited SRT/timing, and closing PNG/SVG. It uses
@@ -281,8 +283,10 @@ bun run test src/scripts/video-modal.test.ts src/scripts/blog-image-modal.test.t
 Check Quick Start and the blog use the same MP4, poster, captions, and transcript;
 verify their light/dark images, large play control, and “Click to play the video”
 text. Keep README and website media commits coherent and link companion PRs. Do
-not commit raw captures, voice caches, source music, generated app output, or
-local hash manifests. Keep documentation under Console `docs/`, outside assets.
+not commit raw captures, voice caches, the full music recording, generated app
+output, or local hash manifests. The credited music excerpt under
+`tools/showcase/assets/` is the retained source for future compositions; never copy
+it into production assets. Keep documentation under Console `docs/`, outside assets.
 
 When release is authorized, merge through each repository's normal checks, then
 wait for both production deployments. Preserve Console's canonical PR-number
