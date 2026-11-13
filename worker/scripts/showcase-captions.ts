@@ -6,6 +6,7 @@ import {
 	CAPTION_EXIT_SECONDS,
 	captionColors,
 	captionHeading,
+	captionLayout,
 	captionMotion,
 	THEME_BLEND_SECONDS,
 } from "../../web/dev/showcase/presentation";
@@ -45,8 +46,9 @@ export async function captionTrack(
 		if (cue && heading) {
 			const motion = captionMotion(time, cue.start, cue.end);
 			const colors = captionColors(time, lightAt);
-			const x = width * 0.285;
-			let y = height * 0.66 + motion.offset * scale;
+			const layout = captionLayout(cue.id);
+			const x = width * layout.x;
+			let y = height * layout.y + motion.offset * scale;
 			context.globalAlpha = motion.opacity;
 			context.textBaseline = "alphabetic";
 			context.textAlign = "left";
@@ -61,7 +63,7 @@ export async function captionTrack(
 				let line = "";
 				for (const word of text.split(" ")) {
 					const next = line ? `${line} ${word}` : word;
-					if (line && context.measureText(next).width > 500 * scale) {
+					if (line && context.measureText(next).width > width * layout.width) {
 						context.fillText(line, x, y + lineHeight * 0.8);
 						y += lineHeight;
 						line = word;

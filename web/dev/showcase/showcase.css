@@ -103,26 +103,24 @@
 	position: fixed;
 	inset: 0;
 	z-index: 10000;
+	container-type: size;
 	pointer-events: none;
 }
 .showcase-copy {
 	position: absolute;
-	top: 66%;
-	left: 28.5%;
-	width: min(500px, 29vw);
 	color: var(--ink);
 	text-align: left;
 }
 .showcase-copy strong {
 	display: block;
-	font-size: clamp(32px, 2.7vw, 52px);
+	font-size: 2.7083cqw;
 	font-weight: 650;
 	line-height: 1.1;
 	letter-spacing: -0.04em;
 }
 .showcase-copy p {
-	margin: 20px 0 0;
-	font-size: clamp(18px, 1.25vw, 24px);
+	margin: 1.0417cqw 0 0;
+	font-size: 1.25cqw;
 	line-height: 1.5;
 	color: var(--ink-2);
 }

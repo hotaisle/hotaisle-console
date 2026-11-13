@@ -1,7 +1,37 @@
 import { describe, expect, it } from "vitest";
-import { captionColors, captionHeading, captionMotion } from "./presentation";
+import {
+	captionColors,
+	captionHeading,
+	captionLayout,
+	captionMotion,
+} from "./presentation";
 
 describe("showcase caption presentation", () => {
+	it.each(["sign-in", "approve", "create-team"])(
+		"keeps %s captions to the right of the form and its footer",
+		(id) => {
+			const layout = captionLayout(id);
+			expect(layout.x * 1920).toBeGreaterThan(1100);
+			expect(layout.y * 1080).toBeGreaterThan(500);
+			expect((layout.x + layout.width) * 1920).toBeLessThan(1800);
+		}
+	);
+	it.each([
+		"funds",
+		"auto-rebill",
+		"image",
+		"launch",
+		"ready",
+		"end",
+		"history",
+		"theme",
+		"defaults",
+	])("keeps %s captions below the racks and beside the open drawer", (id) => {
+		const layout = captionLayout(id);
+		expect(layout.x * 1920).toBeGreaterThan(532);
+		expect((layout.x + layout.width) * 1920).toBeLessThan(1020);
+		expect(layout.y * 1080).toBeGreaterThan(790);
+	});
 	it("clears captions at their edges without moving the full scene", () => {
 		expect(captionMotion(9, 10, 14).opacity).toBe(0);
 		expect(captionMotion(10, 10, 14).opacity).toBe(0);
