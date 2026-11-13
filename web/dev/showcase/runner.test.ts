@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { find, pause, play, subtitles } from "./runner";
+import { act, find, pause, play, subtitles } from "./runner";
 import { SHOWCASE_SECONDS, STORYBOARD } from "./storyboard";
 
 afterEach(() => {
@@ -7,6 +7,60 @@ afterEach(() => {
 	document.body.replaceChildren();
 });
 describe("showcase playback", () => {
+	it("waits for the visible cursor to arrive before clicking", async () => {
+		vi.useFakeTimers();
+		document.body.innerHTML =
+			'<div id="root"><button type="button">Open</button></div>';
+		vi.spyOn(HTMLElement.prototype, "getClientRects").mockReturnValue([
+			new DOMRect(0, 0, 100, 40),
+		] as unknown as DOMRectList);
+		let arrived: () => void = () => undefined;
+		const point = vi.fn(
+			() =>
+				new Promise<void>((resolve) => {
+					arrived = resolve;
+				})
+		);
+		const clicked = vi.fn();
+		document.querySelector("button")?.addEventListener("click", clicked);
+		const result = act(
+			{ kind: "click", selector: "button" },
+			new AbortController().signal,
+			point
+		);
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(point).toHaveBeenCalledOnce();
+		expect(clicked).not.toHaveBeenCalled();
+		arrived();
+		await vi.advanceTimersByTimeAsync(1000);
+		await result;
+		expect(clicked).toHaveBeenCalledOnce();
+	});
+
+	it("releases the pointer if playback is cancelled during a theme change", async () => {
+		vi.useFakeTimers();
+		document.body.innerHTML =
+			'<div id="root"><button type="button">Light</button></div>';
+		vi.spyOn(HTMLElement.prototype, "getClientRects").mockReturnValue([
+			new DOMRect(0, 0, 100, 40),
+		] as unknown as DOMRectList);
+		const control = new AbortController();
+		const press = vi.fn();
+		const result = act(
+			{ kind: "click", selector: "button", transition: "theme" },
+			control.signal,
+			vi.fn(),
+			undefined,
+			undefined,
+			press
+		);
+		const rejected = expect(result).rejects.toThrow("Cancelled");
+		await vi.advanceTimersByTimeAsync(300);
+		expect(press).toHaveBeenLastCalledWith(true);
+		control.abort(new Error("Cancelled"));
+		await rejected;
+		expect(press).toHaveBeenLastCalledWith(false);
+	});
 	it("keeps the current screen until its navigation cue", async () => {
 		vi.useFakeTimers();
 		document.body.innerHTML =

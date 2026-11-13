@@ -42,10 +42,12 @@ follow [the publication policy](SECURITY-PUBLICATION.md).
 | --- | --- |
 | `web/src/`, `web/dev/` | Real components plus browser-only preview fixtures |
 | `web/dev/showcase/storyboard.ts` | Actions, exact spoken/subtitle text, scene durations |
+| `web/dev/showcase/presentation.ts` | Scene headings, caption motion, and contrast during the theme change |
 | `worker/scripts/prepare-showcase.ts` | Local Kokoro voice generation |
 | `worker/scripts/showcase-edit.ts` | Intro, URL typing, credits pause, closing, timeline retiming |
 | `worker/scripts/showcase-artwork.ts`, `web/public/favicon.svg` | Matching opening/closing branding |
 | `worker/scripts/compose-showcase.ts` | Timestamped frames, voice, music, captions, master MP4 |
+| `worker/scripts/showcase-captions.ts`, `worker/scripts/showcase-theme.ts` | Transparent caption track and whole-frame theme crossfade |
 | `artifacts/showcase/<take>/` | Ignored raw captures, timing, masters, delivery copies, QA, manifests |
 
 Capture four lossless PNG sources: `machine-light.png`, `machine-dark.png`,
@@ -129,12 +131,27 @@ must stay outside production assets.
    the existing flow: welcome/URL typing, email approval, team creation, credits,
    automatic rebill options, two GPUs/vLLM, launch/ready, release, history, settings,
    closing card. Credits and rebill are demonstrations that back out of payment.
+   The current presentation uses a white arrow with click feedback and large
+   scene captions over the app. Keep the frame steady; avoid repeated zooms.
 6. Use the [recording guide](showcase.md#record) for tab recording or background CDP
    screencast capture. With CDP, save and promptly acknowledge each frame, retain
    its timestamp in `frames.json`, stop the screencast in cleanup, and save the
    completed studio timing. Keep the original `timing.json` distinct from the
    composer's edited `.timing.json`. Reject failed or incomplete stories. Inspect
    frame dimensions and gaps; static scenes need not emit frames continuously.
+   Keep frame acknowledgements running throughout each action: pausing the capture
+   loop between automation calls can freeze footage while the app keeps playing.
+   If the recorder needs bounded sections, capture overlapping takes and join
+   them only on the same settled view. Rebase the second take's timestamps to the
+   first, check layout/fixture state at the join, and verify each scripted action
+   has nearby captured frames before composing.
+   Hide `.showcase-captions` temporarily in the CDP capture tab so the composer can
+   render its transparent caption layer without duplicating the live overlay.
+   Remove capture styles and clear temporary media emulation during cleanup.
+   Keep the footage concat sequence entirely JPEG/MJPEG, including generated
+   artwork and theme-blend frames. The separate transparent caption input uses
+   PNG. Composition stops on decoder errors; an encoded file alone is not proof
+   that every source frame was accepted.
 
 ## Generate image variants
 

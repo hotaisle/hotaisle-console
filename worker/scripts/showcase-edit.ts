@@ -42,7 +42,13 @@ export function editTiming(source: Timing, tempoScale = 1) {
 	if (!funds || finish?.id !== "finish") {
 		throw new Error("The showcase needs credits and closing scenes.");
 	}
-	const holdAt = funds.start + 0.96;
+	// Hold only after the recorded navigation has reached the credits screen.
+	// Cursor travel can move the click beyond the old fixed scene offset.
+	const creditClick = funds.events?.[0];
+	const holdAt =
+		creditClick === undefined
+			? funds.start + 0.96
+			: Math.min(funds.end - 0.1, creditClick + 0.24);
 	const frameTime = (seconds: number) =>
 		(seconds + INTRO_SECONDS + (seconds >= holdAt ? CREDITS_HOLD_SECONDS : 0)) *
 		tempoScale;

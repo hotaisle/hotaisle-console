@@ -58,8 +58,11 @@ Play walkthrough rehearses the story. Record video asks Chrome to share a tab;
 select **only the Showcase studio tab**. Chrome requires a direct click while the
 tab has focus. Monitor and window capture are rejected and stopped. Capture has
 no microphone or system audio; generated narration routes directly into the video
-without playing through desktop speakers. The recording includes captions, a
-pointer, optional camera movement, and a visible simulated-data label.
+without playing through desktop speakers. The recording includes scene captions,
+a white arrow pointer with click feedback, optional camera movement, and a visible
+simulated-data label. Captions sit over the scene with a short heading and the
+exact spoken text below it; the app fills the video instead of reserving a subtitle
+bar. Camera movement stays off by default.
 
 After completion, save the WebM video, SRT captions, and JSON timing. Stop cancels
 pending actions and releases capture/audio resources. A missing or disabled control
@@ -84,9 +87,16 @@ Save timing output to align narration and trim setup footage:
 bun run showcase:compose frames.json timing.json showcase.mp4
 ```
 
+For this composition path, hide `.showcase-captions` only in the capture tab while
+recording: the composer adds a transparent caption layer afterwards. Do not capture
+live captions and then overlay another copy. Remove that temporary capture style
+and restore any motion emulation together with the original window settings.
+
 This composition uses frame timestamps to preserve pacing and adds the generated
-voice clips at each scene's actual start. It also redraws the caption strip from
-the exact spoken script, including updated chapter counts. Both composition and
+voice clips at each scene's actual start. It renders gently fading scene headings
+and the exact spoken text, with caption colors following the recorded theme click.
+Opening and closing artwork carry their own branding without a duplicate caption.
+Both composition and
 browser playback reject stale voice clips after their text changes; regenerate
 them instead of exporting mismatched subtitles. Capture only this preview tab, and keep
 Chrome in the background. Never use real account pages in the recording.
@@ -113,6 +123,14 @@ controls around. Sign-in mounts in dark mode before playback; the exporter also
 excludes pre-playback setup frames from its opening still and footage.
 The source walkthrough always uses its 125 BPM edit grid; composition retimes it
 to the supplied music BPM.
+
+Pointer movement settles before each click; wait-only steps leave it parked.
+Composition blends complete dark and light frames over 650 ms at the recorded
+theme click, keeping the page geometry fixed and avoiding mismatched intermediate
+text/background colors. The studio applies the real theme choice normally.
+Reduced-motion preferences disable spatial pointer/caption
+movement in the studio; an explicitly animated recording may temporarily emulate
+no motion reduction in that capture tab, then clear the override during cleanup.
 
 For website delivery, keep a separate 1080p H.264 MP4 with fast-start metadata below
 [Cloudflare’s 25 MiB static-asset limit](https://developers.cloudflare.com/workers/platform/limits/#static-assets).

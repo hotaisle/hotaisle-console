@@ -1,5 +1,6 @@
 import { type BeatGrid, beatDelay } from "./beats";
 import { revealVertically } from "./camera";
+import { THEME_BLEND_SECONDS } from "./presentation";
 import {
 	type Action,
 	type Scene,
@@ -56,21 +57,32 @@ export async function find(target: Target, signal: AbortSignal) {
 export async function act(
 	action: Action,
 	signal: AbortSignal,
-	point: (element: HTMLElement) => void,
+	point: (element: HTMLElement) => void | Promise<void>,
 	beat?: (lead?: number) => Promise<void>,
-	event?: () => void
+	event?: () => void,
+	press?: (pressed: boolean) => void
 ) {
 	const element = await find(action, signal);
 	await revealVertically(element);
 	await pause(150, signal);
-	point(element);
-	await pause(250, signal);
+	if (action.kind !== "wait") {
+		await point(element);
+		await pause(80, signal);
+	}
 	if (action.kind !== "wait" && action.kind !== "type") {
 		await beat?.(action.kind === "hold" ? 0.7 : 0);
 		event?.();
 	}
 	if (action.kind === "click") {
-		element.click();
+		press?.(true);
+		try {
+			element.click();
+			if (action.transition === "theme") {
+				await pause(THEME_BLEND_SECONDS * 1000, signal);
+			}
+		} finally {
+			press?.(false);
+		}
 	} else if (action.kind === "type") {
 		await type(element, action.value ?? "", signal);
 	} else if (action.kind === "select") {
@@ -80,6 +92,7 @@ export async function act(
 		element.value = action.value ?? "";
 		element.dispatchEvent(new Event("change", { bubbles: true }));
 	} else if (action.kind === "hold") {
+		press?.(true);
 		element.focus({ preventScroll: true });
 		element.dispatchEvent(
 			new KeyboardEvent("keydown", {
@@ -91,6 +104,7 @@ export async function act(
 		try {
 			await pause(800, signal);
 		} finally {
+			press?.(false);
 			element.dispatchEvent(
 				new KeyboardEvent("keyup", {
 					bubbles: true,
@@ -125,7 +139,8 @@ async function type(element: HTMLElement, value: string, signal: AbortSignal) {
 export interface Playback {
 	approve: () => void;
 	grid?: BeatGrid;
-	point: (element: HTMLElement) => void;
+	point: (element: HTMLElement) => void | Promise<void>;
+	press?: (pressed: boolean) => void;
 	scene: (scene: Scene, index: number) => void | Promise<void>;
 	signal: AbortSignal;
 	voice: (
@@ -180,11 +195,17 @@ export async function play(scenes: Scene[], options: Playback): Promise<Cue[]> {
 					options.signal
 				);
 			}
-			await act(action, options.signal, options.point, beat, () =>
-				events.push(
-					(performance.now() - started) / 1000 +
-						(action.kind === "hold" ? 0.7 : 0)
-				)
+			await act(
+				action,
+				options.signal,
+				options.point,
+				beat,
+				() =>
+					events.push(
+						(performance.now() - started) / 1000 +
+							(action.kind === "hold" ? 0.7 : 0)
+					),
+				options.press
 			);
 		}, Promise.resolve());
 		if (scene.approve) {

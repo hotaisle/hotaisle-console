@@ -21,7 +21,10 @@ describe("credits checkout", () => {
 		expect(buy).not.toHaveBeenCalled();
 		expect(window.open).not.toHaveBeenCalled();
 	});
-	it("requests cents for the selected amount and exposes a real checkout link", async () => {
+	it.each([
+		"https://checkout.stripe.com/test",
+		"https://admin.hotaisle.app/r/checkout-fixture",
+	])("requests cents and opens the API checkout link %s", async (url) => {
 		const replace = vi.fn();
 		const tab = {
 			close: vi.fn(),
@@ -32,7 +35,7 @@ describe("credits checkout", () => {
 		vi.mocked(window.open).mockReturnValue(tab as unknown as Window);
 		const user = userEvent.setup();
 		const buy = vi.spyOn(api, "buyCredits").mockResolvedValue({
-			checkout_url: "https://checkout.stripe.com/test",
+			checkout_url: url,
 			expires_at: "2030-01-01",
 		});
 		const done = vi.fn();
@@ -42,10 +45,10 @@ describe("credits checkout", () => {
 		await waitFor(() => expect(buy).toHaveBeenCalledWith("lab", 25_000));
 		expect(
 			await screen.findByRole("link", { name: "Open checkout" })
-		).toHaveAttribute("href", "https://checkout.stripe.com/test");
+		).toHaveAttribute("href", url);
 		expect(window.open).toHaveBeenCalledWith("about:blank", "_blank");
 		expect(tab.opener).toBeNull();
-		expect(replace).toHaveBeenCalledWith("https://checkout.stripe.com/test");
+		expect(replace).toHaveBeenCalledWith(url);
 		expect(screen.getByRole("link", { name: "Open checkout" })).toHaveAttribute(
 			"target",
 			"_blank"

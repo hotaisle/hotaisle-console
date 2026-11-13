@@ -7,6 +7,7 @@ export type Action = Target & {
 	after?: number;
 	kind: "click" | "type" | "select" | "hold" | "wait";
 	value?: string;
+	transition?: "theme";
 };
 export interface Scene {
 	actions?: Action[];
@@ -132,7 +133,12 @@ export const STORYBOARD: Scene[] = [
 	{
 		actions: [
 			{ kind: "click", selector: 'a[aria-label="Settings"]' },
-			{ kind: "click", selector: ".settings label", text: "Light" },
+			{
+				kind: "click",
+				selector: ".settings label",
+				text: "Light",
+				transition: "theme",
+			},
 		],
 		at: 51.84,
 		id: "theme",

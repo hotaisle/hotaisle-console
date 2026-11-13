@@ -2,6 +2,24 @@ import { describe, expect, it } from "vitest";
 import { editTiming, walkthroughFrames } from "./showcase-edit";
 
 describe("showcase edit timing", () => {
+	it("adds the credits pause after the actual navigation click", () => {
+		const edit = editTiming({
+			cues: [
+				{
+					end: 18.24,
+					events: [15.42],
+					id: "funds",
+					start: 14.46,
+					text: "Credits",
+				},
+				{ end: 68.64, id: "finish", start: 63.84, text: "Finish" },
+			],
+			startedAt: 1000,
+		});
+		expect(edit.holdAt).toBeGreaterThan(15.42);
+		expect(edit.frameTime(15.42)).toBeCloseTo(15.42 + 5.76);
+		expect(edit.frameTime(15.8)).toBeCloseTo(15.8 + 5.76 + 1.92);
+	});
 	it("excludes pre-playback setup frames from the intro and playback", () => {
 		const frames = walkthroughFrames(
 			[

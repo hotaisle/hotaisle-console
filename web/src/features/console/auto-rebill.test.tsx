@@ -45,7 +45,10 @@ describe("automatic rebill controls", () => {
 		expect(setup).not.toHaveBeenCalled();
 		expect(window.open).not.toHaveBeenCalled();
 	});
-	it("opens a validated setup URL without claiming activation and refreshes from the API", async () => {
+	it.each([
+		"https://checkout.stripe.com/setup",
+		"https://admin.hotaisle.app/r/rebill-fixture",
+	])("opens setup checkout %s without claiming activation", async (url) => {
 		const replace = vi.fn();
 		const tab = {
 			close: vi.fn(),
@@ -55,7 +58,7 @@ describe("automatic rebill controls", () => {
 		};
 		vi.mocked(window.open).mockReturnValue(tab as unknown as Window);
 		const setup = vi.spyOn(api, "setupAutoRebill").mockResolvedValue({
-			checkout_url: "https://checkout.stripe.com/setup",
+			checkout_url: url,
 			expires_at: "2030-01-01",
 		});
 		const { user, client } = await openRebill();
@@ -80,14 +83,15 @@ describe("automatic rebill controls", () => {
 		).toHaveAttribute("target", "_blank");
 		expect(
 			screen.getByRole("link", { name: "Open setup checkout" })
+		).toHaveAttribute("href", url);
+		expect(
+			screen.getByRole("link", { name: "Open setup checkout" })
 		).toHaveAttribute("rel", "noopener noreferrer");
 		expect(
 			screen.getByText("Setup pending", { exact: true })
 		).toBeInTheDocument();
 		expect(screen.queryByText("On", { exact: true })).not.toBeInTheDocument();
-		await waitFor(() =>
-			expect(replace).toHaveBeenCalledWith("https://checkout.stripe.com/setup")
-		);
+		await waitFor(() => expect(replace).toHaveBeenCalledWith(url));
 		expect(tab.opener).toBeNull();
 		vi.mocked(api.autoRebill).mockResolvedValue(
 			autoRebillStatus({
