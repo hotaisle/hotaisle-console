@@ -1,9 +1,10 @@
 export function cameraFrame(
 	width: number,
 	height: number,
-	center?: { x: number; y: number }
+	center?: { x: number; y: number },
+	focusScale = 0.985
 ) {
-	const scale = center ? 0.985 : 1;
+	const scale = center ? Math.max(0.975, Math.min(1, focusScale)) : 1;
 	const gutterX = width * (1 - scale);
 	const gutterY = height * (1 - scale);
 	const clamp = (value: number) => Math.max(0, Math.min(1, value));
@@ -17,7 +18,7 @@ export function createCamera(enabled: boolean) {
 	const root = document.querySelector<HTMLElement>("#root");
 	const pointer = document.querySelector<HTMLElement>(".showcase-pointer");
 	return {
-		focus(element?: HTMLElement) {
+		focus(element?: HTMLElement, scale?: number) {
 			if (!root) {
 				return;
 			}
@@ -29,7 +30,12 @@ export function createCamera(enabled: boolean) {
 			const center = rect
 				? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
 				: undefined;
-			const frame = cameraFrame(root.clientWidth, root.clientHeight, center);
+			const frame = cameraFrame(
+				root.clientWidth,
+				root.clientHeight,
+				center,
+				scale
+			);
 			root.style.transform = `translate(${frame.x}px, ${frame.y}px) scale(${frame.scale})`;
 		},
 		point(element: HTMLElement) {
@@ -47,9 +53,11 @@ export function createCamera(enabled: boolean) {
 		},
 	};
 }
-export function revealVertically(element: HTMLElement) {
-	let parent = element.parentElement;
-	while (parent) {
+export async function revealVertically(
+	element: HTMLElement,
+	parent = element.parentElement
+): Promise<void> {
+	if (parent) {
 		if (
 			parent.scrollHeight > parent.clientHeight &&
 			["auto", "scroll"].includes(getComputedStyle(parent).overflowY)
@@ -60,8 +68,17 @@ export function revealVertically(element: HTMLElement) {
 				target.top < bounds.top
 					? target.top - bounds.top
 					: Math.max(0, target.bottom - bounds.bottom);
-			parent.scrollBy({ behavior: "smooth", top: delta });
+			if (delta !== 0) {
+				const top = parent.scrollTop + delta;
+				const scrolling: unknown = parent.scrollTo({ behavior: "smooth", top });
+				if (scrolling instanceof Promise) {
+					await scrolling;
+				} else {
+					// Older engines lack scroll promises. Settle immediately before clicking.
+					parent.scrollTo({ behavior: "instant", top });
+				}
+			}
 		}
-		parent = parent.parentElement;
+		await revealVertically(element, parent.parentElement);
 	}
 }

@@ -1,4 +1,5 @@
 import { createRoot } from "react-dom/client";
+import { getPrefs, setPrefs } from "../../src/lib/prefs";
 import { PreviewAPI } from "../api";
 import { createPreviewHistory } from "../history";
 import { installPreviewTransport, isPreviewLocation } from "../transport";
@@ -16,6 +17,9 @@ async function start() {
 	}
 	const api = new PreviewAPI("sign-in");
 	installPreviewTransport(api);
+	// Establish the opening theme before mountApp paints or a capture can begin.
+	const initialPrefs = { ...getPrefs() };
+	setPrefs({ theme: "dark" });
 	const url = new URL(location.href);
 	url.hash = "/sign-in?returnTo=%2Fteams";
 	window.history.replaceState(null, "", url);
@@ -28,7 +32,7 @@ async function start() {
 	if (!studio) {
 		throw new Error("Showcase studio is missing.");
 	}
-	createRoot(studio).render(<Studio api={api} />);
+	createRoot(studio).render(<Studio api={api} initialPrefs={initialPrefs} />);
 }
 start().catch((reason: unknown) => {
 	const root = document.querySelector("#root");

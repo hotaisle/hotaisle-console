@@ -16,6 +16,7 @@ export interface Scene {
 	seconds?: number;
 }
 export const SHOWCASE_SECONDS = 60;
+export const SHOWCASE_GRID = { bpm: 125, offset: 0.06 };
 
 // The one-minute edit follows 125 BPM bars. Actions wait for the next measured beat.
 export const STORYBOARD: Scene[] = [

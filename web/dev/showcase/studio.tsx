@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	applyStatusMotion,
 	applyTheme,
-	getPrefs,
+	type Prefs,
 	setPrefs,
 } from "../../src/lib/prefs";
 import type { PreviewAPI } from "../api";
@@ -10,10 +10,16 @@ import { createCamera } from "./camera";
 import { music } from "./music";
 import { capture, download } from "./recording";
 import { type Cue, find, pause, play, subtitles } from "./runner";
-import { STORYBOARD } from "./storyboard";
+import { SHOWCASE_GRID, STORYBOARD } from "./storyboard";
 import { clips, createVoice } from "./voice";
 
-export function Studio({ api }: { api: PreviewAPI }) {
+export function Studio({
+	api,
+	initialPrefs,
+}: {
+	api: PreviewAPI;
+	initialPrefs: Prefs;
+}) {
 	const approve = useCallback(() => api.approveEmail(), [api]);
 	const [running, setRunning] = useState(false);
 	const [caption, setCaption] = useState("");
@@ -22,9 +28,7 @@ export function Studio({ api }: { api: PreviewAPI }) {
 	const [video, setVideo] = useState<Blob>();
 	const [cues, setCues] = useState<Cue[]>([]);
 	const [finished, setFinished] = useState(false);
-	const [motion, setMotion] = useState(
-		!matchMedia("(prefers-reduced-motion: reduce)").matches
-	);
+	const [motion, setMotion] = useState(false);
 	const startedAt = useRef(0);
 	const controller = useRef<AbortController | null>(null);
 	const stop = useCallback(
@@ -35,12 +39,18 @@ export function Studio({ api }: { api: PreviewAPI }) {
 		[]
 	);
 	useEffect(() => {
-		window.addEventListener("pagehide", stop);
-		return () => {
-			window.removeEventListener("pagehide", stop);
+		const restore = () => {
 			stop();
+			setPrefs(initialPrefs);
+			applyTheme(initialPrefs.theme);
+			applyStatusMotion(initialPrefs.statusMotion);
 		};
-	}, [stop]);
+		window.addEventListener("pagehide", restore);
+		return () => {
+			window.removeEventListener("pagehide", restore);
+			restore();
+		};
+	}, [stop, initialPrefs]);
 	const run = useCallback(
 		async (shouldRecord: boolean) => {
 			if (controller.current) {
@@ -48,7 +58,7 @@ export function Studio({ api }: { api: PreviewAPI }) {
 			}
 			const control = new AbortController();
 			controller.current = control;
-			const previous = { ...getPrefs() };
+			const previous = initialPrefs;
 			const voice = createVoice(true);
 			const camera = createCamera(motion);
 			let recording: Awaited<ReturnType<typeof capture>> | undefined;
@@ -76,22 +86,27 @@ export function Studio({ api }: { api: PreviewAPI }) {
 				startedAt.current = Date.now();
 				const timeline = await play(STORYBOARD, {
 					approve,
-					grid: music,
+					grid: SHOWCASE_GRID,
 					point: camera.point,
-					scene(scene, index) {
+					async scene(scene, index) {
 						setCaption(scene.narration);
 						setChapter(index + 1);
-						camera.focus();
+						if (!motion) {
+							return;
+						}
 						const target = scene.focus ?? {
 							selector: ":is(.auth-content, .panel)",
 						};
-						if (target) {
-							find(target, control.signal)
-								.then(camera.focus)
-								.catch(() => {
-									// Playback actions report missing controls; camera focus is optional.
-								});
+						const element = await find(target, control.signal);
+						let scale = 0.985;
+						if (scene.focus) {
+							scale = 0.995;
+						} else if (index % 2 !== 0) {
+							scale = 0.975;
 						}
+						camera.focus(element, scale);
+						// Finish the section transition before interacting with its controls.
+						await pause(480, control.signal);
 					},
 					signal: control.signal,
 					voice: voice.play,
@@ -123,7 +138,7 @@ export function Studio({ api }: { api: PreviewAPI }) {
 				controller.current = null;
 			}
 		},
-		[approve, stop, motion]
+		[approve, stop, motion, initialPrefs]
 	);
 	const rehearse = useCallback(() => {
 		run(false).catch(() => setError("Could not start playback."));
@@ -185,7 +200,8 @@ export function Studio({ api }: { api: PreviewAPI }) {
 						</p>
 						{music ? (
 							<p>
-								Beat timing: {music.bpm} BPM · {music.title}
+								Source edit: {SHOWCASE_GRID.bpm} BPM · Music: {music.bpm} BPM ·{" "}
+								{music.title}
 							</p>
 						) : null}
 					</div>

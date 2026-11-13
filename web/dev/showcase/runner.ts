@@ -61,7 +61,7 @@ export async function act(
 	event?: () => void
 ) {
 	const element = await find(action, signal);
-	revealVertically(element);
+	await revealVertically(element);
 	await pause(150, signal);
 	point(element);
 	await pause(250, signal);
@@ -126,7 +126,7 @@ export interface Playback {
 	approve: () => void;
 	grid?: BeatGrid;
 	point: (element: HTMLElement) => void;
-	scene: (scene: Scene, index: number) => void;
+	scene: (scene: Scene, index: number) => void | Promise<void>;
 	signal: AbortSignal;
 	voice: (
 		id: string,
@@ -165,8 +165,9 @@ export async function play(scenes: Scene[], options: Playback): Promise<Cue[]> {
 		}
 		options.signal.throwIfAborted();
 		const start = (performance.now() - started) / 1000;
-		options.scene(scene, index);
+		const framing = options.scene(scene, index);
 		const audio = options.voice(scene.id, scene.narration);
+		await framing;
 		const events: number[] = [];
 		await (scene.actions ?? []).reduce(async (earlier, action) => {
 			await earlier;

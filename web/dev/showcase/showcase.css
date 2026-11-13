@@ -11,7 +11,7 @@
 	overflow: auto;
 	overflow-x: hidden;
 	transform-origin: 0 0;
-	transition: transform 1400ms ease-in-out;
+	transition: transform 400ms ease-in-out;
 }
 .showcase-page .app,
 .showcase-page .history-session {
@@ -19,6 +19,53 @@
 }
 .showcase-page .auth-page {
 	min-height: 100%;
+}
+/* Reserve the largest description and estimate used in the scripted choices.
+   Changing a radio/select must not move the following controls or scroll anchor. */
+.showcase-page .order {
+	gap: 10px;
+}
+.showcase-page .order .picker {
+	gap: 8px;
+	align-content: start;
+	min-block-size: 190px;
+	padding-block: 12px;
+}
+.showcase-page .order .picker-field {
+	gap: 12px;
+}
+.showcase-page .order .estimate {
+	align-content: start;
+	min-block-size: 180px;
+}
+.showcase-page .order .go {
+	padding-block-end: 0;
+}
+.showcase-page .panel-content {
+	padding-block-end: 16px;
+}
+@supports (overflow-anchor: none) {
+	.showcase-page .pv-body {
+		overflow-anchor: none;
+	}
+}
+.showcase-page .order .opt {
+	position: relative;
+}
+/* Keep entry effects from competing with the recorded pointer and status cues. */
+.showcase-page
+	.app.entering
+	:is(
+		.top > *,
+		.pv-head > *,
+		.pv-body > *,
+		.plate,
+		.inspector,
+		.order .opt,
+		.order .details,
+		.order .go
+	) {
+	animation: none;
 }
 .showcase-controls,
 .showcase-captions {
