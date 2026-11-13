@@ -4,13 +4,29 @@ import { Form } from "../../components/forms/form";
 import { useAppForm } from "../../components/forms/use-app-form";
 import { api } from "../../lib/api";
 import { money } from "../../lib/format";
+import { AutoRebill } from "./auto-rebill";
 import { checkoutURL, prepareCheckoutWindow } from "./checkout-window";
 
 const AMOUNTS = [50, 100, 250, 500];
 const amounts = (state: { values: { amount: number; custom: string } }) =>
 	state.values;
 
-export function CreditsView({
+export function CreditsView(props: {
+	team: string;
+	gpuHour: number;
+	onDone: () => void;
+}) {
+	return (
+		<div className="credits-view">
+			<section aria-label="One-time credits">
+				<OneTimeCredits {...props} />
+			</section>
+			<AutoRebill key={props.team} team={props.team} />
+		</div>
+	);
+}
+
+function OneTimeCredits({
 	team,
 	gpuHour,
 	onDone,

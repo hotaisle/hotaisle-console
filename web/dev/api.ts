@@ -5,6 +5,7 @@ import {
 	removeMachine,
 	updateMachine,
 } from "../../shared/records";
+import { PreviewAutoRebill } from "./auto-rebill";
 import { BareMetalPreview } from "./bare-metal";
 import {
 	available,
@@ -46,8 +47,10 @@ export class PreviewAPI {
 		teamCreated: boolean;
 	};
 	private readonly metal?: BareMetalPreview;
+	private readonly rebill: PreviewAutoRebill;
 
 	constructor(scenario: Scenario, now = Date.now) {
+		this.rebill = new PreviewAutoRebill(scenario === "auto-rebill");
 		this.scenario = scenario;
 		this.auth = {
 			approvedEmail: false,
@@ -209,6 +212,9 @@ export class PreviewAPI {
 	}
 	private async teamResource(request: Request, url: URL, parts: string[]) {
 		const { method } = request;
+		if (parts.length === 1 && parts[0] === "auto-rebill") {
+			return this.rebill.request(request, this.now());
+		}
 		if (parts.join("/") === "members/invitations") {
 			return await this.members.invitations(request, this.now());
 		}

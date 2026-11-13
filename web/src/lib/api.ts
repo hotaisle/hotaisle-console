@@ -9,6 +9,7 @@ import {
 	type MachineRef,
 	machineAddress,
 } from "../../../shared/machine-identity";
+import type { AutoRebillSettings, AutoRebillStatus } from "./auto-rebill";
 import { type HistoryKey, historyVault } from "./history-vault";
 import { keyVault } from "./key-vault";
 
@@ -210,6 +211,8 @@ export const api = {
 		call<Team>("POST", `${t(team)}/accept-invitation/`),
 	addKey: (authorized_key: string) =>
 		call<SSHKey>("POST", "/api/user/ssh_keys/", { authorized_key }),
+	autoRebill: (team: string) =>
+		call<AutoRebillStatus>("GET", `${t(team)}/auto-rebill/`),
 	balance: (team: string) => call<Balance>("GET", `${t(team)}/balance/`),
 	bareMetalConsole: (team: string, server: string) =>
 		call<{ url: string }>("POST", `${m(team, server)}/console/`),
@@ -223,6 +226,8 @@ export const api = {
 		),
 	createTeam: (team: { name: string; handle: string }) =>
 		call<Team>("POST", "/api/teams/", team),
+	disableAutoRebill: (team: string) =>
+		call<void>("DELETE", `${t(team)}/auto-rebill/`),
 	/** Emails a sign-in link. */
 	emailStart: (email: string) =>
 		call<{ email: string; expires_at: string }>("POST", "/auth/email/start", {
@@ -305,6 +310,12 @@ export const api = {
 				specs: offer.rawSpecs,
 			})
 		),
+	setupAutoRebill: (team: string, settings: AutoRebillSettings) =>
+		call<{ checkout_url: string; expires_at: string }>(
+			"POST",
+			`${t(team)}/auto-rebill/`,
+			settings
+		),
 	/** API keys are checked per request and saved only as browser-local ciphertext. */
 	signInWithKey: async (key: string, passphrase: string) => {
 		const token = key.trim().replace(TOKEN_PREFIX_PATTERN, "");
@@ -351,6 +362,8 @@ export const api = {
 			throw error;
 		}
 	},
+	updateAutoRebill: (team: string, settings: AutoRebillSettings) =>
+		call<void>("PATCH", `${t(team)}/auto-rebill/`, settings),
 	updateTeam: (
 		handle: string,
 		details: { name?: string; description?: string }

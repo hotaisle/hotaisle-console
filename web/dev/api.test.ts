@@ -19,6 +19,28 @@ function request(
 	);
 }
 describe("development preview machine lifecycle", () => {
+	it("simulates rebill edits and disabling without opening real payment setup", async () => {
+		const api = new PreviewAPI("auto-rebill");
+		const path = "/api/teams/preview/auto-rebill/";
+		expect(await (await request(api, "GET", path)).json()).toMatchObject({
+			can_update_settings: true,
+			enabled: true,
+		});
+		const settings = {
+			monthly_cap_cents: 100_000,
+			rebill_amount_cents: 15_000,
+			threshold_cents: 5000,
+		};
+		expect((await request(api, "PATCH", path, settings)).status).toBe(204);
+		expect(await (await request(api, "GET", path)).json()).toMatchObject(
+			settings
+		);
+		expect((await request(api, "DELETE", path)).status).toBe(204);
+		expect(await (await request(api, "GET", path)).json()).toMatchObject({
+			enabled: false,
+		});
+		expect((await request(api, "POST", path, settings)).status).toBe(501);
+	});
 	it("simulates invitations in memory and keeps members when team details change", async () => {
 		const api = new PreviewAPI("running");
 		const invitation = {
