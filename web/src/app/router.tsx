@@ -39,6 +39,9 @@ const routeTree = rootRoute.addChildren([
 	createRoute({ getParentRoute: parent, path: "/sign-in/check-email" }),
 	createRoute({ getParentRoute: parent, path: "/teams" }),
 	createRoute({ getParentRoute: parent, path: "/teams/new" }),
+	createRoute({ getParentRoute: parent, path: "/account/api-tokens" }),
+	createRoute({ getParentRoute: parent, path: "/account/api-tokens/new" }),
+	createRoute({ getParentRoute: parent, path: "/account/api-tokens/$prefix" }),
 	createRoute({ getParentRoute: parent, path: "/teams/$team" }),
 	createRoute({ getParentRoute: parent, path: "/teams/$team/machines" }),
 	createRoute({

@@ -13,3 +13,54 @@
 .pasterow:has(.form-field) {
 	align-items: end;
 }
+
+.permission-options {
+	display: grid;
+	gap: 4px;
+	margin-block-start: 6px;
+}
+.auth-content label.permission-option {
+	display: grid;
+	grid-template-columns: 20px minmax(0, 1fr);
+	gap: 8px;
+	align-items: center;
+	padding: 8px 10px;
+	margin: 0;
+	cursor: pointer;
+	background: var(--card);
+	border: 1px solid var(--line-2);
+	border-radius: 6px;
+}
+.auth-content .permission-option:hover {
+	background: var(--card-2);
+}
+.auth-content .permission-option:has(:checked) {
+	border-color: var(--on);
+}
+.permission-option input:is([type="checkbox"], [type="radio"]) {
+	inline-size: 18px;
+	block-size: 18px;
+	padding: 0;
+	margin: 0;
+	cursor: pointer;
+}
+@supports (accent-color: var(--on)) {
+	.permission-option input:is([type="checkbox"], [type="radio"]) {
+		accent-color: var(--on);
+	}
+}
+.permission-option > span {
+	display: grid;
+	grid-template-columns: 5rem minmax(0, 1fr);
+	gap: 8px;
+	align-items: baseline;
+	font-size: 15px;
+}
+.permission-option strong {
+	font-weight: 500;
+}
+.permission-option > span > span {
+	font-size: 14px;
+	line-height: 1.5;
+	color: var(--ink-2);
+}

@@ -1,5 +1,7 @@
 import { machineKind, parseMachineKey } from "../../../shared/machine-identity";
 import type { Image } from "../lib/prefs";
+
+const TEAM_HANDLE_PATTERN = /^[a-z0-9](?:[a-z0-9_-]{0,98}[a-z0-9])?$/u;
 export type View =
 	| "home"
 	| "order"
@@ -14,12 +16,18 @@ export interface ConsoleSearch {
 	page?: number;
 	pageSize?: number;
 	returnTo?: string;
+	tokenTeam?: string;
 }
 export function safeReturnTo(value: unknown): string | undefined {
 	if (typeof value !== "string") {
 		return undefined;
 	}
-	if (value === "/teams" || value.startsWith("/teams/")) {
+	if (
+		value === "/teams" ||
+		value.startsWith("/teams/") ||
+		value === "/account/api-tokens" ||
+		value.startsWith("/account/api-tokens/")
+	) {
 		try {
 			const url = new URL(value, "https://console.invalid");
 			url.searchParams.delete("cloudInit");
@@ -50,6 +58,11 @@ export function validateSearch(search: Record<string, unknown>): ConsoleSearch {
 				? Number(search.pageSize)
 				: undefined,
 		returnTo: safeReturnTo(search.returnTo),
+		tokenTeam:
+			typeof search.tokenTeam === "string" &&
+			TEAM_HANDLE_PATTERN.test(search.tokenTeam)
+				? search.tokenTeam
+				: undefined,
 	};
 }
 export function viewFromPath(path: string): View {

@@ -5,6 +5,8 @@ import {
 	removeMachine,
 	updateMachine,
 } from "../../shared/records";
+import type { Team } from "../src/lib/api";
+import { PreviewAPITokens } from "./api-tokens";
 import { PreviewAutoRebill } from "./auto-rebill";
 import { BareMetalPreview } from "./bare-metal";
 import {
@@ -35,6 +37,8 @@ function object(value: unknown): value is Record<string, unknown> {
 export class PreviewAPI {
 	private readonly team = { ...TEAM, description: "" };
 	private readonly members = new PreviewTeamMembers();
+	private readonly tokens: PreviewAPITokens;
+	private readonly otherTeams: Team[] = [];
 	private readonly machines = new Map<string, PreviewMachine>();
 	private readonly records = emptyRecords();
 	private readonly now: () => number;
@@ -50,6 +54,25 @@ export class PreviewAPI {
 	private readonly rebill: PreviewAutoRebill;
 
 	constructor(scenario: Scenario, now = Date.now) {
+		if (scenario === "api-tokens") {
+			this.team.roles = ["owner", "purchaser", "operator", "user"];
+			this.team.effective_roles = [...this.team.roles];
+			this.otherTeams.push(
+				{
+					effective_roles: ["operator", "user"],
+					handle: "research",
+					name: "Research",
+					roles: ["operator", "user"],
+				},
+				{
+					effective_roles: ["purchaser"],
+					handle: "finance",
+					name: "Finance",
+					roles: ["purchaser"],
+				}
+			);
+		}
+		this.tokens = new PreviewAPITokens([this.team, ...this.otherTeams]);
 		this.rebill = new PreviewAutoRebill(scenario === "auto-rebill");
 		this.scenario = scenario;
 		this.auth = {
@@ -181,7 +204,7 @@ export class PreviewAPI {
 		}
 		if (method === "GET" && path === "/api/user/") {
 			return json({
-				teams: this.auth.teamCreated ? [this.team] : [],
+				teams: this.auth.teamCreated ? [this.team, ...this.otherTeams] : [],
 				user: {
 					created: "2026-01-01",
 					email: "preview@example.invalid",
@@ -192,6 +215,9 @@ export class PreviewAPI {
 		}
 		if (method === "POST" && path === "/api/teams/") {
 			return this.createTeam(request);
+		}
+		if (path.startsWith("/api/user/api_keys/")) {
+			return this.tokens.request(request);
 		}
 		if (method === "GET" && path === "/api/user/ssh_keys/") {
 			return json([

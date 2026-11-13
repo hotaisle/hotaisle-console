@@ -36,6 +36,15 @@ export function AccountSettings({
 			>
 				Manage team
 			</Link>
+			<Link
+				className="btn-text more"
+				search={{
+					returnTo: `/teams/${encodeURIComponent(team.handle)}/settings`,
+				}}
+				to="/account/api-tokens"
+			>
+				Manage API tokens
+			</Link>
 			{teams.length > 1 ? (
 				<div className="field">
 					<label className="field-l" htmlFor="team">
@@ -51,9 +60,7 @@ export function AccountSettings({
 				</div>
 			) : null}
 			<p className="muted small">{method}</p>
-			{logout.error ? (
-				<FormError message={logout.error.message} />
-			) : null}
+			{logout.error ? <FormError message={logout.error.message} /> : null}
 			<button
 				className="btn"
 				disabled={logout.isPending}

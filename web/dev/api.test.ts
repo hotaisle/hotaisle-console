@@ -19,6 +19,68 @@ function request(
 	);
 }
 describe("development preview machine lifecycle", () => {
+	it("previews token permissions across three memberships and rejects unavailable grants", async () => {
+		const api = new PreviewAPI("api-tokens");
+		const account = await (await request(api, "GET", "/api/user/")).json();
+		expect(
+			account.teams.map((team: { handle: string }) => team.handle)
+		).toEqual(["preview", "research", "finance"]);
+		const base = "/api/user/api_keys/";
+		const result = await request(api, "POST", base, {
+			label: "Team automation",
+			teams: [
+				{ roles: ["operator"], team: "research" },
+				{ roles: ["purchaser"], team: "finance" },
+			],
+			user_role: "user",
+		});
+		expect(result.status).toBe(200);
+		expect((await result.json()).teams).toEqual([
+			{ handle: "research", name: "Research", roles: ["operator"] },
+			{ handle: "finance", name: "Finance", roles: ["purchaser"] },
+		]);
+		expect(
+			(
+				await request(api, "POST", base, {
+					label: "Unavailable grant",
+					teams: [{ roles: ["owner"], team: "finance" }],
+					user_role: "user",
+				})
+			).status
+		).toBe(422);
+	});
+	it("simulates token creation, editing, and revocation in memory without listing token values", async () => {
+		const api = new PreviewAPI("running");
+		const base = "/api/user/api_keys/";
+		const created = await (
+			await request(api, "POST", base, {
+				label: "Automation",
+				teams: [{ roles: ["owner"], team: "preview" }],
+				user_role: "user",
+			})
+		).json();
+		expect(created.token).toContain("simulated-token-not-a-real-credential");
+		expect(await (await request(api, "GET", base)).text()).not.toContain(
+			created.token
+		);
+		const edited = await (
+			await request(api, "PATCH", `${base}${created.prefix}/`, {
+				label: "Renamed",
+				user_role: "user",
+			})
+		).json();
+		expect(edited).toMatchObject({ label: "Renamed", teams: created.teams });
+		expect(edited.token).toBeUndefined();
+		expect(
+			(await request(api, "DELETE", `${base}${created.prefix}/`)).status
+		).toBe(204);
+		expect(await (await request(api, "GET", base)).text()).not.toContain(
+			created.prefix
+		);
+		expect(
+			await (await request(new PreviewAPI("running"), "GET", base)).json()
+		).toHaveLength(1);
+	});
 	it("simulates rebill edits and disabling without opening real payment setup", async () => {
 		const api = new PreviewAPI("auto-rebill");
 		const path = "/api/teams/preview/auto-rebill/";

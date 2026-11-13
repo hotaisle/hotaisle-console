@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { useCallback, useEffect } from "react";
 import { FormError } from "../components/forms/form-error";
+import { APITokens } from "../features/api-tokens/api-tokens";
 import { Connect } from "../features/auth/connect";
 import { HistoryAccess } from "../features/auth/history-access";
 import { UnlockKey } from "../features/auth/unlock-key";
@@ -72,6 +73,9 @@ export function ConnectionError({
 	);
 }
 
+function isAccountAuthError(error: Error | null) {
+	return error instanceof APIError && [401, 403].includes(error.status);
+}
 function AccountView({ status }: { status: Status }) {
 	const client = useQueryClient();
 	// Keep path and params on the same committed match during navigation.
@@ -186,10 +190,7 @@ function AccountView({ status }: { status: Status }) {
 		return <LoadingScreen />;
 	}
 	if (account.isError) {
-		if (
-			account.error instanceof APIError &&
-			[401, 403].includes(account.error.status)
-		) {
+		if (isAccountAuthError(account.error)) {
 			return (
 				<ConnectionError
 					label="Sign in again"
@@ -208,6 +209,15 @@ function AccountView({ status }: { status: Status }) {
 		}
 	}
 	const teams = account.data.teams.filter((team) => !team.invitation);
+	if (location.pathname.startsWith("/account/api-tokens")) {
+		return (
+			<APITokens
+				account={account.data}
+				key={`${account.data.user.email}:${account.data.user.created}`}
+				status={status}
+			/>
+		);
+	}
 	const creating = location.pathname === "/teams/new";
 	if (
 		(location.pathname.startsWith("/sign-in") ||
