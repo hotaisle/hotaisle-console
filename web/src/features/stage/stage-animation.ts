@@ -54,11 +54,13 @@ export interface CameraSpring {
 	lw: Spring;
 }
 interface AnimationContext {
-	arrived: RefObject<boolean>;
 	box: RefObject<HTMLDivElement | null>;
 	camKept: RefObject<number[] | null>;
 	camSpring: RefObject<CameraSpring | null>;
 	chip: RefObject<SVGSVGElement | null>;
+	drawerFanCanvas: RefObject<HTMLCanvasElement | null>;
+	drawerFanLayer: RefObject<FanLayer | null>;
+	drawerGuards: RefObject<SVGSVGElement | null>;
 	fanCanvas: RefObject<HTMLCanvasElement | null>;
 	fanLayer: RefObject<FanLayer | null>;
 	first: RefObject<boolean>;
@@ -68,7 +70,11 @@ interface AnimationContext {
 	hold: Signal<number>;
 	inspBox: RefObject<number[] | null>;
 	kept: RefObject<Map<string, DrawerMotion>>;
-	live: RefObject<{ lay: ReturnType<typeof layout>; st: StageState }>;
+	live: RefObject<{
+		fanMotion: boolean;
+		lay: ReturnType<typeof layout>;
+		st: StageState;
+	}>;
 	svg: RefObject<SVGSVGElement | null>;
 	tagSize: RefObject<Map<string, [number, number]>>;
 	wake: RefObject<() => void>;
@@ -76,11 +82,13 @@ interface AnimationContext {
 export function startStageAnimation({
 	hall,
 	hold,
-	arrived,
 	box,
 	camKept,
 	camSpring,
 	chip,
+	drawerFanCanvas,
+	drawerFanLayer,
+	drawerGuards,
 	fanCanvas,
 	fanLayer,
 	first,
@@ -96,39 +104,62 @@ export function startStageAnimation({
 	const root = svg.current;
 	const fr = front.current;
 	const canvas = fanCanvas.current;
+	const drawerCanvas = drawerFanCanvas.current;
+	const guards = drawerGuards.current;
 	const plate = box.current;
-	if (!(hall && root && fr && canvas && plate)) {
+	if (!(hall && root && fr && canvas && drawerCanvas && guards && plate)) {
 		return;
 	}
 	const scene = hall;
 	const surface = plate;
-	// the fans: one GPU layer for the whole row, made once and given each new drawing's fans
-	if (!fanLayer.current) {
+	// The row's rotors sit behind the opaque trays; the open drawer's rotors sit above its floor.
+	function ensureFans(
+		layer: RefObject<FanLayer | null>,
+		target: HTMLCanvasElement
+	) {
+		if (layer.current) {
+			return;
+		}
 		try {
-			fanLayer.current = new FanLayer(canvas);
+			layer.current = new FanLayer(target);
 		} catch (e) {
 			// without WebGL 2 the fans are drawn still, by the drawing itself
 			console.warn("Fan layer unavailable:", (e as Error).message);
-			fanLayer.current = null;
+			layer.current = null;
 		}
 	}
-	const fl = fanLayer.current?.ok ? fanLayer.current : null;
+	ensureFans(fanLayer, canvas);
+	ensureFans(drawerFanLayer, drawerCanvas);
+	const available = fanLayer.current?.ok && drawerFanLayer.current?.ok;
+	const fl = available ? fanLayer.current : null;
+	const drawerFans = available ? drawerFanLayer.current : null;
 	surface.classList.toggle("gl", !!fl);
-	// without the GPU layer there are no fans to show through the drawers' grilles: keep them solid
-	if (!fl) {
-		for (const m of fr.querySelectorAll("[mask]")) {
-			m.removeAttribute("mask");
-		}
-	}
-	fl?.setFans(scene.fans);
 	fl?.resize(surface.clientWidth, surface.clientHeight);
+	drawerFans?.resize(surface.clientWidth, surface.clientHeight);
 	fl?.setColors(surface);
+	drawerFans?.setColors(surface);
 	const cageIndex = new Map(scene.cages.map((h, i) => [h, i]));
+	let frontCage: number | undefined;
+	function orderFans(out: string[]) {
+		const selected = cageIndex.get(out[0]) ?? -1;
+		if (selected === frontCage) {
+			return;
+		}
+		frontCage = selected;
+		fl?.setFans(
+			scene.fans.filter((fan) => fan.cage !== selected || selected < 0)
+		);
+		drawerFans?.setFans(
+			scene.fans.filter((fan) => fan.cage === selected && selected >= 0)
+		);
+	}
+	orderFans(live.current.lay.out);
 	const W = surface.clientWidth;
 	const H = surface.clientHeight;
 	// follow the theme
 	const recolor = () => {
 		fl?.setColors(surface);
+		drawerFans?.setColors(surface);
 		wake.current();
 	};
 	const scheme = window.matchMedia("(prefers-color-scheme: dark)");
@@ -180,11 +211,17 @@ export function startStageAnimation({
 		};
 		kept.current.set(host, m);
 		return Object.assign(m, {
+			fanMask:
+				fr
+					.querySelector(`[data-tray-surface="${host}"]`)
+					?.getAttribute("mask") ?? "none",
+			guards: guards.querySelector<SVGGElement>(`[data-tray-guards="${host}"]`),
 			host,
+			surface: fr.querySelector<SVGGElement>(`[data-tray-surface="${host}"]`),
 			tray: fr.querySelector<SVGGElement>(`[data-tray="${host}"]`),
 		});
 	});
-	const drawerOut = bezier(0.22, 0.9, 0.24, 1); // a firm pull, then a long glide to a stop
+	const drawerOut = bezier(0.32, 0, 0.28, 1); // a gentle start and a slow glide to a stop
 	const drawerIn = bezier(0.45, 0, 0.2, 1);
 	const idleds = [...root.querySelectorAll<SVGCircleElement>("[data-idled]")];
 	const xcds = [
@@ -314,14 +351,26 @@ export function startStageAnimation({
 		frame = requestAnimationFrame(tick);
 	};
 	const unhold = hold.sub(() => wake.current());
+	const visibilityChanged = () => wake.current();
+	document.addEventListener("visibilitychange", visibilityChanged);
+	let spinning = false;
 	function drawFans(now: number, activeFrame: boolean) {
-		const spin = !!fl && !still.matches && onScreen;
-		if (fl && (spin || activeFrame)) {
-			fl.draw(still.matches ? 0 : now / 1000);
+		const spin = !!fl && live.current.fanMotion && onScreen && !document.hidden;
+		if (fl && (spin || activeFrame || spinning !== spin)) {
+			fl.draw(now / 1000, spin);
+			drawerFans?.draw(now / 1000, spin);
 		}
+		spinning = spin;
 		return spin;
 	}
 	const tick = (now: number) => {
+		if (!onScreen || document.hidden) {
+			fl?.pause();
+			drawerFans?.pause();
+			spinning = false;
+			sleeping = true;
+			return;
+		}
 		const dt = last ? Math.min((now - last) / 1000, 1 / 30) : 1 / 60;
 		last = now;
 		if (active) {
@@ -379,7 +428,9 @@ export function startStageAnimation({
 		const vb = cam.map((c) => c.x.toFixed(2)).join(" ");
 		put(root, "viewBox", vb);
 		put(fr, "viewBox", vb);
+		put(guards, "viewBox", vb);
 		fl?.setCamera(cam.map((c) => c.x));
+		drawerFans?.setCamera(cam.map((c) => c.x));
 		camKept.current = cam.map((c) => c.x);
 
 		return { moving, settled, view };
@@ -393,7 +444,7 @@ export function startStageAnimation({
 		const goingOut = target > s.pull.x;
 		const dist = Math.abs(target - s.pull.x) / PULL;
 		s.glide = {
-			dur: (goingOut ? 820 : 600) * Math.max(0.45, Math.sqrt(dist)),
+			dur: (goingOut ? 2200 : 1100) * Math.max(0.45, Math.sqrt(dist)),
 			ease: goingOut ? drawerOut : drawerIn,
 			from: s.pull.x,
 			start: now + (goingOut ? delay * 90 : 0),
@@ -409,31 +460,43 @@ export function startStageAnimation({
 		delay: number
 	) {
 		let moving = false;
-		const [yx, yy] = scene.perY;
 		if (target !== s.to) {
 			startDrawer(s, target, now, delay);
 		}
 		if (s.glide) {
 			const g = s.glide;
-			const k = still.matches
-				? 1
-				: Math.min(1, Math.max(0, (now - g.start) / g.dur));
+			const k = Math.min(1, Math.max(0, (now - g.start) / g.dur));
 			s.pull.x = g.from + (g.to - g.from) * g.ease(k);
 			moving = true;
 			if (k >= 1) {
 				s.glide = null;
 			}
 		}
+		paintDrawer(s);
+		return moving;
+	}
+	function paintDrawer(s: (typeof servers)[number]) {
+		const [yx, yy] = scene.perY;
 		const off = s.pull.x - PULL;
+		const selected = cageIndex.get(s.host) === frontCage;
+		put(s.surface, "mask", fl && !selected ? s.fanMask : "none");
+		put(s.guards, "visibility", selected && fl ? "visible" : "hidden");
+		put(s.tray, "data-drawer-open", String(s.pull.x > 0.25));
+		put(s.guards, "data-drawer-open", String(s.pull.x > 0.25));
 		if (s.tray) {
-			put(
-				s.tray,
-				"transform",
-				`translate(${(yx * off).toFixed(2)} ${(yy * off).toFixed(2)})`
-			);
+			const transform = `translate(${(yx * off).toFixed(2)} ${(yy * off).toFixed(2)})`;
+			put(s.tray, "transform", transform);
+			put(s.guards, "transform", transform);
 		}
 		fl?.setOffset(cageIndex.get(s.host) ?? -1, yx * s.pull.x, yy * s.pull.x);
-		return moving;
+		drawerFans?.setOffset(
+			cageIndex.get(s.host) ?? -1,
+			yx * s.pull.x,
+			yy * s.pull.x
+		);
+		// Disconnect power as the drawer leaves its seated position; reconnect only once it closes.
+		fl?.setPower(cageIndex.get(s.host) ?? -1, s.pull.x <= 0.25);
+		drawerFans?.setPower(cageIndex.get(s.host) ?? -1, s.pull.x <= 0.25);
 	}
 	function updateDrawers(
 		now: number,
@@ -441,13 +504,11 @@ export function startStageAnimation({
 		settled: boolean
 	) {
 		let moving = false;
+		orderFans(layLocal.out);
 		// the drawers: out for your servers, in for the rest. Several starting together go out one after another.
 		// A drawer comes out once the camera has arrived, and once moving out it carries on even if the
 		// camera is sent somewhere close by: only leaving the drawing's focus sends it back in.
 		const outNow = new Set(layLocal.out);
-		if (settled) {
-			arrived.current = true;
-		}
 		let started = 0;
 		for (const server of servers) {
 			const target =
@@ -482,7 +543,8 @@ export function startStageAnimation({
 				return;
 			}
 			// The tag floats above the assigned heatsinks and follows the drawer in the same frame.
-			const pull = kept.current.get(host)?.pull.x ?? 0;
+			const drawer = kept.current.get(host);
+			const pull = drawer?.pull.x ?? 0;
 			const px = (a[0] + yx * pull) * sc + ox;
 			const py = (a[1] + yy * pull) * sc + oy;
 			const [tw, th] = tagSize.current.get(host) ?? [160, 44];
@@ -520,7 +582,10 @@ export function startStageAnimation({
 					`${Math.atan2(py - (cy + th / 2), px - (cx + tw / 2)).toFixed(2)}rad`
 				);
 			}
-			put(el, "data-shown", String(still.matches || arrived.current));
+			// Reveal the label from the completed drawer pose, including when motion is skipped.
+			const open =
+				drawer?.to === PULL && drawer.pull.x === PULL && !drawer.glide;
+			put(el, "data-shown", String(open));
 		}
 		for (const el of surface.querySelectorAll<HTMLElement>("[data-tag]")) {
 			positionTag(el);
@@ -656,11 +721,16 @@ export function startStageAnimation({
 		const indicatorsMoving = updateIndicators(st, currentLayout);
 		return camera.moving || drawersMoving || gpuMoving || indicatorsMoving;
 	};
+	// Apply the closed pose before the first paint so the fully extended source SVG never flashes.
+	const mountedAt = performance.now();
+	step(mountedAt, 0);
+	drawFans(mountedAt, true);
 	frame = requestAnimationFrame(tick);
 	return () => {
 		cancelAnimationFrame(frame);
 		unhold();
 		seen.disconnect();
+		document.removeEventListener("visibilitychange", visibilityChanged);
 		themeWatch.disconnect();
 		scheme.removeEventListener("change", recolor);
 		wake.current = () => undefined;

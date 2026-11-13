@@ -6,6 +6,7 @@
 // turning), the hub, and the guard in front (the square grille of a GPU fan module, the cross of a power
 // supply). Shapes are measured as distances, so edges stay sharp at any zoom and pixel density, and a
 // frame costs a few microseconds of GPU time however many fans there are.
+import { FanClock } from "./fan-clock";
 import type { Fan } from "./hall";
 
 const VS = `#version 300 es
@@ -41,7 +42,7 @@ precision highp float;
 in vec2 local;
 flat in int kind;
 flat in float angle;
-uniform vec3 duct, blade, bladeHi, edge, hub, grille, grilleShade;
+uniform vec3 duct, blade, bladeHi, edge, hub, grille;
 
 out vec4 color;
 
@@ -67,37 +68,21 @@ void main() {
     vec2 p = local / 3.55;
     float a = aa / 3.55;
     float rho = length(p);
-    c = duct;
+    // Recessed duct and directional light separate the rotor from its fixed guard.
+    float well = min(4.05 - abs(local.x), 2.95 - abs(local.y));
+    c = duct * mix(0.45, 1.0, smoothstep(0.0, 0.55, well));
     float d;
     float b = blades(p, 7.0, 0.3, 0.97, 0.9, a, d);
     // a fan only a few pixels across turns into a soft disc rather than flickering blades
     float tiny = smoothstep(0.06, 0.16, a);
     b = mix(b, 0.5 * step(0.3, rho) * step(rho, 0.97), tiny);
-    c = mix(c, mix(blade, bladeHi, smoothstep(0.3, 1.0, rho) * 0.6), b);
-    c = mix(c, edge, (1.0 - smoothstep(0.0, a * 1.4, abs(d))) * 0.85 * (1.0 - tiny));
+    float light = clamp(0.5 + dot(normalize(p + vec2(0.001)), vec2(-0.25, -0.7)) * 0.35, 0.0, 1.0);
+    c = mix(c, mix(blade, bladeHi, light), b);
+    c = mix(c, edge, (1.0 - smoothstep(0.0, a * 1.4, abs(d))) * 0.45 * (1.0 - tiny));
     float h = smoothstep(a, -a, rho - 0.3);
     c = mix(c, hub, h);
     c = mix(c, edge, (1.0 - smoothstep(0.0, a * 1.4, abs(rho - 0.3))) * 0.8);
-    // the grille: 8 x 6 square openings, bars about 1.8 mm, a little shading on their lower edge
-    vec2 g = (local + vec2(4.05, 2.95)) / vec2(8.1, 5.9) * vec2(8.0, 6.0);
-    vec2 gp = fwidth(g) * 0.75;
-    vec2 f = abs(fract(g) - 0.5);
-    float bw = 0.4;
-    float barX = smoothstep(bw - gp.x, bw + gp.x, f.x);
-    float barY = smoothstep(bw - gp.y, bw + gp.y, f.y);
-    float bar = max(barX, barY);
-    float under = smoothstep(bw - gp.y, bw + gp.y, abs(fract(g.y - 0.08) - 0.5)) * (1.0 - bar);
-    // when an opening is only a few pixels across, the bars would alias and crawl as the camera moves:
-    // fade them toward their average cover (about a third of the grille), as a mipmap would
-    float lod = smoothstep(0.16, 0.38, max(gp.x, gp.y));
-    bar = mix(bar, 0.36, lod);
-    under *= 1.0 - lod;
-    c = mix(c, grilleShade, under * 0.7);
-    c = mix(c, grille, bar);
-    // the handle across the lower grille
-    float arc = abs(length(local - vec2(0.0, -2.2)) - 4.55);
-    float handle = (1.0 - smoothstep(0.11 - aa, 0.11 + aa, arc)) * (1.0 - smoothstep(1.9 - aa, 1.9 + aa, abs(local.x)));
-    c = mix(c, grille, handle);
+    // The SVG layer draws the stationary guard once, above these moving blades.
     color = vec4(c, 1.0);
   } else {
     // a power supply or switch fan, behind a guard of four spokes and a ring
@@ -126,7 +111,6 @@ const COLORS = {
 	duct: "--fan-duct",
 	edge: "--fan-edge",
 	grille: "--fan-metal",
-	grilleShade: "--fan-edge",
 	hub: "--fan-hub",
 } as const;
 
@@ -138,10 +122,13 @@ export class FanLayer {
 	private readonly offsets = new Float32Array(16);
 	private cam = [1, 0, 0];
 	private readonly wallTime = new Float32Array(8);
-	private readonly wallSpeed = new Float32Array(8).fill(1);
-	private readonly wallPower = new Float32Array(8).fill(1);
+	private readonly wallClocks = Array.from({ length: 8 }, () => new FanClock());
 	private lastDraw = Number.NaN;
+	private elapsed = 0;
+	private moving = false;
 	private buf: WebGLBuffer | null = null;
+	private readonly quad: WebGLBuffer | null = null;
+	private readonly vao: WebGLVertexArrayObject | null = null;
 	private css = [1, 1];
 	readonly ok: boolean;
 
@@ -177,9 +164,13 @@ export class FanLayer {
 		if (!prog) {
 			throw new Error("The graphics device could not allocate a program");
 		}
-		gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS));
-		gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
+		const vertex = sh(gl.VERTEX_SHADER, VS);
+		const fragment = sh(gl.FRAGMENT_SHADER, FS);
+		gl.attachShader(prog, vertex);
+		gl.attachShader(prog, fragment);
 		gl.linkProgram(prog);
+		gl.deleteShader(vertex);
+		gl.deleteShader(fragment);
 		if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
 			throw new Error(gl.getProgramInfoLog(prog) ?? "link");
 		}
@@ -195,10 +186,10 @@ export class FanLayer {
 		]) {
 			this.u[name] = gl.getUniformLocation(prog, name);
 		}
-		const vao = gl.createVertexArray();
-		gl.bindVertexArray(vao);
-		const quad = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+		this.vao = gl.createVertexArray();
+		gl.bindVertexArray(this.vao);
+		this.quad = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.quad);
 		gl.bufferData(
 			gl.ARRAY_BUFFER,
 			new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
@@ -267,7 +258,7 @@ export class FanLayer {
 	/** Power to a fan wall's fans: off while it is out of its server. They spin down, and back up, like real fans. */
 	setPower(i: number, on: boolean) {
 		if (i >= 0 && i < 8) {
-			this.wallPower[i] = on ? 1 : 0;
+			this.wallClocks[i].setPower(on);
 		}
 	}
 
@@ -284,19 +275,20 @@ export class FanLayer {
 		if (!this.gl) {
 			return;
 		}
-		const probe = document.createElement("span");
-		from.appendChild(probe);
+		const styles = getComputedStyle(from);
 		const { gl } = this;
 		activateProgram(gl, this.prog);
 		for (const [name, prop] of Object.entries(COLORS)) {
-			probe.style.color = `var(${prop})`;
-			gl.uniform3fv(this.u[name], parseColor(getComputedStyle(probe).color));
+			gl.uniform3fv(this.u[name], fanColor(styles.getPropertyValue(prop)));
 		}
-		probe.remove();
 	}
 
-	draw(seconds: number) {
-		if (!(this.gl && this.count)) {
+	pause() {
+		this.moving = false;
+	}
+
+	draw(seconds: number, moving = true) {
+		if (!this.gl) {
 			return;
 		}
 		const { gl } = this;
@@ -307,30 +299,44 @@ export class FanLayer {
 		gl.uniform3fv(this.u.cam, this.cam);
 		gl.uniform2fv(this.u.size, this.css);
 		gl.uniform2fv(this.u.offsets, this.offsets);
-		gl.uniform1f(this.u.time, seconds);
-		// each wall's clock runs at its fans' speed: about 1.6 s to spin down, 0.7 s to spin up
-		const dt = Number.isFinite(this.lastDraw)
-			? Math.min(0.1, Math.max(0, seconds - this.lastDraw))
-			: 0;
+		const dt =
+			moving && this.moving && Number.isFinite(this.lastDraw)
+				? Math.min(0.1, Math.max(0, seconds - this.lastDraw))
+				: 0;
+		this.elapsed += dt;
+		gl.uniform1f(this.u.time, this.elapsed);
+		// The open drawer's rotors coast for 4.5 seconds, then hold their exact final angle.
 		this.lastDraw = seconds;
+		this.moving = moving;
 		for (let i = 0; i < 8; i += 1) {
-			const target = this.wallPower.at(i) ?? 0;
-			const tau = target > this.wallSpeed[i] ? 0.25 : 0.55;
-			this.wallSpeed[i] +=
-				(target - this.wallSpeed[i]) * (1 - Math.exp(-dt / tau));
-			this.wallTime[i] =
-				dt > 0 ? this.wallTime[i] + dt * this.wallSpeed[i] : seconds;
+			const clock = this.wallClocks[i];
+			clock.advance(dt);
+			this.wallTime[i] = clock.time;
 		}
 		gl.uniform1fv(this.u.wallTime, this.wallTime);
 		gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, this.count);
 	}
 
 	dispose() {
-		this.gl?.getExtension("WEBGL_lose_context")?.loseContext();
+		this.gl?.deleteBuffer(this.buf);
+		this.gl?.deleteBuffer(this.quad);
+		this.gl?.deleteVertexArray(this.vao);
+		this.gl?.deleteProgram(this.prog);
 	}
 }
 
-function parseColor(css: string): number[] {
+export function fanColor(value: string): number[] {
+	const css = value.trim();
+	if (css.startsWith("#")) {
+		const hex = css.slice(1);
+		const expanded =
+			hex.length <= 4
+				? [...hex.slice(0, 3)].map((digit) => digit + digit).join("")
+				: hex;
+		return [0, 2, 4].map(
+			(offset) => Number.parseInt(expanded.slice(offset, offset + 2), 16) / 255
+		);
+	}
 	const n = css.match(/[\d.]+/gu)?.map(Number) ?? [0, 0, 0];
 	// rgb(255, 0, 0) or color(srgb 1 0 0)
 	return css.startsWith("color(")
