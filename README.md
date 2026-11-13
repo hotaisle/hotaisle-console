@@ -78,6 +78,8 @@ For the scripted walkthrough, run `bun run showcase` and open
 [Showcase studio](http://preview.localhost:8787/__preview/showcase.html). It follows sign-in, team creation,
 Add credits, launch, release, history, and settings with captions and optional local voiceover.
 See [the recording guide](docs/showcase.md) for beat timing, capture, and MP4 export.
+Follow [the media sync process](docs/media-sync.md) to refresh README, website, and blog screenshots
+alongside the video, captions, transcript, and poster before a UI-changing PR.
 
 ```sh
 bun run check             # Ultracite/Biome lint and formatting

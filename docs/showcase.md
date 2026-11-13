@@ -1,5 +1,10 @@
 # Console showcase
 
+For screenshot capture, all publication destinations, delivery encoding, and the
+pre-PR synchronization decision, follow [Console media synchronization](media-sync.md).
+This guide covers the local recording studio and composition tools. Building the
+showcase alone does not refresh README or website media.
+
 The local showcase uses the real sign-in, team, rental, machine, history, credits,
 and settings components with a browser-only simulated API. It starts signed out,
 approves a fixture email, creates a team with a simulated balance, previews Add credits and
@@ -54,7 +59,7 @@ select **only the Showcase studio tab**. Chrome requires a direct click while th
 tab has focus. Monitor and window capture are rejected and stopped. Capture has
 no microphone or system audio; generated narration routes directly into the video
 without playing through desktop speakers. The recording includes captions, a
-pointer, camera movement, and a visible simulated-data label.
+pointer, optional camera movement, and a visible simulated-data label.
 
 After completion, save the WebM video, SRT captions, and JSON timing. Stop cancels
 pending actions and releases capture/audio resources. A missing or disabled control
