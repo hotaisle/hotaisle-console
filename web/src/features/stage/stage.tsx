@@ -379,7 +379,9 @@ export function Stage({
 							markup={chipSvg}
 							viewBox="0 0 260 112"
 						/>
-						<p className="spec-t">{state.specTitle}</p>
+						{state.preview === undefined || state.spec.length === 0 ? (
+							<p className="spec-t">{state.specTitle}</p>
+						) : null}
 						<MachineSpecs specs={state.spec} />
 					</div>
 				</div>
