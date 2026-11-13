@@ -145,10 +145,16 @@ capture timing as composition input, so the added pauses are applied only once.
 
 ## Music and beat timing
 
-Analyze a local music file before building the preview:
+The current music excerpt is tracked at
+[`tools/showcase/assets/flavour-trip-brunch-excerpt.m4a`](../tools/showcase/assets/flavour-trip-brunch-excerpt.m4a).
+It contains two minutes starting at 33.04 seconds of the supplied recording, at
+118 BPM. The current walkthrough uses about 83 seconds, leaving roughly 37 seconds
+for future extensions. See the [source credit and edit details](../tools/showcase/assets/README.md).
+
+Analyze the excerpt before building the preview:
 
 ```sh
-bun run showcase:music music.m4a "Track title" "https://example.com/source"
+bun run showcase:music tools/showcase/assets/flavour-trip-brunch-excerpt.m4a "Flavour Trip — Easy Morning Brunch House Music Mix"
 bun run preview
 ```
 
@@ -162,17 +168,17 @@ the timing JSON. With no generated grid the timed walkthrough still works. Chang
 the storyboard chapter times when using music with another tempo. If a scene runs
 past its slot, playback reports the overrun instead of exporting a successful take.
 
-Pass the same local audio excerpt to composition:
+Pass the same tracked audio excerpt to composition:
 
 ```sh
-bun run showcase:compose frames.json timing.json showcase.mp4 music.m4a 118
+bun run showcase:compose frames.json timing.json showcase.mp4 tools/showcase/assets/flavour-trip-brunch-excerpt.m4a 118
 ```
 
-The music fades in and out and is automatically lowered under narration by no more than 6 dB. Audio
-stays outside source control and production assets. The current edit uses the
-user-supplied Flavour Trip “Easy Morning Brunch House Music Mix” at 118 BPM.
-The spoken introduction ends near 31.5 seconds; the excerpt begins
-at 33.04 seconds. Trim the local source before composing. The optional final BPM
+The music fades in and out and is automatically lowered under narration by no more than 6 dB.
+The full recording and generated voice caches remain untracked; the retained
+music excerpt stays outside production assets. The source recording's spoken
+introduction ends near 31.5 seconds; the tracked excerpt already begins at 33.04
+seconds, so do not trim it again. The optional final BPM
 argument retimes the existing capture without changing the music's playback speed
 or the voice's pitch. Omit it to retain the original edit speed. No publishing or
 distribution is performed by these scripts.
