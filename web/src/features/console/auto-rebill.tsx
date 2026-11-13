@@ -153,13 +153,9 @@ function RebillActions({
 	controls: Controls;
 	data: AutoRebillStatus;
 }) {
-	const { change, mode, status } = controls;
+	const { change, mode, setupConfirmed } = controls;
 	const checkout = change.data?.kind === "setup" ? change.data.url : undefined;
-	const confirmed =
-		status.dataUpdatedAt > change.submittedAt &&
-		data.enabled &&
-		!data.setup_pending;
-	const showCheckout = checkout && !confirmed;
+	const showCheckout = checkout && !setupConfirmed;
 	const showForm =
 		(mode === "setup" && data.can_configure) ||
 		(mode === "edit" && data.can_update_settings);

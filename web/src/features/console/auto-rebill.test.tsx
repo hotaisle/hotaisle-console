@@ -257,7 +257,7 @@ describe("automatic rebill controls", () => {
 		).toBeInTheDocument();
 	});
 	it("polls status every ten seconds only while expanded", async () => {
-		vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+		vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
 		const { user } = await openRebill();
 		const before = vi.mocked(api.autoRebill).mock.calls.length;
 		await act(async () => {
