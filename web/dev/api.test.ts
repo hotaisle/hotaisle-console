@@ -19,6 +19,152 @@ function request(
 	);
 }
 describe("development preview machine lifecycle", () => {
+	it("simulates rebill edits and disabling without opening real payment setup", async () => {
+		const api = new PreviewAPI("auto-rebill");
+		const path = "/api/teams/preview/auto-rebill/";
+		expect(await (await request(api, "GET", path)).json()).toMatchObject({
+			can_update_settings: true,
+			enabled: true,
+		});
+		const settings = {
+			monthly_cap_cents: 100_000,
+			rebill_amount_cents: 15_000,
+			threshold_cents: 5000,
+		};
+		expect((await request(api, "PATCH", path, settings)).status).toBe(204);
+		expect(await (await request(api, "GET", path)).json()).toMatchObject(
+			settings
+		);
+		expect((await request(api, "DELETE", path)).status).toBe(204);
+		expect(await (await request(api, "GET", path)).json()).toMatchObject({
+			enabled: false,
+		});
+		expect((await request(api, "POST", path, settings)).status).toBe(501);
+	});
+	it("simulates invitations in memory and keeps members when team details change", async () => {
+		const api = new PreviewAPI("running");
+		const invitation = {
+			email: "Dana@example.invalid",
+			name: "Dana Doe",
+			roles: ["user", "operator"],
+		};
+		expect(
+			(
+				await request(
+					api,
+					"POST",
+					"/api/teams/preview/members/invitations/",
+					invitation
+				)
+			).status
+		).toBe(204);
+		const team = await (
+			await request(api, "GET", "/api/teams/preview/")
+		).json();
+		expect(team.members).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					email: "dana@example.invalid",
+					invitation: true,
+					roles: ["user", "operator"],
+				}),
+			])
+		);
+		expect(
+			(
+				await request(
+					api,
+					"POST",
+					"/api/teams/preview/members/invitations/",
+					invitation
+				)
+			).status
+		).toBe(409);
+		expect(
+			(
+				await request(api, "POST", "/api/teams/preview/members/invitations/", {
+					...invitation,
+					email: "another@example.invalid",
+					roles: ["admin"],
+				})
+			).status
+		).toBe(422);
+		const saved = await (
+			await request(api, "PATCH", "/api/teams/preview/", { name: "New name" })
+		).json();
+		expect(saved.members).toEqual(team.members);
+	});
+	it("signs into only the fixture account after simulated email approval", async () => {
+		const api = new PreviewAPI("sign-in");
+		expect(
+			await (await request(api, "GET", "/auth/status")).json()
+		).toMatchObject({ signed_in: false });
+		expect((await request(api, "GET", "/api/user/")).status).toBe(401);
+		expect(
+			(
+				await request(api, "POST", "/auth/email/start", {
+					email: "someone@example.com",
+				})
+			).status
+		).toBe(422);
+		api.approveEmail();
+		expect((await request(api, "POST", "/auth/email/wait")).status).toBe(404);
+		expect(
+			(
+				await request(api, "POST", "/auth/email/start", {
+					email: "preview@example.invalid",
+				})
+			).status
+		).toBe(200);
+		expect(
+			await (await request(api, "POST", "/auth/email/wait")).json()
+		).toEqual({ done: false });
+		api.approveEmail();
+		expect(
+			await (await request(api, "POST", "/auth/email/wait")).json()
+		).toEqual({ done: true });
+		expect(
+			await (await request(api, "GET", "/auth/status")).json()
+		).toMatchObject({ signed_in: true });
+		expect((await request(api, "GET", "/api/user/")).status).toBe(200);
+		expect(
+			await (await request(api, "GET", "/api/user/")).json()
+		).toMatchObject({ teams: [] });
+		expect((await request(api, "GET", `${MACHINES}available/`)).status).toBe(
+			403
+		);
+		expect(
+			(
+				await request(api, "POST", "/api/teams/", {
+					handle: "bad handle",
+					name: "Research",
+				})
+			).status
+		).toBe(422);
+		const created = await request(api, "POST", "/api/teams/", {
+			handle: "research",
+			name: "Research team",
+		});
+		expect(await created.json()).toMatchObject({
+			effective_roles: ["owner"],
+			handle: "research",
+			name: "Research team",
+		});
+		expect(
+			await (await request(api, "GET", "/api/user/")).json()
+		).toMatchObject({ teams: [{ handle: "research" }] });
+		expect(
+			await (await request(api, "GET", "/api/teams/research/balance/")).json()
+		).toMatchObject({ available_balance: 50_000 });
+		expect(
+			(
+				await request(api, "POST", "/api/teams/", {
+					handle: "another",
+					name: "Another",
+				})
+			).status
+		).toBe(409);
+	});
 	it.each([
 		[1, 1],
 		[2, 60],

@@ -3,6 +3,7 @@ import type { Offer, Specs, VM, VMState } from "../src/lib/api";
 
 export type PreviewPhase = "assigned" | "setting-up" | "booting" | "running";
 export interface PreviewMachine {
+	bootMs?: number;
 	cloudInit: boolean;
 	createdAt: number;
 	mode: PreviewPhase | "live";
@@ -26,7 +27,9 @@ export function phase(machine: PreviewMachine, now: number): PreviewPhase {
 	if (age < 1500) {
 		return "assigned";
 	}
-	return machine.cloudInit && age < 8000 ? "booting" : "running";
+	return machine.cloudInit && age < (machine.bootMs ?? 8000)
+		? "booting"
+		: "running";
 }
 export function machineView(machine: PreviewMachine, now: number): VM {
 	const current = phase(machine, now);

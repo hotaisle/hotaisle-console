@@ -5,6 +5,7 @@ import {
 	removeMachine,
 	updateMachine,
 } from "../../shared/records";
+import { PreviewAutoRebill } from "./auto-rebill";
 import { BareMetalPreview } from "./bare-metal";
 import {
 	available,
@@ -14,8 +15,9 @@ import {
 	powerView,
 } from "./machines";
 import type { Scenario } from "./scenarios";
+import { PreviewTeamMembers } from "./team-members";
 
-const PREFIX = "/api/teams/preview/";
+const TEAM_HANDLE = /^[a-z0-9](?:[a-z0-9_-]{0,98}[a-z0-9])?$/u;
 const TEAM = {
 	effective_roles: ["owner"],
 	handle: "preview",
@@ -32,15 +34,30 @@ function object(value: unknown): value is Record<string, unknown> {
 /** Browser-only simulator. Unknown endpoints fail; there is no upstream fallback. */
 export class PreviewAPI {
 	private readonly team = { ...TEAM, description: "" };
+	private readonly members = new PreviewTeamMembers();
 	private readonly machines = new Map<string, PreviewMachine>();
 	private readonly records = emptyRecords();
 	private readonly now: () => number;
 	private readonly scenario: Scenario;
 	private serial = 0;
+	private readonly auth: {
+		signedIn: boolean;
+		pendingEmail: string;
+		approvedEmail: boolean;
+		teamCreated: boolean;
+	};
 	private readonly metal?: BareMetalPreview;
+	private readonly rebill: PreviewAutoRebill;
 
 	constructor(scenario: Scenario, now = Date.now) {
+		this.rebill = new PreviewAutoRebill(scenario === "auto-rebill");
 		this.scenario = scenario;
+		this.auth = {
+			approvedEmail: false,
+			pendingEmail: "",
+			signedIn: scenario !== "sign-in",
+			teamCreated: scenario !== "sign-in",
+		};
 		this.now = now;
 		if (scenario === "bare-metal" || scenario === "same-name") {
 			this.metal = new BareMetalPreview(now);
@@ -140,18 +157,25 @@ export class PreviewAPI {
 		const url = new URL(request.url);
 		const path = url.pathname;
 		const { method } = request;
+		if (path.startsWith("/auth/email/")) {
+			return this.emailRequest(request, path);
+		}
 		if (method === "GET" && path === "/auth/status") {
 			return json({
 				email_login: true,
 				kind: "email",
 				passkeys: false,
-				signed_in: true,
+				signed_in: this.auth.signedIn,
 				version: "preview",
+				waiting_for_email: this.auth.pendingEmail || undefined,
 			});
+		}
+		if (!this.auth.signedIn) {
+			return fail(401, "Sign in to the simulated account first.");
 		}
 		if (method === "GET" && path === "/api/user/") {
 			return json({
-				teams: [this.team],
+				teams: this.auth.teamCreated ? [this.team] : [],
 				user: {
 					created: "2026-01-01",
 					email: "preview@example.invalid",
@@ -159,6 +183,9 @@ export class PreviewAPI {
 					name: "Preview",
 				},
 			});
+		}
+		if (method === "POST" && path === "/api/teams/") {
+			return this.createTeam(request);
 		}
 		if (method === "GET" && path === "/api/user/ssh_keys/") {
 			return json([
@@ -170,13 +197,27 @@ export class PreviewAPI {
 				},
 			]);
 		}
-		if (!path.startsWith(PREFIX)) {
+		const prefix = `/api/teams/${this.team.handle}/`;
+		if (!this.auth.teamCreated && path.startsWith(prefix)) {
+			return fail(403, "Create the simulated team first.");
+		}
+		if (!path.startsWith(prefix)) {
 			return fail(
 				501,
 				"This action is unavailable in the development preview. Reset a scenario to continue."
 			);
 		}
-		const parts = path.slice(PREFIX.length).split("/").filter(Boolean);
+		const parts = path.slice(prefix.length).split("/").filter(Boolean);
+		return await this.teamResource(request, url, parts);
+	}
+	private async teamResource(request: Request, url: URL, parts: string[]) {
+		const { method } = request;
+		if (parts.length === 1 && parts[0] === "auto-rebill") {
+			return this.rebill.request(request, this.now());
+		}
+		if (parts.join("/") === "members/invitations") {
+			return await this.members.invitations(request, this.now());
+		}
 		if (parts.length === 0) {
 			return this.teamRequest(request);
 		}
@@ -197,9 +238,60 @@ export class PreviewAPI {
 		}
 		return await this.machineRequest(request, url, parts);
 	}
+	private async createTeam(request: Request) {
+		if (this.scenario !== "sign-in" || this.auth.teamCreated) {
+			return fail(409, "The fixture team already exists.");
+		}
+		const body: unknown = await request.json();
+		if (
+			!(
+				object(body) &&
+				typeof body.name === "string" &&
+				body.name.trim() &&
+				typeof body.handle === "string" &&
+				TEAM_HANDLE.test(body.handle)
+			)
+		) {
+			return fail(422, "Enter a team name and valid handle.");
+		}
+		this.team.handle = body.handle;
+		this.team.name = body.name.trim();
+		this.auth.teamCreated = true;
+		return json(this.team);
+	}
+	/** Simulates approval on another device; never sends an email. */
+	approveEmail() {
+		this.auth.approvedEmail = Boolean(this.auth.pendingEmail);
+	}
+	private async emailRequest(request: Request, path: string) {
+		if (request.method !== "POST" || this.scenario !== "sign-in") {
+			return fail(405, "Simulated sign-in is unavailable here.");
+		}
+		if (path === "/auth/email/start") {
+			const body: unknown = await request.json();
+			if (!object(body) || body.email !== "preview@example.invalid") {
+				return fail(422, "Use preview@example.invalid for this simulation.");
+			}
+			this.auth.pendingEmail = body.email;
+			this.auth.approvedEmail = false;
+			return json({
+				email: body.email,
+				expires_at: new Date(this.now() + 600_000).toISOString(),
+			});
+		}
+		if (path === "/auth/email/wait" && this.auth.pendingEmail) {
+			if (!this.auth.approvedEmail) {
+				return json({ done: false });
+			}
+			this.auth.signedIn = true;
+			this.auth.pendingEmail = "";
+			return json({ done: true });
+		}
+		return fail(404, "No simulated sign-in is pending.");
+	}
 	private async teamRequest(request: Request) {
 		if (request.method === "GET") {
-			return json(this.team);
+			return json({ ...this.team, members: this.members.all() });
 		}
 		if (request.method !== "PATCH") {
 			return fail(405, "Method not allowed");
@@ -229,7 +321,7 @@ export class PreviewAPI {
 		if (typeof body.description === "string") {
 			this.team.description = body.description;
 		}
-		return json(this.team);
+		return json({ ...this.team, members: this.members.all() });
 	}
 	private balance() {
 		const hourlyRate = [...this.machines.values()].reduce(
@@ -346,6 +438,9 @@ export class PreviewAPI {
 			this.now(),
 			object(body) && typeof body.user_data_url === "string"
 		);
+		if (this.scenario === "sign-in") {
+			machine.bootMs = 3000;
+		}
 		this.machines.set(name, machine);
 		return json(machineView(machine, this.now()));
 	}

@@ -4,9 +4,10 @@
 	"type": "module",
 	"scripts": {
 		"build": "bun run --bun tsc --noEmit && bun run --bun vite build && bun ../worker/scripts/assert-assets.ts",
+		"build:dev": "bun run --bun tsc --noEmit && bun run --bun vite build --mode development && bun ../worker/scripts/assert-assets.ts",
 		"build:preview": "bun run --bun tsc --noEmit && bun run --bun vite build --mode preview",
 		"typecheck": "bun run --bun tsc --noEmit",
-		"watch": "bun run --bun vite build --watch",
+		"watch": "bun run --bun vite build --mode development --watch",
 		"watch:preview": "bun run --bun vite build --mode preview --watch"
 	},
 	"dependencies": {

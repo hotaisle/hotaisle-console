@@ -1,6 +1,5 @@
-/* Narrow windows use the page scroll; wide windows scroll within the panel. */
-/* ---------------------------------------------------------------- narrower windows: the plate goes on top, the page scrolls */
-@media (max-width: 1080px) {
+/* Compact windows keep controls first in document order and scroll the page. */
+@media (max-width: 48rem) {
 	.history-session {
 		height: auto;
 		min-height: 100dvh;
@@ -13,34 +12,50 @@
 		overflow: visible;
 	}
 	.history-session > .app {
-		flex: auto;
+		flex: none;
 	}
 	.panes {
 		grid-template-columns: minmax(0, 1fr);
 		gap: 16px;
 	}
 	.stage {
-		order: -1;
-		height: 380px;
+		min-block-size: 0;
+		container-type: inline-size;
+	}
+	.stage-specs-body {
+		position: static;
+		max-block-size: none;
+		overflow-y: visible;
+		border: 0;
+		box-shadow: none;
 	}
 	.plate {
 		--vf: 56px;
 	}
-	.ytag-name {
-		max-width: 150px;
+	.stage > .plate {
+		flex: none;
+		block-size: clamp(17.5rem, 60vw, 26rem);
 	}
 	.panel {
+		display: block;
 		width: 100%;
-		max-width: 560px;
+		max-width: none;
 		max-block-size: none;
 		margin: 0 auto;
 		overflow: visible;
+	}
+	.pv,
+	.panel-scroll {
+		display: block;
+	}
+	.panel-scroll .scroll-hint {
+		display: none;
 	}
 	.pv-body {
 		overflow: visible;
 	}
 	.top {
-		height: 64px;
+		block-size: auto;
 	}
 }
 @media (max-width: 600px) {
@@ -56,22 +71,11 @@
 		padding: 0 12px 16px;
 	}
 	.panel {
-		padding: 0 0 32px;
+		padding: 0;
 	}
-	.stage {
-		height: 280px;
-	}
-
 	.trip {
 		gap: 14px;
 		padding: 16px 14px;
-	}
-	.meter-v {
-		gap: 4px;
-		padding: 0 12px;
-	}
-	.cluster {
-		gap: 6px;
 	}
 	.field {
 		grid-template-columns: 1fr;
@@ -103,19 +107,6 @@
 		min-width: 0;
 		margin: 0;
 	}
-	.lcd.md {
-		font-size: 22px;
-	}
-	.lcd.sm {
-		font-size: 15px;
-	}
-	.cluster .meter-v {
-		gap: 2px;
-		padding: 0 8px;
-	}
-	.cluster .unit {
-		font-size: 13px;
-	}
 
 	.card-foot .btn {
 		padding: 0 12px;
@@ -126,9 +117,6 @@
 
 	.top > .btn:not(.icon) {
 		grid-area: credits;
-	}
-	.cluster .meter-v .cur {
-		font-size: 13px;
 	}
 	.row-item.hist > :nth-child(2) {
 		display: none;

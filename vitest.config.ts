@@ -8,7 +8,11 @@ export default defineConfig({
 			{
 				test: {
 					environment: "node",
-					include: [".github/scripts/*.test.ts", "worker/scripts/*.test.ts"],
+					include: [
+						".github/scripts/*.test.ts",
+						"worker/scripts/*.test.ts",
+						"web/vite.config.test.ts",
+					],
 					name: "tooling",
 				},
 			},

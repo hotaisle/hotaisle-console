@@ -17,27 +17,32 @@
 }
 .auth-masthead {
 	display: flex;
-	gap: 24px;
+	gap: 8px;
 	align-items: center;
 	padding-bottom: 28px;
+	font-size: clamp(20px, 2.4vw, 25px);
 	border-bottom: 1px solid var(--line-2);
 }
 .auth-brand {
 	display: inline-flex;
 	gap: 14px;
 	align-items: center;
-	font-size: 25px;
+	font-size: inherit;
 	font-weight: 600;
 	color: var(--ink);
 	letter-spacing: -0.04em;
 	text-decoration: none;
 }
 .auth-product {
-	padding-left: 24px;
-	font: 13px var(--mono);
-	color: var(--muted);
+	font: inherit;
+	font-weight: 400;
+	color: var(--ink);
+	letter-spacing: -0.04em;
 	text-decoration: none;
-	border-left: 1px solid var(--line-2);
+}
+.auth-brand .brand-lockup img {
+	inline-size: 1.38em;
+	block-size: 1.38em;
 }
 .auth-content {
 	flex: 1;
@@ -171,9 +176,6 @@
 	.auth-masthead {
 		gap: 12px;
 		padding-bottom: 22px;
-	}
-	.auth-product {
-		display: none;
 	}
 	.auth-content {
 		padding-block: 32px 64px;

@@ -1,0 +1,176 @@
+.showcase-page {
+	height: 100dvh;
+	overflow: hidden;
+}
+#showcase-camera {
+	height: calc(100dvh - 104px);
+	overflow: hidden;
+}
+.showcase-page #root {
+	height: 100%;
+	overflow: auto;
+	overflow-x: hidden;
+	transform-origin: 0 0;
+	transition: transform 400ms ease-in-out;
+}
+.showcase-page .app,
+.showcase-page .history-session {
+	height: 100%;
+}
+.showcase-page .auth-page {
+	min-height: 100%;
+}
+/* Reserve the largest description and estimate used in the scripted choices.
+   Changing a radio/select must not move the following controls or scroll anchor. */
+.showcase-page .order {
+	gap: 10px;
+}
+.showcase-page .order .picker {
+	gap: 8px;
+	align-content: start;
+	min-block-size: 190px;
+	padding-block: 12px;
+}
+.showcase-page .order .picker-field {
+	gap: 12px;
+}
+.showcase-page .order .estimate {
+	align-content: start;
+	min-block-size: 180px;
+}
+.showcase-page .order .go {
+	padding-block-end: 0;
+}
+.showcase-page .panel-content {
+	padding-block-end: 16px;
+}
+@supports (overflow-anchor: none) {
+	.showcase-page .pv-body {
+		overflow-anchor: none;
+	}
+}
+.showcase-page .order .opt {
+	position: relative;
+}
+/* Keep entry effects from competing with the recorded pointer and status cues. */
+.showcase-page
+	.app.entering
+	:is(
+		.top > *,
+		.pv-head > *,
+		.pv-body > *,
+		.plate,
+		.inspector,
+		.order .opt,
+		.order .details,
+		.order .go
+	) {
+	animation: none;
+}
+.showcase-controls,
+.showcase-captions {
+	position: fixed;
+	inset: auto 0 0;
+	z-index: 10000;
+	display: flex;
+	gap: 20px;
+	align-items: center;
+	justify-content: center;
+	height: 104px;
+	padding: 20px 40px;
+	font: 17px / 1.4 var(--sans);
+	color: #f4f2ec;
+	background: #171714;
+	border-top: 1px solid #383832;
+}
+.showcase-controls {
+	flex-wrap: wrap;
+	justify-content: flex-start;
+}
+.showcase-controls p {
+	margin: 4px 0 0;
+	font-size: 13px;
+	color: #bcbcb2;
+}
+.showcase-controls button {
+	padding: 10px 16px;
+	color: inherit;
+	cursor: pointer;
+	background: #282823;
+	border: 1px solid #55554a;
+	border-radius: 7px;
+}
+.showcase-captions p {
+	max-width: 1300px;
+	font-size: 27px;
+	text-align: center;
+}
+.showcase-chapter {
+	position: absolute;
+	left: 28px;
+	font: 13px var(--mono);
+	color: #ff8a47;
+}
+.showcase-stop {
+	position: absolute;
+	right: 20px;
+	font: 12px var(--sans);
+	color: #aaa99e;
+	cursor: pointer;
+	background: transparent;
+	border: 0;
+}
+.showcase-label {
+	position: fixed;
+	right: 24px;
+	bottom: 120px;
+	z-index: 9000;
+	padding: 4px 10px;
+	font: 11px var(--mono);
+	color: var(--muted);
+	pointer-events: none;
+	background: var(--card);
+	border: 1px solid var(--line);
+	border-radius: 5px;
+}
+.showcase-pointer {
+	position: fixed;
+	z-index: 9500;
+	width: 22px;
+	height: 22px;
+	pointer-events: none;
+	background: #ff701e80;
+	border: 2px solid #ff812f;
+	border-radius: 50%;
+	opacity: 0;
+	transform: translate(-50%, -50%);
+	transition:
+		left 650ms ease,
+		top 650ms ease,
+		opacity 300ms;
+}
+.showcase-pointer.visible {
+	opacity: 1;
+}
+.showcase-timing[open] {
+	position: fixed;
+	right: 24px;
+	bottom: 120px;
+	width: 600px;
+	max-height: 70dvh;
+	padding: 20px;
+	overflow: auto;
+	background: #171714;
+	border: 1px solid #55554a;
+	border-radius: 8px;
+}
+.showcase-timing pre {
+	font: 12px / 1.5 var(--mono);
+	white-space: pre-wrap;
+}
+@media (prefers-reduced-motion: reduce) {
+	.showcase-page:not([data-camera-motion="true"]) #root,
+	.showcase-page:not([data-camera-motion="true"]) .showcase-pointer {
+		transition: none;
+	}
+}

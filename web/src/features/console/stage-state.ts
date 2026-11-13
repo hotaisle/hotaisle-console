@@ -55,10 +55,10 @@ function preview(input: StageInput): Omit<StageState, "machines"> {
 	const offer = input.offerFor(count);
 	const spec: [string, string][] = [];
 	if (offer) {
-		spec.push(...specRows(offer.Specs), [
-			"Share",
-			`${count} of 8 GPUs on one server`,
-		]);
+		spec.push(...specRows(offer.Specs));
+		if (!offer.metal) {
+			spec.push(["Share", `${count} of 8 GPUs on one server`]);
+		}
 		if (isPresent(offer.OnDemandPrice)) {
 			spec.push(["Price", `${money(offer.OnDemandPrice)} an hour`]);
 		}

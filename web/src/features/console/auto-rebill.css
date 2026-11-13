@@ -1,0 +1,61 @@
+.auto-rebill {
+	padding-block: 20px;
+	border-block-start: 1px solid var(--line);
+}
+.credits-view > section + .auto-rebill {
+	margin-block-start: 28px;
+}
+.auto-rebill > summary {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	justify-content: space-between;
+	font-size: 1rem;
+	font-weight: 600;
+	cursor: pointer;
+	list-style: none;
+}
+.auto-rebill > summary::-webkit-details-marker {
+	display: none;
+}
+.auto-rebill[open] > summary svg {
+	transform: rotate(180deg);
+}
+.auto-rebill > p {
+	margin-block: 10px 16px;
+}
+.rebill-status,
+.rebill-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+}
+.rebill-status {
+	justify-content: space-between;
+}
+.rebill-summary {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 6px 16px;
+	margin: 0;
+	font-size: 0.875rem;
+}
+.rebill-summary dt {
+	color: var(--muted);
+}
+.rebill-summary dd {
+	margin: 0;
+	font-variant-numeric: tabular-nums;
+	text-align: end;
+}
+.rebill-warning {
+	padding: 12px;
+	background: var(--card-2);
+	border-inline-start: 3px solid var(--amber);
+	border-radius: 4px;
+}
+.rebill-form input {
+	min-block-size: 48px;
+	font-size: 1rem;
+}

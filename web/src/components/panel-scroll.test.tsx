@@ -5,6 +5,36 @@ import { PanelScroll } from "./panel-scroll";
 
 afterEach(() => vi.unstubAllGlobals());
 describe("panel scroll hints", () => {
+	it("accounts for a classic scrollbar and resets the inset for overlay scrollbars", () => {
+		let resize = () => undefined;
+		const disconnect = vi.fn();
+		vi.stubGlobal(
+			"ResizeObserver",
+			class {
+				disconnect = disconnect;
+				observe = vi.fn();
+				constructor(callback: () => undefined) {
+					resize = callback;
+				}
+			}
+		);
+		const { container, unmount } = render(<PanelScroll>Content</PanelScroll>);
+		const body = container.querySelector<HTMLElement>(".pv-body");
+		if (!body) {
+			throw new Error("Missing panel scroll body");
+		}
+		Object.defineProperties(body, {
+			clientWidth: { configurable: true, value: 437 },
+			offsetWidth: { value: 448 },
+		});
+		act(resize);
+		expect(body.style.getPropertyValue("--panel-scrollbar-size")).toBe("11px");
+		Object.defineProperty(body, "clientWidth", { value: 448 });
+		act(resize);
+		expect(body.style.getPropertyValue("--panel-scrollbar-size")).toBe("0px");
+		unmount();
+		expect(disconnect).toHaveBeenCalledOnce();
+	});
 	it("tracks both scroll edges and cleans up the fallback observer", () => {
 		vi.stubGlobal("CSS", { supports: () => false });
 		let notify: IntersectionObserverCallback = () => undefined;

@@ -1,10 +1,7 @@
 import type { HotkeyChord } from "@tanstack/react-hotkeys";
-import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isPresent } from "../../../../shared/present";
-import type { ConsoleSearch } from "../../app/route-state";
 import { HoldButton } from "../../components/ui/hold-button";
-import { Picker } from "../../components/ui/picker";
 import { useToast } from "../../components/ui/toast";
 import { useShortcuts } from "../../hooks/use-shortcut";
 import {
@@ -17,19 +14,18 @@ import {
 	type VM,
 } from "../../lib/api";
 import { hoursOr, money } from "../../lib/format";
-import { IMAGES, type Image, VLLM_URL } from "../../lib/prefs";
+import { type Image, VLLM_URL } from "../../lib/prefs";
 import type { Signal } from "../../lib/signal";
 import { sound } from "../../lib/sound";
-import { ImageFooter } from "./image-footer";
 import { MachineOptions } from "./machine-options";
 import { OfferStatus } from "./offer-status";
 import { availabilityBlocker, sizesOf } from "./offers";
 import { RentalCredits } from "./rental-credits";
 import { RentalEstimate } from "./rental-estimate";
+import { RentalImage } from "./rental-image";
 import type { LaunchMeta, Order } from "./types";
 
 export const HTTPS_URL_PATTERN = /^https:\/\/\S+$/u;
-const preserveSearch = (previous: ConsoleSearch) => previous;
 
 export function OrderView({
 	team,
@@ -121,7 +117,7 @@ export function OrderView({
 		team.effective_roles.includes("owner");
 	const atLimit =
 		!!team.maximum_virtual_machines && vmCount >= team.maximum_virtual_machines;
-	const noKey = isPresent(keys) && keys.length === 0;
+	const noKey = keys?.length === 0;
 	function resolveUserData() {
 		if (image === "vllm") {
 			return VLLM_URL;
@@ -140,6 +136,10 @@ export function OrderView({
 		isPresent(spendable) && isPresent(minCharge) && spendable < minCharge;
 
 	const availabilityLoading = offers === undefined && !offersError;
+	const inventoryEmpty =
+		offers !== undefined &&
+		!offersError &&
+		sizes.every((size) => size.Quantity <= 0);
 	const blocker =
 		availabilityBlocker({ error: offersError, offer, offers, sizes }) ||
 		launchBlocker({
@@ -217,17 +217,19 @@ export function OrderView({
 			style={{ ["--vt" as string]: "launcher" }}
 		>
 			<OfferStatus
-				empty={sizes.every((size) => size.Quantity <= 0)}
+				empty={inventoryEmpty}
 				error={offersError}
 				loading={availabilityLoading}
 				onRefresh={onRefreshOffers}
 			/>
-			<MachineOptions
-				count={count}
-				loading={availabilityLoading}
-				onChange={setOrder}
-				sizes={sizes}
-			/>
+			{!inventoryEmpty && (
+				<MachineOptions
+					count={count}
+					loading={availabilityLoading}
+					onChange={setOrder}
+					sizes={sizes}
+				/>
+			)}
 			<RentalCredits
 				balance={balance}
 				minimumCharge={minCharge}
@@ -235,61 +237,45 @@ export function OrderView({
 				team={team}
 			/>
 
-			<div className="details">
-				<Picker<Image>
-					fixed={offer?.metal ? "Hot Aisle's standard image" : undefined}
-					footer={
-						offer?.metal ? null : (
-							<ImageFooter image={image} onChange={onImage} />
-						)
-					}
-					label="Image"
-					onChange={handleOnChange}
-					options={(Object.keys(IMAGES) as Image[]).map((k) => ({
-						hint: IMAGES[k].note,
-						label: IMAGES[k].name,
-						value: k,
-					}))}
-					value={image}
-				/>
-				{noKey ? (
-					<Link
-						className="missing-ssh-key"
-						hash="ssh-keys"
-						hashScrollIntoView={{ block: "start" }}
-						params={{ team: team.handle }}
-						search={preserveSearch}
-						to="/teams/$team/settings"
-					>
-						Add an SSH key in Settings <span aria-hidden="true">→</span>
-					</Link>
-				) : null}
-			</div>
+			{!inventoryEmpty && (
+				<>
+					<RentalImage
+						image={image}
+						metal={offer?.metal}
+						noKey={noKey}
+						onChange={handleOnChange}
+						onEdit={onImage}
+						team={team.handle}
+					/>
 
-			<RentalEstimate
-				balance={balance}
-				error={offersError}
-				loading={availabilityLoading}
-				offer={offer}
-			/>
+					<RentalEstimate
+						balance={balance}
+						error={offersError}
+						loading={availabilityLoading}
+						offer={offer}
+					/>
+				</>
+			)}
 			{children}
-			<div className="go foot">
-				<HoldButton
-					busy={busy}
-					busyLabel={offer?.metal ? "Reserving" : "Launching"}
-					disabled={!!blocker || !offer}
-					hint="Press and hold, or hold L. Billing starts once the machine is yours."
-					hotkey="L"
-					id="launch"
-					label={resolveLabel()}
-					onConfirm={launch}
-					onProgress={handleOnProgress}
-					trailing={isPresent(price) ? `${money(price)}/hr` : undefined}
-				/>
-				<p className={`fine ${blocker ? "blocked" : ""}`}>
-					{blocker || resolveValue3()}
-				</p>
-			</div>
+			{!inventoryEmpty && (
+				<div className="go foot">
+					<HoldButton
+						busy={busy}
+						busyLabel={offer?.metal ? "Reserving" : "Launching"}
+						disabled={!!blocker || !offer}
+						hint="Press and hold, or hold L. Billing starts once the machine is yours."
+						hotkey="L"
+						id="launch"
+						label={resolveLabel()}
+						onConfirm={launch}
+						onProgress={handleOnProgress}
+						trailing={isPresent(price) ? `${money(price)}/hr` : undefined}
+					/>
+					<p className={`fine ${blocker ? "blocked" : ""}`}>
+						{blocker || resolveValue3()}
+					</p>
+				</div>
+			)}
 		</section>
 	);
 }

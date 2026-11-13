@@ -159,6 +159,152 @@
 	flex-basis: 100%;
 	overflow-wrap: anywhere;
 }
+.team-management {
+	display: grid;
+	gap: 32px;
+	max-width: 640px;
+}
+.team-management-heading {
+	display: grid;
+	gap: 12px;
+}
+.auth-content .team-management-heading h1 {
+	margin: 0;
+}
+.team-handle {
+	font-size: 18px;
+	color: var(--ink);
+}
+.team-handle code {
+	font-size: 20px;
+}
+.team-management > section + section {
+	padding-block-start: 32px;
+	border-block-start: 1px solid var(--line-2);
+}
+.team-members {
+	display: grid;
+	gap: 16px;
+}
+.team-member-table-wrap {
+	max-inline-size: 100%;
+	max-block-size: min(24rem, 60dvh);
+	overflow: auto;
+	background: var(--card);
+	border: 1px solid var(--line-2);
+	border-radius: 6px;
+}
+.team-member-table {
+	inline-size: 100%;
+	min-inline-size: 36rem;
+	font-size: 13px;
+	border-spacing: 0;
+	border-collapse: separate;
+}
+.team-member-table th,
+.team-member-table td {
+	padding: 8px 10px;
+	text-align: start;
+	white-space: nowrap;
+	border-block-end: 1px solid var(--line-2);
+}
+.team-member-table th {
+	font-weight: 500;
+}
+.team-member-table a {
+	color: var(--ink-2);
+	text-decoration: none;
+}
+.team-member-table a:hover {
+	text-decoration: underline;
+}
+.team-member-table thead {
+	position: sticky;
+	inset-block-start: 0;
+	z-index: 2;
+	color: var(--ink-2);
+	background: var(--card-2);
+}
+.team-member-table tbody th {
+	position: sticky;
+	inset-inline-start: 0;
+	z-index: 1;
+	background: var(--card);
+}
+.team-member-table tbody tr:last-child > * {
+	border-block-end: 0;
+}
+.team-member-roles {
+	text-transform: capitalize;
+}
+.auth-content .team-invite-form {
+	gap: 12px;
+	margin-block-start: 8px;
+}
+.auth-content .team-invite-form .form-field label {
+	margin: 0;
+}
+.team-invite-form .form-field input {
+	block-size: 48px;
+	padding-inline: 12px;
+	font-size: 16px;
+}
+.team-permissions {
+	min-inline-size: 0;
+	padding: 0;
+	margin: 0;
+	border: 0;
+}
+.team-permissions legend {
+	padding: 0;
+	margin-block-end: 0;
+	font-weight: 500;
+}
+.team-permission-options {
+	display: grid;
+	gap: 4px;
+	margin-block-start: 6px;
+}
+.auth-content label.team-permission {
+	display: grid;
+	grid-template-columns: 20px minmax(0, 1fr);
+	gap: 8px;
+	align-items: center;
+	padding: 8px 10px;
+	margin: 0;
+	cursor: pointer;
+	background: var(--card);
+	border: 1px solid var(--line-2);
+	border-radius: 6px;
+}
+.team-permission:hover {
+	background: var(--card-2);
+}
+.team-permission:has(:checked) {
+	border-color: var(--ink-2);
+}
+.team-permission input[type="checkbox"] {
+	inline-size: 18px;
+	block-size: 18px;
+	padding: 0;
+	margin: 0;
+	cursor: pointer;
+}
+.team-permission > span {
+	display: grid;
+	grid-template-columns: 5rem minmax(0, 1fr);
+	gap: 8px;
+	align-items: baseline;
+	font-size: 15px;
+}
+.team-permission strong {
+	font-weight: 500;
+}
+.team-permission > span > span {
+	font-size: 14px;
+	line-height: 1.5;
+	color: var(--ink-2);
+}
 .team-notice {
 	padding: 16px;
 	margin-block: 24px;

@@ -31,6 +31,12 @@
 	gap: 8px 12px;
 	align-items: center;
 }
+.preview-controls nav {
+	flex-wrap: nowrap;
+	min-inline-size: 0;
+	padding-block-end: 4px;
+	overflow-x: auto;
+}
 .preview-caption strong {
 	color: var(--heat-ink);
 }
@@ -42,13 +48,18 @@
 	margin-inline-start: auto;
 }
 .preview-controls nav .btn {
+	flex: none;
 	min-height: 36px;
 }
 .preview-controls nav [aria-current="page"] {
 	border-color: var(--heat-ink);
 }
-@media (max-width: 1080px) {
+@media (max-width: 48rem) {
+	.preview-page .history-session {
+		height: auto;
+	}
 	.preview-page .app {
+		min-block-size: 0;
 		height: auto;
 	}
 }

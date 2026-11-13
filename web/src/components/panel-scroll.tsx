@@ -1,4 +1,10 @@
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import {
+	type ReactNode,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from "react";
 import "./panel-scroll.css";
 
 export function PanelScroll({ children }: { children: ReactNode }) {
@@ -7,6 +13,25 @@ export function PanelScroll({ children }: { children: ReactNode }) {
 	const bottom = useRef<HTMLSpanElement>(null);
 	const [above, setAbove] = useState(false);
 	const [below, setBelow] = useState(false);
+	useLayoutEffect(() => {
+		const element = body.current;
+		if (!element) {
+			return;
+		}
+		const measure = () => {
+			element.style.setProperty(
+				"--panel-scrollbar-size",
+				`${element.offsetWidth - element.clientWidth}px`
+			);
+		};
+		measure();
+		if (typeof ResizeObserver === "undefined") {
+			return;
+		}
+		const observer = new ResizeObserver(measure);
+		observer.observe(element);
+		return () => observer.disconnect();
+	}, []);
 	useEffect(() => {
 		if (
 			CSS.supports("container-type", "scroll-state") ||

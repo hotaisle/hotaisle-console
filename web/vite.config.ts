@@ -62,14 +62,11 @@ function buildPRURL() {
 	}
 }
 
-process.env.VITE_BUILD_PR_URL = buildPRURL();
-
 export default defineConfig(({ command, mode }) => {
-	if (
-		command === "build" &&
-		mode !== "preview" &&
-		!process.env.VITE_BUILD_PR_URL
-	) {
+	const local =
+		command === "serve" || mode === "development" || mode === "preview";
+	process.env.VITE_BUILD_PR_URL = local ? "" : buildPRURL();
+	if (!(local || process.env.VITE_BUILD_PR_URL)) {
 		throw new Error(
 			"Cannot build without a pull-request URL. Sign in with gh and allow GitHub access, or set VITE_BUILD_PR_URL to this build's https://github.com/hotaisle/hotaisle-console/pull/<number> URL."
 		);
@@ -86,6 +83,10 @@ export default defineConfig(({ command, mode }) => {
 								app: resolve(import.meta.dirname, "index.html"),
 								console: resolve(import.meta.dirname, "__preview/console.html"),
 								preview: resolve(import.meta.dirname, "__preview/index.html"),
+								showcase: resolve(
+									import.meta.dirname,
+									"__preview/showcase.html"
+								),
 							},
 						}
 					: undefined,

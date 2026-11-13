@@ -74,6 +74,11 @@ Run `bun run preview` again after changing preview components, or use `bun run -
 in a development session when you want preview rebuilds on file changes. A missing preview shows build
 instructions instead of redirecting into the real account. The normal console stays at `localhost:8787`.
 
+For the scripted walkthrough, run `bun run showcase` and open
+[Showcase studio](http://preview.localhost:8787/__preview/showcase.html). It follows sign-in, team creation,
+Add credits, launch, release, history, and settings with captions and optional local voiceover.
+See [the recording guide](docs/showcase.md) for beat timing, capture, and MP4 export.
+
 ```sh
 bun run check             # Ultracite/Biome lint and formatting
 bun run fix               # Apply supported fixes, then resolve remaining findings
@@ -85,9 +90,11 @@ bun run build             # Frontend, then Worker packaging
 ```
 
 Keep the existing development process running during browser verification. Frontend changes need
-`bun run build:web`, or an already-running `bun run --cwd web watch` process.
+`bun run build:web:dev`, or an already-running `bun run --cwd web watch` process.
 
-The build footer links to the source pull request. Normal builds require a valid PR URL, resolved with
+Local builds (`bun run dev`, `bun run build:web:dev`, and the frontend watcher) and preview builds work
+without GitHub access or a pull request. Their footer shows the build time without a PR link.
+The production build footer links to the source pull request. Production builds require a valid PR URL, resolved with
 the authenticated `gh` CLI from the branch or commit. For an offline build, supply the verified URL with
 `VITE_BUILD_PR_URL=https://github.com/hotaisle/hotaisle-console/pull/<number> bun run build`.
 CI supplies the PR URL directly for pull-request builds and resolves it from the merged commit on `main`.

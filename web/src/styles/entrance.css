@@ -11,9 +11,6 @@
 .app.entering .plate {
 	animation: plate-in 900ms var(--ease) both;
 }
-.app.entering .inspector {
-	animation: enter 620ms var(--ease) 420ms both;
-}
 .app.entering .order .opt {
 	animation: enter 620ms var(--ease) both;
 }

@@ -104,12 +104,12 @@ export function TeamChoice({
 										</Link>
 										{team.effective_roles.includes("owner") ? (
 											<Link
-												aria-label={`Edit team details for ${team.name}`}
+												aria-label={`Manage team ${team.name}`}
 												className="team-edit-link btn-text"
 												params={{ team: team.handle }}
 												to="/teams/$team/details"
 											>
-												Edit team details
+												Manage team
 											</Link>
 										) : null}
 									</li>

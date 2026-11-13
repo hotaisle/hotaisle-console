@@ -1,7 +1,8 @@
 import { requireValue } from "../../../../../shared/require-value";
+import { heatsinkHardware } from "./heatsink-top";
 // The figure: a row of racks seen from the hot aisle, the side Hot Aisle is named after.
 // Each rack holds four Dell PowerEdge XE9680 servers (6U) and a top-of-rack switch, with blanking panels
-// in the empty units and three power distribution units down each side (Hot Aisle runs six per rack).
+// in the empty units. The PSU/I/O face sits behind the GPU fan wall, with a service shelf between them.
 // Seen from the rear, an XE9680 has six power supplies and its I/O across the top 2U and ten GPU fan
 // modules across the bottom 4U (Dell XE9680 Technical Guide, figure 3). To service the GPUs, the fan
 // wall comes off and the GPU tray slides out of the rear (Dell XE9680 Installation and Service Manual).
@@ -17,9 +18,8 @@ import { requireValue } from "../../../../../shared/require-value";
 //   [data-gpu="<host>/<slot>"]  one OAM module and its heatsink
 //   [data-idled="<host>"]  the server's System ID light, lit for servers running your machines
 //   [data-part]            what the pointer is over
-// Fans: the drawing is static, so it is painted once. The fans of every server in the row are handed
-// to the page as positions (Hall.fans), and the page spins each on its own GPU layer, which costs no
-// repainting. Only the fan walls of your servers, which move, keep their blades in the drawing.
+// GPU and switch fans use one moving GPU layer over the static drawing. Recessed PSU rotors
+// stay in their SVG bodies, where nearer cabinets and shelves can occlude them correctly.
 import {
 	axisVector as kitAxisVector,
 	boxCorners as kitBoxCorners,
@@ -47,19 +47,20 @@ const L = kitLineSvg;
 export const AZIMUTH = 58;
 export const ELEVATION = 36;
 const RACKS = [-2, -1, 0, 1, 2];
-const PITCH = 54; // adjacent cabinets share their side frames
+const PITCH = 52; // adjacent cabinets meet at one narrow rear upright
 const SERVER = {
 	h: 26.67,
 	w: 48.2,
-	x0: 2.9,
+	x0: 1.9,
 }; // 6U, 482 mm wide, offset inside its rack
 const BASE = 10; // plinth under the lowest server
 const SLOTS = 4; // XE9680s per rack
-const PDU_HEIGHT = 4.445; // horizontal 1U power distribution between equipment
-const SLOT_HEIGHT = SERVER.h + PDU_HEIGHT;
+const RACK_UNIT = 4.445; // one rack unit, in centimetres
+const SLOT_HEIGHT = SERVER.h + RACK_UNIT; // a single blanking unit between neighbouring machines
 const SWITCH_Z = BASE + SLOTS * SLOT_HEIGHT;
 const TOP = 206; // top of the rack frame
 const DEPTH = 110; // how far the cabinets run back from their rear posts
+const POWER_Y = -4; // PSU/I/O back face; the fan grilles and recess mouth remain at y = 0
 const BAY = {
 	x0: 0.7,
 	x1: 47.5,
@@ -156,6 +157,8 @@ export interface Hall {
 	/** Your servers, in the order their fan walls are indexed by Fan.cage. */
 	cages: string[];
 	defs: string;
+	/** The moving fan guards, above the drawer's separate rotor canvas. */
+	drawerGuards: string;
 	fans: Fan[];
 	/** The view box that frames several hosts with their drawers out, clear of the inspector. */
 	frameOf: (hosts: string[]) => Frame;
@@ -336,6 +339,16 @@ export function blades(r: number, count: number) {
 	}
 	return `<path d="${out.join("")}"/>`;
 }
+
+function staticFan(
+	x: number,
+	y: number,
+	radius: number,
+	count: number,
+	className = "fan-static"
+) {
+	return `<g class="${className}" transform="translate(${fmt(x)} ${fmt(y)})"><circle class="fan-static-ring" r="${fmt(radius)}"/>${blades(radius, count)}<circle class="fan-static-hub" r="${fmt(radius * 0.32)}"/></g>`;
+}
 export function buildHall(
 	w: number,
 	h: number,
@@ -375,15 +388,14 @@ export function buildHall(
 		z: number,
 		kind: Fan["kind"],
 		scale = 1,
-		cage = -1
+		cage = -1,
+		y = 0
 	) => {
-		const [cx, cy] = kitIso([x, 0, z], P);
+		const [cx, cy] = kitIso([x, y, z], P);
 		const n = fans.length;
 		// speeds and starting angles vary a little, so a wall of fans never turns in lockstep
 		const spin =
-			kind === 0
-				? 0.62 + ((n * 37) % 11) * 0.02
-				: 0.38 + ((n * 17) % 7) * 0.018;
+			kind === 0 ? 3.2 + ((n * 37) % 11) * 0.06 : 2.6 + ((n * 17) % 7) * 0.06;
 		const m = [
 			along[0] * scale,
 			along[1] * scale,
@@ -406,6 +418,11 @@ export function buildHall(
 	const pm = (u: kitFlat, v: kitFlat) =>
 		`matrix(${[u[0], u[1], v[0], v[1], 0, 0].map((n) => Math.round(n * 10_000) / 10_000).join(" ")})`;
 	const trayDefs =
+		`<linearGradient id="sink-cap" x1="0" y1="0" x2="0.8" y2="1"><stop class="cap-light"/><stop offset="0.45" class="cap-mid"/><stop offset="1" class="cap-dark"/></linearGradient>` +
+		`<linearGradient id="sink-front" x1="0" y1="0" x2="0" y2="1"><stop class="fin-light"/><stop offset="1" class="fin-dark"/></linearGradient>` +
+		`<linearGradient id="sink-side" x1="0" y1="0" x2="1" y2="1"><stop class="fin-side-light"/><stop offset="1" class="fin-dark"/></linearGradient>` +
+		`<linearGradient id="tray-metal" x1="0" y1="0" x2="0.7" y2="1"><stop class="metal-light"/><stop offset="1" class="metal-dark"/></linearGradient>` +
+		`<radialGradient id="module-contact"><stop class="contact-dark" offset="0.55"/><stop class="contact-clear" offset="1"/></radialGradient>` +
 		// fin edges seen on a face across the airflow (plane y) and along it (plane x): a 2.6 mm pitch
 		`<pattern id="fins-y" patternUnits="userSpaceOnUse" width="20" height="0.26" patternTransform="${pm(ax, az)}"><rect class="fin-edge" width="20" height="0.085"/></pattern>` +
 		`<pattern id="fins-x" patternUnits="userSpaceOnUse" width="20" height="0.26" patternTransform="${pm(ay, az)}"><rect class="fin-edge" width="20" height="0.085"/></pattern>` +
@@ -452,6 +469,7 @@ export function buildHall(
 	const back: string[] = [];
 	const rearGuards: string[] = [];
 	const trayLayers: {
+		guards: string;
 		host: string;
 		rack: number;
 		level: number;
@@ -488,63 +506,60 @@ export function buildHall(
 	// ---------------------------------------------------------------- racks, left to right (nearer as x grows)
 	function renderRack(rack: number) {
 		const rx = rack * PITCH;
-		// frame upright on the rack's left, shared with the rack before it
-		back.push(
-			S(kitSlabOf(plan(rx - 0.7, -3, 1.4, 3, 0.2), 0, TOP + 6, P, 2, 0.3), {
-				crease: "faint",
-				tone: "mid",
-			})
-		);
-		// Horizontal rack-mounted PDUs sit between equipment, as in the facility photos.
-		const powerLevels = [BASE - PDU_HEIGHT, SWITCH_Z + 8.6];
-		for (let level = 0; level < SLOTS; level += 1) {
-			powerLevels.push(BASE + level * SLOT_HEIGHT + SERVER.h);
-		}
-		for (const z of powerLevels) {
-			const x = rx + SERVER.x0;
-			const sockets = Array.from({ length: 6 }, (_, i) => {
-				const sx = 3 + i * 4.7;
-				return `<rect class="psu-face" x="${fmt(sx)}" y="1.2" width="3" height="2" rx="0.2"/><circle class="port" cx="${fmt(sx + 1.5)}" cy="2.2" r="0.4"/>`;
-			}).join("");
+		// One shallow shared post, instead of three overlapping extruded rails at every seam.
+		const post = (px: number) => {
+			const holes: P3[] = [];
+			for (let z = 6; z < TOP - 2; z += 4.445 / 3) {
+				holes.push([px - 0.9, 0, z], [px + 0.9, 0, z]);
+			}
 			back.push(
-				`<g data-part="pdu">${S(
+				S(
 					kitSlabOf(
-						plan(x, -4, SERVER.w, 4, 0.2),
+						plan(px - 1.6, -0.6, 3.2, 0.6, 0.08),
+						0,
+						TOP + 4,
+						P,
+						1,
+						0.08
+					),
+					{
+						className: "rack-post",
+						crease: "none",
+						inner: kitDotsSvg(kitPointsAt(holes, P), {
+							size: 0.28,
+							tone: "lo",
+						}),
+						tone: "faint",
+					}
+				)
+			);
+		};
+		post(rx);
+		if (rack === RACKS.at(-1)) {
+			post(rx + PITCH);
+		}
+		// The spacers between servers belong to their recessed power bays, not this front plane.
+		const blankLevels = [
+			{ height: RACK_UNIT, z: BASE - RACK_UNIT },
+			{ height: RACK_UNIT, z: SWITCH_Z + 8.6 },
+		];
+		for (const { z, height } of blankLevels) {
+			const x = rx + SERVER.x0;
+			back.push(
+				`<g data-part="blank">${S(
+					kitSlabOf(
+						plan(x, -0.5, SERVER.w, 0.5, 0.1),
 						z,
-						PDU_HEIGHT - 0.2,
+						height - 0.2,
 						P,
 						2,
 						0.3
 					),
 					{
 						crease: "faint",
-						inner: `<g transform="${kitSideMatrix([x, 0], z + PDU_HEIGHT - 0.2, P, "left")}">${sockets}<rect class="port" x="35" y="1.2" width="7" height="2" rx="0.2"/><rect class="led" x="43" y="1.4" width="1" height="1.6" rx="0.2"/></g>`,
 						tone: "mid",
 					}
 				)}</g>`
-			);
-		}
-		// the rack's rear posts, with their square holes
-		for (const [p0, p1] of [
-			[1.2, 2.6],
-			[PITCH - 2.6, PITCH - 1.2],
-		]) {
-			const holes: P3[] = [];
-			for (let z = 6; z < TOP - 2; z += 4.445 / 3) {
-				holes.push([rx + (p0 + p1) / 2, 0, z]);
-			}
-			back.push(
-				S(
-					kitSlabOf(plan(rx + p0, -3, p1 - p0, 3, 0.15), 2, TOP - 2, P, 2, 0.3),
-					{
-						crease: "faint",
-						inner: kitDotsSvg(kitPointsAt(holes, P), {
-							size: 0.5,
-							tone: "lo",
-						}),
-						tone: "mid",
-					}
-				)
 			);
 		}
 		// the cabinet's roof, running back over the servers (cabinets are about 1.2 m deep), with two brush
@@ -631,7 +646,7 @@ export function buildHall(
 		);
 		// over the switch: the fiber patch panel (MPO connectors with green boots, as in Hot Aisle's rack photos)
 		// and a cable manager; above them, blanking panels, so hot air can't loop back to the front
-		const pz = SWITCH_Z + 8.9 + PDU_HEIGHT;
+		const pz = SWITCH_Z + 8.9 + RACK_UNIT;
 		const patch = kitSlabOf(
 			plan(sw, -1.6, SERVER.w, 1.6, 0.2),
 			pz,
@@ -791,6 +806,7 @@ export function buildHall(
 		yFace = 0
 	) {
 		const holes: string[] = [];
+		const rotors: string[] = [];
 		sh.rect("fan-void", 0.6, 8.6, 47, 0.65)
 			.rect("fan-face", 0.35, 9.1, 0.35, 17.3)
 			.rect("fan-face", 47.4, 9.1, 0.35, 17.3);
@@ -801,33 +817,36 @@ export function buildHall(
 				const cx = fx + MOD.w / 2;
 				const cy = fy + 4.25;
 				fanCassette(sh, fx, fy);
+				rotors.push(staticFan(cx, cy, 2.75, 7));
 				spot(face.x + cx, face.top - cy, 0, 1, cage);
-				const q = [
-					[cx - MOD.gx, cy - MOD.gy],
-					[cx + MOD.gx, cy - MOD.gy],
-					[cx + MOD.gx, cy + MOD.gy],
-					[cx - MOD.gx, cy + MOD.gy],
-				].map(([u, v]) => kitIso([face.x + u, yFace, face.top - v], P));
-				holes.push(kitPathOf(q, true));
+				if (cage >= 0) {
+					holes.push(
+						kitPathOf(
+							[
+								[cx - MOD.gx, cy - MOD.gy],
+								[cx + MOD.gx, cy - MOD.gy],
+								[cx + MOD.gx, cy + MOD.gy],
+								[cx - MOD.gx, cy + MOD.gy],
+							].map(([u, v]) => kitIso([face.x + u, yFace, face.top - v], P)),
+							true
+						)
+					);
+				}
 			}
 		}
 		return {
-			guards: sh.svg(["fan-grid", "metal-detail"], true),
+			guards: rotors.join("") + sh.svg(["fan-grid", "metal-detail"], true),
 			holes: holes.join(""),
 			svg: sh.svg(FACE_ORDER),
 		};
 	}
 	// The upper 2U (figure 3): PSU2 and PSU3 on the top row with the boot card, then PSU4 and PSU5;
 	// below them PSU1, the vent over the I/O (LOM, OCP NIC, iDRAC, USB, VGA) and PSU6.
-	function upperBand(
-		face: {
-			x: number;
-			top: number;
-		},
-		sh: Shapes
-	) {
+	function upperBand(sh: Shapes) {
+		const rotors: string[] = [];
 		const psu = (px: number, py: number) => {
-			spot(face.x + px + 2.05, face.top - (py + 2.0), 1, 1.5);
+			// Recessed supply rotors belong to the opaque SVG body, so nearer cabinets occlude them.
+			rotors.push(staticFan(px + 2.05, py + 2, 1.35, 5, "power-rotor"));
 			sh.rect("psu-face", px, py, 9.3, 4, 0.3)
 				.circle("fan-hole", px + 2.05, py + 2, 1.5)
 				.circle("metal-detail", px + 2.05, py + 2, 1.35)
@@ -873,6 +892,7 @@ export function buildHall(
 			.rect("port", 28.2, 7.1, 0.9, 0.9, 0.12)
 			.rect("port", 29.9, 7.05, 2.6, 1, 0.3);
 		psu(36, 4.5);
+		return rotors.join("");
 	}
 	function serverRear(rack: number, level: number, host?: string) {
 		const { x, z } = at(rack, level);
@@ -884,7 +904,7 @@ export function buildHall(
 		const body = kitSlabOf(
 			plan(x, -2, SERVER.w, 2, 0.2),
 			z + 0.15,
-			SERVER.h - 0.3,
+			BAY.z1 + 0.1,
 			P,
 			2,
 			0.4
@@ -892,8 +912,11 @@ export function buildHall(
 		const m = kitSideMatrix([x, 0], face.top, P, "left");
 		const ours = host !== undefined;
 		const sh = new Shapes();
-		upperBand(face, sh);
+		const powerShapes = new Shapes();
+		const powerRotors = upperBand(powerShapes);
+		const powerMatrix = kitSideMatrix([x, POWER_Y], face.top, P, "left");
 		let faceSvg: string;
+		let fanGuards = "";
 		if (ours) {
 			sh.rect(
 				"recess",
@@ -904,26 +927,66 @@ export function buildHall(
 			);
 			faceSvg = sh.svg(FACE_ORDER);
 		} else {
-			faceSvg = fanWall(face, -1, sh).svg;
+			const wall = fanWall(face, -1, sh);
+			faceSvg = wall.svg;
+			fanGuards = wall.guards;
 		}
 		// Static metal guards sit above the animated fan canvas, not underneath it.
 		rearGuards.push(
-			`<g class="rear-guards" transform="${m}">${sh.svg(["fan-grid", "metal-detail"], true)}</g>`
+			`<g class="rear-guards" transform="${m}">${fanGuards}${sh.svg(["fan-grid", "metal-detail"], true)}</g>`
 		);
 		const idled = `<circle class="idled" data-idled="${host ?? ""}" cx="34.2" cy="7.55" r="0.5"/>`;
-		const svg = `<g data-part="${ours ? "server-yours" : "server"}" data-host="${host ?? ""}">${S(
+		const powerBottom = z + BAY.z1 + 0.4;
+		const recessTop = z + SLOT_HEIGHT - 0.3;
+		// This is an opening into the chassis, not a box bolted onto its rear. The supplies sit
+		// on its back plane. A narrow gap above them separates this server from the next fan wall.
+		// The opening's returns reach that next wall, so its overhang does not cover the PSU row.
+		const powerBody = `<g class="power-bay"><path class="power-back" d="${faceYp(POWER_Y, x, x + SERVER.w, powerBottom, recessTop)}"/><path class="machine-gap" d="${faceYp(POWER_Y, x, x + SERVER.w, top, recessTop)}"/><g transform="${powerMatrix}">${powerShapes.svg(FACE_ORDER)}${powerRotors}${powerShapes.svg(["metal-detail"], true)}${idled}</g><path class="power-return" d="${faceX(x, POWER_Y, 0, powerBottom, recessTop)}"/>${L(
+			faceX(x, POWER_Y, 0, powerBottom, recessTop),
+			{ tone: "faint" }
+		)}${S(
+			kitSlabOf(
+				plan(x + SERVER.w - 0.25, POWER_Y, 0.25, -POWER_Y, 0.05),
+				powerBottom,
+				recessTop - powerBottom,
+				P,
+				1
+			),
+			{ className: "metal power-rim", crease: "faint", tone: "mid" }
+		)}${S(
+			kitSlabOf(
+				plan(x, POWER_Y, SERVER.w, -POWER_Y, 0.1),
+				recessTop,
+				0.2,
+				P,
+				1
+			),
+			{ className: "metal power-rim", crease: "faint", tone: "mid" }
+		)}</g>`;
+		const shelf = S(
+			kitSlabOf(
+				plan(x + 0.1, POWER_Y, SERVER.w - 0.2, -POWER_Y, 0.1),
+				z + BAY.z1 + 0.2,
+				0.3,
+				P,
+				1,
+				0.1
+			),
+			{ className: "metal service-shelf", crease: "faint", tone: "mid" }
+		);
+		const svg = `<g data-part="${ours ? "server-yours" : "server"}" data-host="${host ?? ""}">${powerBody}${shelf}${S(
 			body,
 			{
 				crease: "faint",
-				inner: `<g transform="${m}">${faceSvg}${idled}</g>`,
+				inner: `<g transform="${m}">${faceSvg}</g>`,
 				tone: "mid",
 			}
 		)}</g>`;
 		if (ours) {
 			// Your server's fan wall is the front of its GPU tray: they come out together, like a drawer, and go back
 			// in together. (On the real server Dell has you lift the fan wall off first; drawn attached, the motion
-			// reads as what it is: pulling the GPUs out to look at them.) The grilles are cut out of the drawer, so the
-			// fans the GPU layer draws underneath show through and travel with it.
+			// reads as what it is: pulling the GPUs out to look at them.) The opaque tray occludes the rack
+			// behind it; its moving rotors are drawn above that tray, under their own fixed guards.
 			const ci = cages.push(host) - 1;
 			const yFace = TRAY.pull;
 			const cw = fanWall(face, ci, new Shapes(), yFace);
@@ -938,22 +1001,25 @@ export function buildHall(
 			const fanFront = S(
 				kitSlabOf(frontPlan, z + BAY.z0, BAY.z1 - BAY.z0, P, 2, 0.4),
 				{
+					className: "metal fan-housing",
 					inner: `<g transform="${mf}">${cw.svg}</g>`,
 					tone: "mid",
 				}
 			);
+			const drawer = trayFor(
+				host,
+				x,
+				z,
+				fanFront,
+				cw.holes,
+				`<g transform="${mf}">${cw.guards}</g>`
+			);
 			trayLayers.push({
+				guards: drawer.guards,
 				host,
 				level,
 				rack,
-				svg: trayFor(
-					host,
-					x,
-					z,
-					fanFront,
-					cw.holes,
-					`<g transform="${mf}">${cw.guards}</g>`
-				),
+				svg: drawer.svg,
 			});
 		}
 		return svg;
@@ -964,7 +1030,7 @@ export function buildHall(
 	// tall perforated side walls and a hinged lever across its end; the baseboard; and eight OAM modules,
 	// four across and two deep, in line with the airflow. Each wears a tower heatsink: a short band of
 	// vertical fins on a copper base, then a tall stack of thin horizontal fins with copper heat pipes rising
-	// through it, under a black top plate with ten screws, two labels and a bar handle. In front of the
+	// through it, under a black top plate with copper fasteners, edge labels and a black handle. In front of the
 	// GPUs, the bare board carries a black lifting handle and a small heatsinked chip.
 	function trayFor(
 		host: string,
@@ -1022,7 +1088,7 @@ export function buildHall(
 			.join("");
 		const base =
 			S(kitSlabOf(floor, z0, 0.45, P, 2, 0.3), {
-				className: "metal",
+				className: "metal tray-floor",
 				crease: "faint",
 				tone: "mid",
 			}) +
@@ -1052,7 +1118,7 @@ export function buildHall(
 				(_, i) => [xf, front - 3 - i * 6.6, z0 + wallH - 1.2] as P3
 			);
 			return S(kitSlabOf(wp, z0, wallH, P, 1, 0.15), {
-				className: "metal",
+				className: "metal tray-wall",
 				inner:
 					`<path class="perf-face" d="${faceX(xf, ty + 1, front - 1, z0 + 1.2, z0 + 3)}"/><path class="cutout" d="${wins}"/>` +
 					kitDotsSvg(kitPointsAt(screws, P), {
@@ -1103,66 +1169,21 @@ export function buildHall(
 						)
 						.join("");
 				const fins =
-					`<path class="sink-face" d="${faceYp(yf, sp.x, xr, band, sTop)}${faceX(xr, sp.y, yf, band, sTop)}"/>` +
+					`<path class="sink-face front-face" d="${faceYp(yf, sp.x, xr, band, sTop)}"/><path class="sink-face side-face" d="${faceX(xr, sp.y, yf, band, sTop)}"/>` +
 					`<path fill="url(#fins-y)" d="${faceYp(yf, sp.x, xr, band, sTop)}"/><path fill="url(#fins-x)" d="${faceX(xr, sp.y, yf, band, sTop)}"/>` +
 					`<path class="pipe" d="${pipes}"/>`;
 				const vfins =
 					`<path class="sink-face" d="${faceYp(yf, sp.x, xr, s0, band)}${faceX(xr, sp.y, yf, s0, band)}"/><path fill="url(#vfins-y)" d="${faceYp(yf, sp.x, xr, s0, band)}"/><path fill="url(#vfins-x)" d="${faceX(xr, sp.y, yf, s0, band)}"/>` +
 					`<path class="copper" d="${faceYp(yf, sp.x, xr, s0, s0 + 0.32)}${faceX(xr, sp.y, yf, s0, s0 + 0.32)}"/>`;
-				// the top plate: black, ten copper screws, two white labels and a bar handle along its length
+				// the top plate: service labels, copper fasteners and a black lengthwise handle
 				const plate = plan(sp.x, sp.y, sp.w, sp.d, 0.25);
 				const pTop = sTop + 0.3;
-				const scr: P3[] = [];
-				for (const [fx, fy] of [
-					[0.1, 0.06],
-					[0.9, 0.06],
-					[0.1, 0.94],
-					[0.9, 0.94],
-					[0.1, 0.36],
-					[0.9, 0.36],
-					[0.1, 0.66],
-					[0.9, 0.66],
-					[0.5, 0.12],
-					[0.5, 0.88],
-				]) {
-					scr.push([sp.x + sp.w * fx, sp.y + sp.d * fy, pTop]);
-				}
-				const labels = `<path class="label" d="${topQuad(sp.x + 1, sp.y + sp.d * 0.56, sp.w - 2, 1.15, pTop)}${topQuad(sp.x + 1.4, sp.y + sp.d * 0.2, sp.w * 0.42, 0.85, pTop)}"/>`;
-				const hx = sp.x + sp.w / 2 - 0.22;
-				const h0 = sp.y + sp.d * 0.3;
-				const h1 = sp.y + sp.d * 0.7;
-				const handle =
-					S(kitSlabOf(plan(hx, h0, 0.44, 0.44, 0.1), pTop, 1.5, P, 1, 0), {
-						className: "metal",
-						crease: "none",
-						tone: "mid",
-					}) +
-					S(
-						kitSlabOf(plan(hx, h1 - 0.44, 0.44, 0.44, 0.1), pTop, 1.5, P, 1, 0),
-						{
-							className: "metal",
-							crease: "none",
-							tone: "mid",
-						}
-					) +
-					S(
-						kitSlabOf(
-							plan(hx, h0, 0.44, h1 - h0, 0.2),
-							pTop + 1.5,
-							0.42,
-							P,
-							1,
-							0.1
-						),
-						{
-							className: "metal",
-							crease: "none",
-							tone: "mid",
-						}
-					);
+				const cap = kitSlabOf(plate, sTop, 0.3, P, 2, 0.15);
+				const { hardware, handle } = heatsinkHardware(plate, pTop, P);
 				const led = kitIso([sp.x + sp.w - 1, yf, s0 + 0.95], P);
 				const svg =
 					`<g class="gpu" data-gpu="${host}/${slot}" data-part="gpu">` +
+					`<path class="module-shadow" d="${topQuad(ox - 0.45, oy - 0.3, OAM.w + 1.1, OAM.d + 1.1, bz + 0.01)}"/>` +
 					S(kitSlabOf(oam, bz, 0.6, P, 2, 0), {
 						className: "board",
 						crease: "none",
@@ -1180,17 +1201,12 @@ export function buildHall(
 							`<path class="heat side" d="${faceYp(yf, sp.x, xr, band, sTop)}${faceX(xr, sp.y, yf, band, sTop)}"/>`,
 						tone: "hi",
 					}) +
-					`<g class="sink-top">${S(kitSlabOf(plate, sTop, 0.3, P, 2, 0.15), {
+					`<g class="sink-top">${S(cap, {
 						crease: "none",
-						inner: `<path class="heat" d="${topQuad(sp.x, sp.y, sp.w, sp.d, pTop)}"/>${labels}${kitDotsSvg(
-							kitPointsAt(scr, P),
-							{
-								size: 0.36,
-								tone: "mid",
-							}
-						)}`,
+						inner: `<path class="heat" d="${topQuad(sp.x, sp.y, sp.w, sp.d, pTop)}"/>${hardware}`,
 						tone: "hi",
 					})}</g>` +
+					`<path class="gpu-selection" d="${cap.top}"/>` +
 					handle +
 					`<circle class="led" cx="${fmt(led[0])}" cy="${fmt(led[1])}" r="0.9"/>` +
 					"</g>";
@@ -1238,19 +1254,17 @@ export function buildHall(
 		items.sort((a, b) => a.key - b.key);
 		const svg = `<g data-part="tray">${base}${wall(tx)}</g>${items.map((i) => i.svg).join("")}<g data-part="tray">${wall(tx + TRAY.w - 0.3)}</g><g data-part="fans">${fanFront}</g>`;
 		const id = cssId(host);
-		// the mask covers the drawer and no more: a moving masked group is redrawn offscreen every frame
+		// Closed, non-focused drawers expose the row's rotor canvas through their fan faces.
+		// The focused drawer disables this mask: its solid floor sits below a separate rotor layer.
 		const box = kitBoxCorners(
 			plan(x, ty - 2, SERVER.w, TRAY.pull - ty + 4),
 			z - 1,
 			z + BAY.z1 + 4
 		).map((c) => kitIso(c, P));
-		const mx = Math.min(...box.map((b) => b[0]));
-		const my = Math.min(...box.map((b) => b[1]));
-		const mw = Math.max(...box.map((b) => b[0])) - mx;
-		const mh = Math.max(...box.map((b) => b[1])) - my;
-		const mr = `x="${fmt(mx)}" y="${fmt(my)}" width="${fmt(mw)}" height="${fmt(mh)}"`;
+		const mx = Math.min(...box.map((point) => point[0]));
+		const my = Math.min(...box.map((point) => point[1]));
+		const mr = `x="${fmt(mx)}" y="${fmt(my)}" width="${fmt(Math.max(...box.map((point) => point[0])) - mx)}" height="${fmt(Math.max(...box.map((point) => point[1])) - my)}"`;
 		const mask = `<mask id="holes-${id}" maskUnits="userSpaceOnUse" ${mr}><rect ${mr} fill="#fff"/><path d="${holes}" fill="#000"/></mask>`;
-
 		// The clip: the bay opening extruded out into the aisle, so whatever is still inside the server stays hidden.
 		const corners: P3[] = [];
 		for (const yy of [0, TRAY.pull + 30]) {
@@ -1264,7 +1278,12 @@ export function buildHall(
 			}
 		}
 		const hull = kitPathOf(hullOf(corners.map((c) => kitIso(c, P))), true);
-		return `<clipPath id="clip-${id}"><path d="${hull}"/></clipPath>${mask}<g clip-path="url(#clip-${id})"><g data-tray="${host}"><g mask="url(#holes-${id})">${svg}</g>${guards}</g></g>`;
+		const [yx, yy] = kitAxisVector(P, [0, 1, 0]);
+		const closed = `translate(${fmt(-yx * TRAY.pull)} ${fmt(-yy * TRAY.pull)})`;
+		return {
+			guards: `<g clip-path="url(#clip-${id})"><g data-tray-guards="${host}" transform="${closed}" visibility="hidden">${guards}</g></g>`,
+			svg: `<clipPath id="clip-${id}"><path d="${hull}"/></clipPath>${mask}<g clip-path="url(#clip-${id})"><g data-tray="${host}" transform="${closed}"><g data-tray-surface="${host}" mask="url(#holes-${id})">${svg}</g>${guards}</g></g>`,
+		};
 	}
 
 	// ---------------------------------------------------------------- framing
@@ -1337,6 +1356,7 @@ export function buildHall(
 		anchors,
 		cages,
 		defs,
+		drawerGuards: trayLayers.map((t) => t.guards).join(""),
 		fans,
 		frameOf,
 		front,

@@ -170,6 +170,7 @@ describe("rental availability and credits", () => {
 				hourly_rate: 0,
 				virtual_machine_count: 0,
 			},
+			children: <a href="/teams/lab/history">Machine history</a>,
 			keys: [],
 			offers: [],
 		});
@@ -185,7 +186,15 @@ describe("rental availability and credits", () => {
 		).toHaveClass("availability-empty");
 		expect(screen.queryByRole("radio")).not.toBeInTheDocument();
 		expect(screen.queryByText("Loading prices")).not.toBeInTheDocument();
-		expect(screen.getByRole("button", { name: HOLD })).toBeDisabled();
+		expect(
+			screen.queryByRole("button", { name: HOLD })
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("combobox", { name: "Image" })
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("region", { name: "Estimate" })
+		).not.toBeInTheDocument();
 		await userEvent
 			.setup()
 			.click(screen.getByRole("button", { name: "Add credits" }));
@@ -194,8 +203,11 @@ describe("rental availability and credits", () => {
 			screen.queryByRole("button", { name: "Refresh availability" })
 		).not.toBeInTheDocument();
 		expect(
-			screen.getByRole("link", { name: "Add an SSH key in Settings" })
-		).toHaveAttribute("href", "/teams/lab/settings#ssh-keys");
+			screen.queryByRole("link", { name: "Add an SSH key in Settings" })
+		).not.toBeInTheDocument();
+		expect(
+			screen.getByRole("link", { name: "Machine history" })
+		).toHaveAttribute("href", "/teams/lab/history");
 		expect(provision).not.toHaveBeenCalled();
 	});
 	it("treats an inventory with zero available quantities as empty", () => {
@@ -205,7 +217,16 @@ describe("rental availability and credits", () => {
 				screen.getByRole("region", { name: "Launch a machine" })
 			).getByRole("status")
 		).toHaveClass("availability-empty");
-		expect(screen.getByRole("button", { name: HOLD })).toBeDisabled();
+		expect(
+			screen.queryByRole("button", { name: HOLD })
+		).not.toBeInTheDocument();
+		expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("combobox", { name: "Image" })
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("region", { name: "Estimate" })
+		).not.toBeInTheDocument();
 	});
 	it("only presents loading while the availability request is pending", () => {
 		open({ offers: undefined });

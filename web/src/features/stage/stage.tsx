@@ -22,7 +22,9 @@ import {
 import { ServerTag } from "./server-tag";
 import { startStageAnimation } from "./stage-animation";
 import { StageCaption } from "./stage-caption";
+import { MachineSpecs, StageSpecs } from "./stage-specs";
 import { SvgMarkup } from "./svg-markup";
+import { useFanMotion } from "./use-fan-motion";
 export function Stage({
 	state,
 	hold,
@@ -32,17 +34,21 @@ export function Stage({
 	hold: Signal<number>;
 	entrance: boolean;
 }) {
+	const fans = useFanMotion();
 	const box = useRef<HTMLDivElement>(null);
 	const svg = useRef<SVGSVGElement>(null);
 	const front = useRef<SVGSVGElement>(null);
+	const drawerGuards = useRef<SVGSVGElement>(null);
 	const fanCanvas = useRef<HTMLCanvasElement>(null);
 	const fanLayer = useRef<FanLayer | null>(null);
+	const drawerFanCanvas = useRef<HTMLCanvasElement>(null);
+	const drawerFanLayer = useRef<FanLayer | null>(null);
 	const chip = useRef<SVGSVGElement>(null);
 	const insp = useRef<HTMLDivElement>(null);
 	const inspIn = useRef<HTMLDivElement>(null);
 	const inspBox = useRef<number[] | null>(null);
 	const tagSize = useRef(new Map<string, [number, number]>());
-	const [size, setSize] = useState({ h: 0, w: 0 });
+	const [size, setSize] = useState({ compact: true, h: 0, w: 0 });
 	const [hover, setHover] = useState("");
 	const lay = layout(state);
 	useLayoutEffect(() => {
@@ -50,18 +56,23 @@ export function Stage({
 		if (!el) {
 			return;
 		}
-		const measure = () =>
+		const measure = () => {
+			const compact =
+				!insp.current || getComputedStyle(insp.current).display === "none";
 			setSize((s) =>
 				Math.abs(s.w - el.clientWidth) < 1 &&
-				Math.abs(s.h - el.clientHeight) < 1
+				Math.abs(s.h - el.clientHeight) < 1 &&
+				s.compact === compact
 					? s
 					: {
+							compact,
 							h: el.clientHeight,
 							w: el.clientWidth,
 						}
 			);
+		};
 		measure();
-		const ro = new ResizeObserver(() => requestAnimationFrame(measure));
+		const ro = new ResizeObserver(measure);
 		ro.observe(el);
 		return () => ro.disconnect();
 	}, []);
@@ -124,30 +135,34 @@ export function Stage({
 			] as Slot,
 		}));
 	}, [hostKey]);
-	const narrow = size.w < 720;
+	const { compact } = size;
 	const hall = useMemo(() => {
 		if (size.w < 100 || size.h < 100) {
 			return;
 		}
-		const inset = narrow
+		const inset = compact
 			? {
-					bottom: 40,
-					left: 12,
-					right: 12,
-					top: Math.min(96, size.h * 0.16),
+					bottom: 76,
+					left: 16,
+					right: 16,
+					top: Math.min(48, size.h * 0.12),
 				}
 			: {
 					bottom: 56,
-					left: 336,
+					left: 408,
 					right: 28,
 					top: Math.min(240, size.h * 0.3),
 				};
 		return buildHall(size.w, size.h, inset, trays);
-	}, [size, trays, narrow]);
+	}, [size, trays, compact]);
 	const chipSvg = useMemo(() => buildChip(260, 112), []);
 
 	// each tag's size, for keeping it inside the plate; measured only when what it says changes
-	const measurementKey = JSON.stringify({ narrow, tags: lay.tags });
+	const measurementKey = JSON.stringify({
+		compact,
+		tags: lay.tags,
+		width: size.w,
+	});
 	const measuredTags = useRef("");
 	useLayoutEffect(() => {
 		if (measuredTags.current === measurementKey) {
@@ -163,11 +178,41 @@ export function Stage({
 			}
 		}
 	}, [measurementKey]);
+	// Measure the visible card before the animation controller places the GPU tags.
+	useLayoutEffect(() => {
+		if (compact) {
+			inspBox.current = null;
+			return;
+		}
+		const outer = insp.current;
+		const inner = inspIn.current;
+		if (!(outer && inner)) {
+			return;
+		}
+		const measureInspector = () => {
+			inspBox.current = [
+				outer.offsetLeft,
+				outer.offsetTop,
+				outer.offsetWidth,
+				outer.clientHeight,
+			];
+		};
+		measureInspector();
+		const ro = new ResizeObserver(measureInspector);
+		ro.observe(inner);
+		ro.observe(outer);
+		return () => {
+			ro.disconnect();
+			inspBox.current = null;
+		};
+	}, [compact]);
 	const live = useRef({
+		fanMotion: fans.moving,
 		lay,
 		st: state,
 	});
 	live.current = {
+		fanMotion: fans.moving,
 		lay,
 		st: state,
 	};
@@ -191,7 +236,6 @@ export function Stage({
 		aspect: number;
 	} | null>(null);
 	const camKept = useRef<number[] | null>(null);
-	const arrived = useRef(false); // the camera has reached your servers once; the tags come up then
 	const frameKept = useRef("");
 	const startCam = useMemo(() => {
 		if (!hall) {
@@ -207,14 +251,16 @@ export function Stage({
 			? keptLocal
 			: target;
 	}, [hall]);
-	useEffect(
+	useLayoutEffect(
 		() =>
 			startStageAnimation({
-				arrived,
 				box,
 				camKept,
 				camSpring,
 				chip,
+				drawerFanCanvas,
+				drawerFanLayer,
+				drawerGuards,
 				fanCanvas,
 				fanLayer,
 				first,
@@ -230,6 +276,15 @@ export function Stage({
 				wake,
 			}),
 		[hall, hold]
+	);
+	useEffect(
+		() => () => {
+			fanLayer.current?.dispose();
+			fanLayer.current = null;
+			drawerFanLayer.current?.dispose();
+			drawerFanLayer.current = null;
+		},
+		[]
 	);
 	const onMove = useCallback(
 		(e: React.PointerEvent) => {
@@ -272,30 +327,6 @@ export function Stage({
 		setHover("");
 	}, []);
 
-	// The inspector's length follows what it describes; it glides there instead of snapping.
-	useLayoutEffect(() => {
-		if (narrow) {
-			return;
-		}
-		const outer = insp.current;
-		const inner = inspIn.current;
-		if (!(outer && inner)) {
-			return;
-		}
-		const measureInspector = () => {
-			outer.style.height = `${inner.offsetHeight}px`;
-			inspBox.current = [
-				outer.offsetLeft,
-				outer.offsetTop,
-				outer.offsetWidth,
-				inner.offsetHeight,
-			];
-		};
-		measureInspector();
-		const ro = new ResizeObserver(measureInspector);
-		ro.observe(inner);
-		return () => ro.disconnect();
-	}, [narrow]);
 	return (
 		<section
 			aria-label="Drawing of the servers"
@@ -327,37 +358,60 @@ export function Stage({
 							markup={hall.front}
 							viewBox={startCam.join(" ")}
 						/>
+						<div aria-hidden="true">
+							<canvas className="fans drawer-fans" ref={drawerFanCanvas} />
+						</div>
+						<SvgMarkup
+							aria-hidden="true"
+							className="iso-svg fig front drawer-fan-guards"
+							elementRef={drawerGuards}
+							markup={hall.drawerGuards}
+							viewBox={startCam.join(" ")}
+						/>
 					</>
 				)}
-				{!narrow && (
-					<div className="inspector" ref={insp}>
-						<div className="insp-in" ref={inspIn}>
-							<SvgMarkup
-								aria-hidden="true"
-								className="iso-svg chip"
-								elementRef={chip}
-								markup={chipSvg}
-								viewBox="0 0 260 112"
-							/>
+				<div className="inspector" ref={insp}>
+					<div className="insp-in" ref={inspIn}>
+						<SvgMarkup
+							aria-hidden="true"
+							className="iso-svg chip"
+							elementRef={chip}
+							markup={chipSvg}
+							viewBox="0 0 260 112"
+						/>
+						{state.preview === undefined || state.spec.length === 0 ? (
 							<p className="spec-t">{state.specTitle}</p>
-							<dl>
-								{state.spec.map(([k, v]) => (
-									<div key={k}>
-										<dt>{k}</dt>
-										<dd>{v}</dd>
-									</div>
-								))}
-							</dl>
-						</div>
+						) : null}
+						<MachineSpecs specs={state.spec} />
 					</div>
-				)}
+				</div>
 				<div className="tags">
 					{lay.tags.map((tag) => (
 						<ServerTag key={tag.host} tag={tag} />
 					))}
 				</div>
+				<button
+					aria-label={
+						fans.moving ? "Pause fan animation" : "Play fan animation"
+					}
+					className="fan-motion-control"
+					onClick={fans.toggle}
+					title={fans.moving ? "Pause fans" : "Play fans"}
+					type="button"
+				>
+					<svg aria-hidden="true" height="14" viewBox="0 0 16 16" width="14">
+						{fans.moving ? (
+							<path d="M4 3h3v10H4zM9 3h3v10H9z" fill="currentColor" />
+						) : (
+							<path d="m4 2 9 6-9 6Z" fill="currentColor" />
+						)}
+					</svg>
+				</button>
 				<StageCaption text={hover || state.readout} />
 			</div>
+			{state.spec.length > 0 && (
+				<StageSpecs specs={state.spec} title={state.specTitle} />
+			)}
 		</section>
 	);
 }

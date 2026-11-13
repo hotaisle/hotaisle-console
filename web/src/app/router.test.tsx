@@ -4,7 +4,7 @@ import {
 	RouterProvider,
 	useLocation,
 } from "@tanstack/react-router";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useCallback } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -151,9 +151,7 @@ describe("console URLs", () => {
 		const { router } = await open("/teams");
 		await userEvent
 			.setup()
-			.click(
-				await screen.findByRole("link", { name: "Edit team details for Lab" })
-			);
+			.click(await screen.findByRole("link", { name: "Manage team Lab" }));
 		expect(await screen.findByLabelText("Team name")).toHaveValue("Lab");
 		expect(router.state.location.pathname).toBe("/teams/lab/details");
 	});
@@ -188,6 +186,85 @@ describe("console URLs", () => {
 		).toBeInTheDocument();
 		expect(
 			screen.queryByRole("button", { name: "Save changes" })
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: "Send email invitation" })
+		).not.toBeInTheDocument();
+	});
+	it("invites from a deep-linked team page and reloads authoritative pending members", async () => {
+		const owner = {
+			created: "2026-01-01",
+			email: "fixture@example.com",
+			name: "Fixture",
+			roles: ["owner" as const],
+		};
+		const pending = {
+			created: "2026-02-01",
+			email: "dana@example.com",
+			invitation: true,
+			name: "Dana Doe",
+			roles: ["user" as const],
+		};
+		const getTeam = vi
+			.spyOn(api, "team")
+			.mockResolvedValue({ ...TEAM, members: [owner] });
+		const invite = vi.spyOn(api, "inviteTeamMember").mockImplementation(() => {
+			getTeam.mockResolvedValue({ ...TEAM, members: [owner, pending] });
+			return Promise.resolve();
+		});
+		const { router } = await open("/teams/lab/details");
+		const user = userEvent.setup();
+		const form = within(
+			await screen.findByRole("form", { name: "Invite someone" })
+		);
+		await user.type(form.getByRole("textbox", { name: "Name" }), pending.name);
+		await user.type(form.getByLabelText("Email address"), pending.email);
+		await user.click(
+			form.getByRole("button", { name: "Send email invitation" })
+		);
+		expect(await screen.findByRole("status")).toHaveTextContent(
+			"Invitation sent to dana@example.com."
+		);
+		await screen.findByRole("cell", { name: "Pending" });
+		const members = screen.getByRole("table", {
+			name: "Team members and invitations",
+		});
+		expect(
+			within(members).getByRole("rowheader", { name: "Dana Doe" })
+		).toBeInTheDocument();
+		expect(invite).toHaveBeenCalledWith("lab", {
+			email: pending.email,
+			name: pending.name,
+			roles: ["user"],
+		});
+		expect(
+			testClient.getQueryData<Team>(["resource", "team-details", "lab"])
+				?.members
+		).toEqual([owner, pending]);
+		expect(router.state.location.pathname).toBe("/teams/lab/details");
+	});
+	it("automatically moves an accepted invitation into current members", async () => {
+		vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
+		focusManager.setFocused(true);
+		const member = {
+			created: "2026-01-01",
+			email: "dana@example.com",
+			name: "Dana",
+			roles: ["user" as const],
+		};
+		const getTeam = vi.spyOn(api, "team").mockResolvedValue({
+			...TEAM,
+			members: [{ ...member, invitation: true }],
+		});
+		await open("/teams/lab/details");
+		await screen.findByRole("cell", { name: "Pending" });
+		getTeam.mockResolvedValue({ ...TEAM, members: [member] });
+		await act(async () => vi.advanceTimersByTime(10_000));
+		expect(
+			await screen.findByRole("cell", { name: "Current" })
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("cell", { name: "Pending" })
 		).not.toBeInTheDocument();
 	});
 	it("refreshes the team chooser automatically, pauses in background, and stops polling while creating a team", async () => {
