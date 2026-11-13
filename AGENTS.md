@@ -139,6 +139,17 @@ secrets, follow signed redirects, or sign unrelated endpoints. Tests use only a 
 
 ## GitHub workflow
 
+Before creating or updating a PR, assess whether the diff changes anything shown in Console media:
+layout, copy, controls, navigation, team/billing/machine flows, hardware visuals, themes, or the showcase.
+Follow `docs/media-sync.md` to keep README screenshots, website/blog images, video, captions, transcript,
+and poster synchronized. If affected media has not already been refreshed for the current changes,
+ask the user whether to sync it before opening the PR. Do not silently omit this question or treat
+an earlier refresh as covering later UI changes. An explicit request to regenerate media already
+authorizes the sync; proceed without asking again. For an explicit release with instructions not to
+pause, complete the affected sync within that authorization. State the media result in the PR body:
+refreshed (with related PRs), not affected (why), or deferred (the user's decision and remaining scope).
+This is a manual workflow check; existing CI does not detect stale screenshots or videos.
+
 Treat all tracked documentation as public, including security records. Follow
 `docs/SECURITY-PUBLICATION.md` before updating them. Do not include credentials, production key material,
 personal/local paths, private upstream internals, host inventories, raw diagnostics, or control-plane
