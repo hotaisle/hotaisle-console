@@ -8,10 +8,51 @@ import {
 import type { PreviewAPI } from "../api";
 import { createCamera } from "./camera";
 import { music } from "./music";
+import { captionHeading } from "./presentation";
 import { capture, download } from "./recording";
 import { type Cue, find, pause, play, subtitles } from "./runner";
 import { SHOWCASE_GRID, STORYBOARD } from "./storyboard";
 import { clips, createVoice } from "./voice";
+
+function useCaptionExpiry(
+	caption: string,
+	sceneId: string,
+	setCaption: (value: string) => void
+) {
+	useEffect(() => {
+		const clip = clips[sceneId];
+		if (!(caption && clip)) {
+			return;
+		}
+		const timer = setTimeout(() => setCaption(""), clip.duration * 1000 + 250);
+		return () => clearTimeout(timer);
+	}, [caption, sceneId, setCaption]);
+}
+
+function Captions({
+	caption,
+	sceneId,
+	stop,
+}: {
+	caption: string;
+	sceneId: string;
+	stop: () => void;
+}) {
+	const heading = captionHeading(sceneId);
+	return (
+		<footer className="showcase-captions">
+			{caption && heading ? (
+				<div className="showcase-copy" key={sceneId}>
+					<strong>{heading}</strong>
+					<p aria-live="polite">{caption}</p>
+				</div>
+			) : null}
+			<button className="showcase-stop" onClick={stop} type="button">
+				Stop
+			</button>
+		</footer>
+	);
+}
 
 export function Studio({
 	api,
@@ -30,6 +71,8 @@ export function Studio({
 	const [finished, setFinished] = useState(false);
 	const [motion, setMotion] = useState(false);
 	const startedAt = useRef(0);
+	const sceneId = STORYBOARD[chapter - 1]?.id ?? "";
+	useCaptionExpiry(caption, sceneId, setCaption);
 	const controller = useRef<AbortController | null>(null);
 	const stop = useCallback(
 		() =>
@@ -88,6 +131,7 @@ export function Studio({
 					approve,
 					grid: SHOWCASE_GRID,
 					point: camera.point,
+					press: camera.press,
 					async scene(scene, index) {
 						setCaption(scene.narration);
 						setChapter(index + 1);
@@ -174,18 +218,26 @@ export function Studio({
 	const toggleMotion = useCallback(() => setMotion((enabled) => !enabled), []);
 	return (
 		<>
-			<div aria-hidden="true" className="showcase-pointer" />
+			<div aria-hidden="true" className="showcase-pointer">
+				<span className="showcase-click-ring" />
+				<svg
+					aria-hidden="true"
+					fill="white"
+					height="32"
+					viewBox="0 0 26 32"
+					width="26"
+				>
+					<path
+						d="M2 2v24l6-6 5 10 5-2-5-10h10Z"
+						stroke="#20201c"
+						strokeLinejoin="round"
+						strokeWidth="1.5"
+					/>
+				</svg>
+			</div>
 			<div className="showcase-label">Simulated data · no real charges</div>
 			{running ? (
-				<footer className="showcase-captions">
-					<span className="showcase-chapter">
-						{String(chapter).padStart(2, "0")} / {STORYBOARD.length}
-					</span>
-					<p aria-live="polite">{caption}</p>
-					<button className="showcase-stop" onClick={stop} type="button">
-						Stop
-					</button>
-				</footer>
+				<Captions caption={caption} sceneId={sceneId} stop={stop} />
 			) : (
 				<section aria-label="Showcase studio" className="showcase-controls">
 					<div>

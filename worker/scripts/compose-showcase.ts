@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { type Clip, narrationClip } from "../../web/dev/showcase/narration";
+import { THEME_BLEND_SECONDS } from "../../web/dev/showcase/presentation";
 import { subtitles } from "../../web/dev/showcase/runner";
 import {
 	SHOWCASE_GRID,
@@ -18,6 +19,7 @@ import {
 	type Timing,
 	walkthroughFrames,
 } from "./showcase-edit";
+import { blendTheme } from "./showcase-theme";
 
 const FRAME_FILE = /^frame-\d+\.jpg$/u;
 const AUDIO_DATA = /^data:audio\/mpeg;base64,/u;
@@ -114,14 +116,27 @@ try {
 		outputBase,
 		tempoScale
 	);
-	const editedFrames = [
-		...artwork.intro,
-		...selected
+	const themeAction = sourceTiming.cues
+		.find((cue) => cue.id === "theme")
+		?.events?.at(-1);
+	const lightAt =
+		themeAction === undefined ? undefined : edit.frameTime(themeAction);
+	const editedFootage = await blendTheme(
+		selected
 			.filter((frame) => frame.time - start < sourceFinish)
 			.map((frame) => ({
 				file: join(directory, frame.file),
 				time: edit.frameTime(frame.time - start),
 			})),
+		lightAt,
+		THEME_BLEND_SECONDS * tempoScale,
+		width,
+		height,
+		temporary
+	);
+	const editedFrames = [
+		...artwork.intro,
+		...editedFootage,
 		{
 			file: join(directory, hold.file),
 			time: (INTRO_SECONDS + edit.holdAt) * tempoScale,
@@ -146,7 +161,11 @@ try {
 		captionCues,
 		width,
 		temporary,
-		duration
+		duration,
+		{
+			height,
+			lightAt: lightAt ?? Number.POSITIVE_INFINITY,
+		}
 	);
 	const captionsIndex = audioInputs.length + (musicPath ? 2 : 1);
 	const filters = timing.cues.map(
@@ -180,6 +199,7 @@ try {
 			"-hide_banner",
 			"-loglevel",
 			"warning",
+			"-xerror",
 			"-n",
 			"-f",
 			"concat",

@@ -17,6 +17,8 @@ export function cameraFrame(
 export function createCamera(enabled: boolean) {
 	const root = document.querySelector<HTMLElement>("#root");
 	const pointer = document.querySelector<HTMLElement>(".showcase-pointer");
+	const ring = pointer?.querySelector<HTMLElement>(".showcase-click-ring");
+	let hovered: HTMLElement | undefined;
 	return {
 		focus(element?: HTMLElement, scale?: number) {
 			if (!root) {
@@ -38,11 +40,31 @@ export function createCamera(enabled: boolean) {
 			);
 			root.style.transform = `translate(${frame.x}px, ${frame.y}px) scale(${frame.scale})`;
 		},
-		point(element: HTMLElement) {
+		async point(element: HTMLElement) {
 			const rect = element.getBoundingClientRect();
-			pointer?.style.setProperty("left", `${rect.left + rect.width / 2}px`);
-			pointer?.style.setProperty("top", `${rect.top + rect.height / 2}px`);
+			hovered?.removeAttribute("data-showcase-hover");
+			hovered = element;
+			element.setAttribute("data-showcase-hover", "");
+			pointer?.style.setProperty(
+				"translate",
+				`${rect.left + rect.width / 2}px ${rect.top + rect.height / 2}px`
+			);
 			pointer?.classList.add("visible");
+			await Promise.allSettled(
+				pointer?.getAnimations().map((animation) => animation.finished) ?? []
+			);
+		},
+		press(pressed: boolean) {
+			pointer?.classList.toggle("pressed", pressed);
+			if (pressed && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+				ring?.animate?.(
+					[
+						{ opacity: 0.55, scale: 0.45 },
+						{ opacity: 0, scale: 1.3 },
+					],
+					{ duration: 450, easing: "ease-out" }
+				);
+			}
 		},
 		reset() {
 			root?.style.removeProperty("transform");
@@ -50,6 +72,12 @@ export function createCamera(enabled: boolean) {
 				root.scrollLeft = 0;
 			}
 			pointer?.classList.remove("visible");
+			pointer?.classList.remove("pressed");
+			pointer?.style.removeProperty("translate");
+			hovered?.removeAttribute("data-showcase-hover");
+			for (const animation of ring?.getAnimations() ?? []) {
+				animation.cancel();
+			}
 		},
 	};
 }
