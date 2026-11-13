@@ -76,6 +76,14 @@ public/assets/quickstart/hotaisle-console-walkthrough-transcript.txt
 public/assets/quickstart/hotaisle-console-walkthrough-poster.webp
 ```
 
+The website's static `VideoPreview` renderer fingerprints these four files during
+each build and adds a content-based `?v=` value to their URLs, including the
+no-JavaScript video link. Quick Start and the blog use the same renderer. Keep
+the source filenames stable; replacing a file changes its browser cache key
+automatically. After release, verify the versioned URLs in both public pages as
+well as the file hashes. Checking only the unversioned asset can miss a browser
+still playing an older cached copy.
+
 The blog references them in `src/content/blog/introducing-hotaisle-console.md`.
 Preserve its copy, date, and funding section unless an editorial change is also
 requested. A media refresh must not silently remove funding or other paragraphs.
