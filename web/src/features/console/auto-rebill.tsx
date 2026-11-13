@@ -25,7 +25,6 @@ export function AutoRebill({ team }: { team: string }) {
 	return (
 		<details className="auto-rebill" onToggle={toggle}>
 			<summary>
-				<span>Automatic rebill</span>
 				<svg aria-hidden="true" height="16" viewBox="0 0 16 16" width="16">
 					<path
 						d="m4 6 4 4 4-4"
@@ -34,10 +33,14 @@ export function AutoRebill({ team }: { team: string }) {
 						strokeWidth="1.5"
 					/>
 				</svg>
+				<span className="rebill-introduction">
+					<strong>Automatic rebill</strong>
+					<span>Keep your team funded with automatic top-ups.</span>
+					<span className="rebill-entry-action">
+						{open ? "Close options" : "Click to view options"}
+					</span>
+				</span>
 			</summary>
-			<p className="muted small">
-				Automatically add credits when your team's balance runs low.
-			</p>
 			{open ? <AutoRebillControls key={team} team={team} /> : null}
 		</details>
 	);

@@ -1,6 +1,7 @@
 .auto-rebill {
-	padding-block: 20px;
-	border-block-start: 1px solid var(--line);
+	background: var(--card);
+	border: 1px solid var(--line-2);
+	border-radius: 12px;
 }
 .credits-view > section + .auto-rebill {
 	margin-block-start: 28px;
@@ -8,21 +9,49 @@
 .auto-rebill > summary {
 	display: flex;
 	gap: 12px;
-	align-items: center;
-	justify-content: space-between;
-	font-size: 1rem;
-	font-weight: 600;
+	align-items: baseline;
+	padding: 18px;
 	cursor: pointer;
 	list-style: none;
+	border-radius: inherit;
+}
+.auto-rebill > summary:hover {
+	background: var(--card-2);
 }
 .auto-rebill > summary::-webkit-details-marker {
 	display: none;
 }
-.auto-rebill[open] > summary svg {
-	transform: rotate(180deg);
+.auto-rebill > summary > svg {
+	flex: none;
+	color: var(--heat-ink);
+	transform: rotate(-90deg);
 }
+.auto-rebill[open] > summary > svg {
+	transform: rotate(0deg);
+}
+.rebill-introduction {
+	display: grid;
+	gap: 6px;
+}
+.rebill-introduction strong {
+	font-size: 1.125rem;
+}
+.rebill-introduction > span {
+	font-size: 0.875rem;
+	line-height: 1.5;
+	color: var(--ink-2);
+}
+.rebill-introduction .rebill-entry-action {
+	font-weight: 600;
+	color: var(--heat-ink);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+.auto-rebill > .rebill-controls,
+.auto-rebill > .stack,
 .auto-rebill > p {
-	margin-block: 10px 16px;
+	padding: 18px;
+	border-block-start: 1px solid var(--line);
 }
 .rebill-status,
 .rebill-actions {
