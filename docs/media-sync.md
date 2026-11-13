@@ -133,6 +133,11 @@ must stay outside production assets.
    closing card. Credits and rebill are demonstrations that back out of payment.
    The current presentation uses a white arrow with click feedback and large
    scene captions over the app. Keep the frame steady; avoid repeated zooms.
+   Caption placement is shared between the studio and compositor: sign-in/team
+   captions sit in the blank area beside the form; Console captions stay on the
+   empty floor below the racks and to the left of the open drawer. Check each
+   scene through its navigation transition, not just its opening frame, so text
+   never covers form copy, account controls, specifications, or hardware.
 6. Use the [recording guide](showcase.md#record) for tab recording or background CDP
    screencast capture. With CDP, save and promptly acknowledge each frame, retain
    its timestamp in `frames.json`, stop the screencast in cleanup, and save the

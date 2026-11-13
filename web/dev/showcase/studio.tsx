@@ -8,7 +8,7 @@ import {
 import type { PreviewAPI } from "../api";
 import { createCamera } from "./camera";
 import { music } from "./music";
-import { captionHeading } from "./presentation";
+import { captionHeading, captionLayout } from "./presentation";
 import { capture, download } from "./recording";
 import { type Cue, find, pause, play, subtitles } from "./runner";
 import { SHOWCASE_GRID, STORYBOARD } from "./storyboard";
@@ -39,10 +39,19 @@ function Captions({
 	stop: () => void;
 }) {
 	const heading = captionHeading(sceneId);
+	const layout = captionLayout(sceneId);
 	return (
 		<footer className="showcase-captions">
 			{caption && heading ? (
-				<div className="showcase-copy" key={sceneId}>
+				<div
+					className="showcase-copy"
+					key={sceneId}
+					style={{
+						left: `${layout.x * 100}%`,
+						top: `${layout.y * 100}%`,
+						width: `${layout.width * 100}%`,
+					}}
+				>
 					<strong>{heading}</strong>
 					<p aria-live="polite">{caption}</p>
 				</div>

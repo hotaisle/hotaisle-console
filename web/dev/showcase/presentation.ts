@@ -17,6 +17,15 @@ export function captionHeading(id: string) {
 	return HEADLINES[id];
 }
 
+// Keep auth captions beside the form and console captions on the empty floor
+// below the racks. Coordinates are fractions of the 16:9 capture viewport.
+export function captionLayout(id: string) {
+	if (["sign-in", "approve", "create-team"].includes(id)) {
+		return { width: 0.3, x: 0.6, y: 0.48 };
+	}
+	return { width: 0.245, x: 0.28, y: 0.74 };
+}
+
 export const CAPTION_ENTER_SECONDS = 0.32;
 export const CAPTION_EXIT_SECONDS = 0.2;
 export const THEME_BLEND_SECONDS = 0.65;
