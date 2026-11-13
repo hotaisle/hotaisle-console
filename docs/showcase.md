@@ -3,10 +3,11 @@
 The local showcase uses the real sign-in, team, rental, machine, history, credits,
 and settings components with a browser-only simulated API. It starts signed out,
 approves a fixture email, creates a team with a simulated balance, previews Add credits and
-backs out before checkout, launches two GPUs with vLLM cloud-init, releases the
+opens automatic rebill to show its balance trigger, top-up amount, and monthly cap,
+backs out without submitting either payment flow, launches two GPUs with vLLM cloud-init, releases the
 machine, reviews its history, and changes appearance and the default image.
-The browser walkthrough is 60 seconds, beginning with sign-in and team creation.
-The finished composition is about 74 seconds with the current music: it adds a logo card and URL typing before sign-in,
+The browser walkthrough is about 69 seconds, beginning with sign-in and team creation.
+The finished composition is about 83 seconds with the current music: it adds a logo card and URL typing before sign-in,
 two extra seconds on Add credits, and a closing card with a reading pause.
 Cloud-init startup is compressed to three seconds in this isolated showcase fixture.
 No real email, payment, credential, or machine operation is used. Unknown requests
@@ -36,10 +37,15 @@ http://preview.localhost:8787/__preview/showcase.html
 
 Use a 1920 × 1080 **content viewport**, excluding browser toolbars. Record its
 original window position, size, zoom, and any emulation before changing them, and
-restore them afterwards. Camera movement defaults to the system motion preference;
-the studio button explicitly enables or disables it. Status animation is enabled
+restore them afterwards. Camera movement defaults to off so controls and text stay
+in place during each interaction; the studio button can explicitly enable it. Status animation is enabled
 temporarily during playback. Browser preferences are restored on completion,
 cancellation, or failure. Reset reloads fixture state without deleting storage.
+
+With camera movement enabled, a gentle 0.975–0.995 scale transition runs at the
+start of each section and settles before its controls are used. The framing is
+held throughout that section's actions. Scrolling also settles before a click,
+so neither camera easing nor scroll animation moves text under the pointer.
 
 ## Record
 
@@ -80,18 +86,33 @@ browser playback reject stale voice clips after their text changes; regenerate
 them instead of exporting mismatched subtitles. Capture only this preview tab, and keep
 Chrome in the background. Never use real account pages in the recording.
 
-Composition opens on the fully visible logo and website card for 1.92 seconds.
+Composition opens on the fully visible logo and website card for about one second.
 It is the very first encoded frame, so a player using frame one as its poster
 shows the brand rather than a blank browser. The card then fades into a
-3.84-second browser-title animation typing
-`console.hotaisle.app`, then reveals the recorded sign-in screen. This artwork
-does not navigate a browser or record address-bar history. The Add credits page
+4.8-second browser-title animation typing
+`console.hotaisle.app`, then reveals the recorded sign-in screen. The greeting starts as URL typing begins,
+using the same voice and exact text as its caption. This artwork
+does not navigate a browser or record address-bar history. The page stays at its
+final size and position as the toolbar reveals it, without stretching text. The Add credits page
 holds for another 1.92 seconds; later footage, narration, and captions shift
 together while the music continues. The closing card fades in with the final
 spoken line and holds for another 1.92 seconds. These additions preserve the
 125 BPM source beat grid. Composition can scale the complete edit to another tempo,
 including the artwork, credits pause, footage, speech, and captions.
 `worker/scripts/showcase-edit.ts` controls their timing.
+
+The distributed video uses fixed app framing with the studio camera off. The
+exporter does not add another scaling effect. Launch descriptions and estimates
+reserve space in the showcase so changing a size or image does not push later
+controls around. Sign-in mounts in dark mode before playback; the exporter also
+excludes pre-playback setup frames from its opening still and footage.
+The source walkthrough always uses its 125 BPM edit grid; composition retimes it
+to the supplied music BPM.
+
+For website delivery, keep a separate 1080p H.264 MP4 with fast-start metadata below
+[Cloudflare’s 25 MiB static-asset limit](https://developers.cloudflare.com/workers/platform/limits/#static-assets).
+Retain the full-quality master. Verify the delivery copy decodes fully, preserves its duration,
+and copies the AAC audio unchanged before replacing the website asset.
 
 The closing artwork reuses `web/public/favicon.svg`. Composition exports its
 PNG and SVG beside the video; the SVG contains a clickable link to
@@ -110,7 +131,7 @@ bun run preview
 
 The analyzer measures a steady bass pulse over the opening section and writes an
 ignored local beat grid. Review its tempo and offset before recording; variable
-tempo material may need a manually measured grid. The current one-minute storyboard
+tempo material may need a manually measured grid. The current storyboard
 uses fixed chapter times arranged around 125 BPM bars. Clicks and selections wait for the next beat, and
 holds begin 700 ms early so confirmation lands on the beat. Asynchronous API status
 updates still happen when their polls complete. Actual event times are included in
@@ -124,7 +145,7 @@ Pass the same local audio excerpt to composition:
 bun run showcase:compose frames.json timing.json showcase.mp4 music.m4a 118
 ```
 
-The music fades in and out and is automatically lowered under narration. Audio
+The music fades in and out and is automatically lowered under narration by no more than 6 dB. Audio
 stays outside source control and production assets. The current edit uses the
 user-supplied Flavour Trip “Easy Morning Brunch House Music Mix” at 118 BPM.
 The spoken introduction ends near 31.5 seconds; the excerpt begins

@@ -171,6 +171,15 @@ export async function play(scenes: Scene[], options: Playback): Promise<Cue[]> {
 		const events: number[] = [];
 		await (scene.actions ?? []).reduce(async (earlier, action) => {
 			await earlier;
+			if (action.after !== undefined) {
+				await pause(
+					Math.max(
+						0,
+						(start + action.after) * 1000 - (performance.now() - started)
+					),
+					options.signal
+				);
+			}
 			await act(action, options.signal, options.point, beat, () =>
 				events.push(
 					(performance.now() - started) / 1000 +
@@ -201,7 +210,7 @@ export async function play(scenes: Scene[], options: Playback): Promise<Cue[]> {
 				audio.duration > length)
 		) {
 			throw new Error(
-				`The ${scene.id} scene exceeded its one-minute edit slot. Shorten its actions or narration.`
+				`The ${scene.id} scene exceeded its timed edit slot. Shorten its actions or narration.`
 			);
 		}
 		await pause(

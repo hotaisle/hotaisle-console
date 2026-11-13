@@ -4,7 +4,11 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { type Clip, narrationClip } from "../../web/dev/showcase/narration";
 import { subtitles } from "../../web/dev/showcase/runner";
-import { STORYBOARD } from "../../web/dev/showcase/storyboard";
+import {
+	SHOWCASE_GRID,
+	STORYBOARD,
+	WELCOME,
+} from "../../web/dev/showcase/storyboard";
 import { showcaseArtwork } from "./showcase-artwork";
 import { captionTrack, spokenCaptions } from "./showcase-captions";
 import {
@@ -12,6 +16,7 @@ import {
 	type Frame,
 	INTRO_SECONDS,
 	type Timing,
+	walkthroughFrames,
 } from "./showcase-edit";
 
 const FRAME_FILE = /^frame-\d+\.jpg$/u;
@@ -26,7 +31,7 @@ if (!(manifestPath && timingPath && outputPath)) {
 }
 const frames = JSON.parse(readFileSync(manifestPath, "utf8")) as Frame[];
 const sourceTiming = JSON.parse(readFileSync(timingPath, "utf8")) as Timing;
-const tempoScale = musicBPM ? 125 / Number(musicBPM) : 1;
+const tempoScale = musicBPM ? SHOWCASE_GRID.bpm / Number(musicBPM) : 1;
 const edit = editTiming(sourceTiming, tempoScale);
 const timing = { ...sourceTiming, cues: edit.cues };
 const duration = timing.cues.at(-1)?.end;
@@ -37,15 +42,7 @@ if (!(Number.isFinite(timing.startedAt) && duration && frames.length)) {
 }
 const start = timing.startedAt / 1000;
 const directory = dirname(resolve(manifestPath));
-const selected = frames.filter(
-	(frame) =>
-		frame.time >= start &&
-		frame.time < start + (sourceTiming.cues.at(-1)?.end ?? 0)
-);
-const preceding = [...frames].reverse().find((frame) => frame.time < start);
-if (preceding) {
-	selected.unshift({ ...preceding, time: start });
-}
+const selected = walkthroughFrames(frames, sourceTiming);
 if (!selected.length) {
 	throw new Error("No frames overlap this walkthrough.");
 }
@@ -59,7 +56,10 @@ try {
 	const narrationPath = resolve("web/dev/showcase/narration.generated.ts");
 	const { default: clips } = await import(narrationPath);
 	const audioInputs = timing.cues.map((cue) => {
-		const scene = STORYBOARD.find((item) => item.id === cue.id);
+		const scene =
+			cue.id === WELCOME.id
+				? WELCOME
+				: STORYBOARD.find((item) => item.id === cue.id);
 		if (!scene || cue.text !== scene.narration) {
 			throw new Error(`The ${cue.id} timing needs the current narration text.`);
 		}
@@ -154,7 +154,9 @@ try {
 			`[${index + 1}:a]adelay=${Math.round(cue.start * 1000)}:all=1[a${index}]`
 	);
 	filters.push(
-		`[0:v]fps=30,tpad=stop_mode=clone:stop_duration=${duration},trim=duration=${duration}[footage]`,
+		`[0:v]fps=30,tpad=stop_mode=clone:stop_duration=${duration},trim=duration=${duration}[footage]`
+	);
+	filters.push(
 		`[footage][${captionsIndex}:v]overlay=x=0:y=main_h-overlay_h:eof_action=repeat:enable='gte(t,${timing.cues[0].start})'[video]`
 	);
 	filters.push(

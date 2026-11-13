@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import {
+	existsSync,
 	mkdtempSync,
 	readFileSync,
 	renameSync,
@@ -11,7 +12,9 @@ import { join, resolve } from "node:path";
 import {
 	SHOWCASE_SECONDS,
 	STORYBOARD,
+	WELCOME,
 } from "../../web/dev/showcase/storyboard";
+import { INTRO_SECONDS, WELCOME_START_SECONDS } from "./showcase-edit";
 import { loadShowcaseTool } from "./showcase-tools";
 
 interface SpeechEngine {
@@ -49,6 +52,7 @@ const deadline = setTimeout(() => {
 }, 180_000);
 deadline.unref();
 const temporary = mkdtempSync(join(tmpdir(), "console-showcase-"));
+const destination = resolve("web/dev/showcase/narration.generated.ts");
 try {
 	const engine = await KokoroTTS.from_pretrained(MODEL, {
 		device: "cpu",
@@ -64,9 +68,33 @@ try {
 			voice: string;
 		}
 	> = {};
+	const cached: typeof clips = existsSync(destination)
+		? (await import(destination)).default
+		: {};
+	const scenes = [
+		{ ...WELCOME, available: INTRO_SECONDS - WELCOME_START_SECONDS },
+		...STORYBOARD.map((scene, index) => ({
+			...scene,
+			available:
+				(STORYBOARD[index + 1]?.at ?? SHOWCASE_SECONDS - 0.06) -
+				(scene.at ?? 0),
+		})),
+	];
 	// Queue inference on one shared CPU model instead of overlapping its sessions.
-	await STORYBOARD.reduce(async (previous, scene, index) => {
+	await scenes.reduce(async (previous, scene) => {
 		await previous;
+		const saved = cached[scene.id];
+		if (
+			saved?.text === scene.narration &&
+			saved.model === MODEL &&
+			saved.voice === VOICE &&
+			saved.duration > 0 &&
+			saved.duration <= scene.available
+		) {
+			clips[scene.id] = saved;
+			console.info(`Reused ${scene.id}: ${saved.duration.toFixed(2)}s`);
+			return;
+		}
 		const source = join(temporary, `${scene.id}.wav`);
 		const output = join(temporary, `${scene.id}.mp3`);
 		// Expand only acronym pronunciation; captions retain the canonical spelling.
@@ -102,9 +130,11 @@ try {
 				output,
 			])
 		);
-		const available =
-			(STORYBOARD[index + 1]?.at ?? SHOWCASE_SECONDS - 0.06) - (scene.at ?? 0);
-		if (!Number.isFinite(duration) || duration <= 0 || duration > available) {
+		if (
+			!Number.isFinite(duration) ||
+			duration <= 0 ||
+			duration > scene.available
+		) {
 			throw new Error(`The ${scene.id} narration exceeds its edit slot.`);
 		}
 		clips[scene.id] = {
@@ -116,7 +146,6 @@ try {
 		};
 		console.info(`Prepared ${scene.id}: ${duration.toFixed(2)}s`);
 	}, Promise.resolve());
-	const destination = resolve("web/dev/showcase/narration.generated.ts");
 	const pending = `${destination}.pending`;
 	writeFileSync(
 		pending,

@@ -94,7 +94,11 @@ ${logo}
 			context.fillStyle = "#202124";
 			context.fillRect(0, 0, 1920, 1080);
 			if (loaded) {
-				context.drawImage(signIn, 0, toolbar, 1920, 1080 - toolbar);
+				// The toolbar reveals the page without stretching or moving its text.
+				context.drawImage(signIn, 0, 0, 1920, 1080);
+				// Playback captions begin with narration, after the browser intro.
+				context.fillStyle = "#171714";
+				context.fillRect(0, 976, 1920, 104);
 			}
 			context.fillStyle = "#292a2d";
 			context.fillRect(0, toolbar - 140, 1920, 140);
