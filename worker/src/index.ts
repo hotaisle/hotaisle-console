@@ -21,6 +21,7 @@
 //   Auth/API responses use no-store, and security headers also cover static assets.
 //   Cloudflare diagnostics are configured separately; never log credentials or request bodies.
 
+import { emailLoginFingerprint } from "./email-login-fingerprint";
 import { historyKey } from "./history-key";
 import {
 	apiBase,
@@ -297,7 +298,7 @@ async function authPostHistoryKey(
 		);
 	}
 }
-function authGetAuthStatus(env: Env, session: Session | undefined) {
+async function authGetAuthStatus(env: Env, session: Session | undefined) {
 	return json({
 		email_login: true,
 		kind: session?.token ? session.kind : undefined,
@@ -309,6 +310,7 @@ function authGetAuthStatus(env: Env, session: Session | undefined) {
 				? {
 						email: session.pending.email,
 						expires_at: session.pending.expires_at,
+						request_code: await emailLoginFingerprint(session.pending.ticket),
 					}
 				: undefined,
 	});
@@ -385,9 +387,17 @@ async function authPostAuthEmailStart(req: Request, env: Env) {
 		1 / 1440,
 		(Date.parse(pending.expires_at) - Date.now()) / 86_400_000
 	);
-	return json({ email: pending.email, expires_at: pending.expires_at }, 200, {
-		"Set-Cookie": await sessionCookie(env.SESSION_SECRET, { pending }, days),
-	});
+	return json(
+		{
+			email: pending.email,
+			expires_at: pending.expires_at,
+			request_code: await emailLoginFingerprint(pending.ticket),
+		},
+		200,
+		{
+			"Set-Cookie": await sessionCookie(env.SESSION_SECRET, { pending }, days),
+		}
+	);
 }
 
 async function authPostAuthEmailWait(

@@ -65,6 +65,7 @@ describe("sign-in components", () => {
 		const request = new Promise<{
 			email: string;
 			expires_at: string;
+			request_code: string;
 		}>((_resolve, rejectRequest) => {
 			reject = rejectRequest;
 		});
@@ -94,6 +95,7 @@ describe("sign-in components", () => {
 		const start = vi.spyOn(api, "emailStart").mockResolvedValue({
 			email: "alice@example.com",
 			expires_at: "2030-01-01",
+			request_code: "Q9W1-DFWF",
 		});
 		const sent = vi.fn();
 		renderWithQuery(<EmailSignIn onSent={sent} />);
@@ -104,7 +106,13 @@ describe("sign-in components", () => {
 			"Alice@example.com"
 		);
 		await user.click(screen.getByRole("button", { name: "Email me a link" }));
-		await waitFor(() => expect(sent).toHaveBeenCalledWith("alice@example.com"));
+		await waitFor(() =>
+			expect(sent).toHaveBeenCalledWith({
+				email: "alice@example.com",
+				expires_at: "2030-01-01",
+				request_code: "Q9W1-DFWF",
+			})
+		);
 	});
 	it("shows a failed API-key sign-in without reporting a connection", async () => {
 		const user = userEvent.setup();

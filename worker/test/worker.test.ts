@@ -9,6 +9,7 @@ const SECURE_COOKIE_PATTERN = /Secure/u;
 const SAME_SITE_PATTERN = /SameSite=Strict/u;
 const CLEARED_COOKIE_PATTERN = /Max-Age=0/u;
 const SESSION_AUTH_PATTERN = / session:sess-/u;
+const REQUEST_CODE_PATTERN = /^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/u;
 
 const ORIGIN = "https://ui.test";
 const H = {
@@ -412,13 +413,19 @@ describe("sign-in with an email link", () => {
 			email: "Carol@Example.com",
 		});
 		expect(start.status).toBe(200);
+		const pending = JSON.parse(start.text);
+		expect(pending.request_code).toMatch(REQUEST_CODE_PATTERN);
+		expect(Object.keys(pending).sort()).toEqual([
+			"email",
+			"expires_at",
+			"request_code",
+		]);
 		expect(await upstreamCalls()).toContain("POST /user/email/login/ -");
 		expect(start.text).not.toContain("ticket");
 		expect(b.cookie()).not.toContain("ticket");
 		expect(
 			JSON.parse((await b.call("GET", "/auth/status")).text).waiting_for_email
-				.email
-		).toBe("carol@example.com");
+		).toEqual(pending);
 		expect(
 			JSON.parse((await b.call("POST", "/auth/email/wait")).text).done
 		).toBe(false);

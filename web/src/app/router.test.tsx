@@ -472,4 +472,31 @@ describe("console URLs", () => {
 			screen.getByRole("button", { name: "Accept invitation to Lab" })
 		).toBeEnabled();
 	});
+	it("restores the email comparison code from the pending session after reload", async () => {
+		vi.mocked(api.status).mockResolvedValue({
+			email_login: true,
+			key_stored: false,
+			passkeys: false,
+			signed_in: false,
+			version: "test",
+			waiting_for_email: {
+				email: "fixture@example.test",
+				expires_at: "2030-01-01",
+				request_code: "Q9W1-DFWF",
+			},
+		});
+		vi.spyOn(api, "emailWait").mockResolvedValue({ done: false });
+		const { router } = await open("/sign-in/check-email");
+		expect(await screen.findByText("Q9W1-DFWF")).toBeVisible();
+		expect(router.state.location.pathname).toBe("/sign-in/check-email");
+	});
+	it.each(["virtual_machines", "bare_metal"])(
+		"restores the API resource kind in canonical %s URLs",
+		async (kind) => {
+			await open(`/teams/lab/machines/${kind}/same-name`);
+			expect(await screen.findByTestId("machine")).toHaveTextContent(
+				machineKey("lab", { metal: kind === "bare_metal", name: "same-name" })
+			);
+		}
+	);
 });

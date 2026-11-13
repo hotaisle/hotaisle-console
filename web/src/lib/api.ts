@@ -104,6 +104,12 @@ export interface SSHKey {
 	public_key: string;
 	type: string;
 }
+export interface PendingEmailLogin {
+	email: string;
+	expires_at: string;
+	request_code: string;
+}
+
 /** Who is signed in, as the Worker sees it. */
 export interface Status {
 	/** Email sign-in is available (Hot Aisle's API must publish it, and the Worker be told its paths). */
@@ -114,7 +120,7 @@ export interface Status {
 	signed_in: boolean;
 	version: string;
 	/** An email sign-in waiting for its link to be opened. */
-	waiting_for_email?: { email: string; expires_at: string };
+	waiting_for_email?: PendingEmailLogin;
 }
 
 export type { Ended, Machine as MachineRecord } from "../../../shared/records";
@@ -230,7 +236,7 @@ export const api = {
 		call<void>("DELETE", `${t(team)}/auto-rebill/`),
 	/** Emails a sign-in link. */
 	emailStart: (email: string) =>
-		call<{ email: string; expires_at: string }>("POST", "/auth/email/start", {
+		call<PendingEmailLogin>("POST", "/auth/email/start", {
 			email,
 		}),
 	/** Whether the emailed link has been opened yet; once it has, the session is signed in. */

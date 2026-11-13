@@ -68,6 +68,20 @@
 	font-size: 15px;
 	color: var(--ink-2);
 }
+.auth-request-code {
+	margin-block: 24px 12px;
+}
+.auth-request-code p {
+	margin-block: 0 8px;
+	color: var(--ink-2);
+}
+.auth-request-code strong {
+	display: block;
+	font: 600 clamp(1.75rem, 1.25rem + 2vw, 2.5rem) / 1.4 var(--mono);
+	color: var(--ink);
+	letter-spacing: 0.06em;
+	overflow-wrap: anywhere;
+}
 .auth-alternative {
 	padding-top: 24px;
 	margin-top: 36px;

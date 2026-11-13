@@ -167,7 +167,13 @@ export class PreviewAPI {
 				passkeys: false,
 				signed_in: this.auth.signedIn,
 				version: "preview",
-				waiting_for_email: this.auth.pendingEmail || undefined,
+				waiting_for_email: this.auth.pendingEmail
+					? {
+							email: this.auth.pendingEmail,
+							expires_at: new Date(this.now() + 600_000).toISOString(),
+							request_code: "PREV-2026",
+						}
+					: undefined,
 			});
 		}
 		if (!this.auth.signedIn) {
@@ -277,6 +283,7 @@ export class PreviewAPI {
 			return json({
 				email: body.email,
 				expires_at: new Date(this.now() + 600_000).toISOString(),
+				request_code: "PREV-2026",
 			});
 		}
 		if (path === "/auth/email/wait" && this.auth.pendingEmail) {
