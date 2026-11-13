@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useEffect, useId, useRef } from "react";
 import { machineAddress } from "../../../../shared/machine-identity";
+import { FormError } from "../../components/forms/form-error";
 import { HoldButton } from "../../components/ui/hold-button";
 import { useShortcut } from "../../hooks/use-shortcut";
 import { api } from "../../lib/api";
@@ -56,24 +57,7 @@ export function PowerActionConfirmation({
 				{operation.label}?
 			</p>
 			<p className="muted small">{operation.warning}</p>
-			{action.error ? (
-				<div className="error action-error" role="alert">
-					<span>{action.error.message}</span>
-					<button
-						aria-label="Dismiss error"
-						className="btn-text"
-						onClick={dismissError}
-						type="button"
-					>
-						×
-					</button>
-				</div>
-			) : null}
-			{action.isPending ? (
-				<p className="muted" role="status">
-					Sending the request. Please wait…
-				</p>
-			) : null}
+			<FormError message={action.error?.message} onDismiss={dismissError} />
 			<HoldButton
 				busy={action.isPending}
 				busyLabel="Sending"

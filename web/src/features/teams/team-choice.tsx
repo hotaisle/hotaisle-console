@@ -52,11 +52,12 @@ export function TeamChoice({
 			label="Teams"
 		>
 			<h1>{showCreate ? "Create a team" : "Choose a team"}</h1>
-			<p className="lede team-intro">
-				{showCreate
-					? "Teams keep your machines and members together. Create one to get started."
-					: "Open an existing team, accept an invitation, or create a new team."}
-			</p>
+			{showCreate ? (
+				<p className="lede team-intro">
+					Teams keep your machines and members together. Create one to get
+					started.
+				</p>
+			) : null}
 			{requestedTeam ? (
 				<p className="team-notice" role="status">
 					You don't have access to {requestedTeam}. Choose another team or
@@ -64,19 +65,19 @@ export function TeamChoice({
 				</p>
 			) : null}
 			{refreshError || refresh.error ? (
-				<div className="team-refresh-error">
-					<p role="alert">
-						Could not update teams. Your current list is still shown.
-					</p>
-					<button
-						className="btn-text"
-						disabled={refresh.isPending}
-						onClick={reload}
-						type="button"
-					>
-						{refresh.isPending ? "Retrying…" : "Retry update"}
-					</button>
-				</div>
+				<FormError
+					actions={
+						<button
+							className="btn-text"
+							disabled={refresh.isPending}
+							onClick={reload}
+							type="button"
+						>
+							{refresh.isPending ? "Retrying…" : "Retry update"}
+						</button>
+					}
+					message={"Could not update teams. Your current list is still shown."}
+				/>
 			) : null}
 			{showCreate ? (
 				<CreateTeamForm onCreated={onAvailable} />
@@ -102,16 +103,29 @@ export function TeamChoice({
 												Open team <span aria-hidden="true">→</span>
 											</span>
 										</Link>
-										{team.effective_roles.includes("owner") ? (
+										<footer className="team-card-actions">
+											{team.effective_roles.includes("owner") ? (
+												<Link
+													aria-label={`Manage team ${team.name}`}
+													className="team-edit-link btn-text"
+													params={{ team: team.handle }}
+													to="/teams/$team/details"
+												>
+													Manage team
+												</Link>
+											) : null}
 											<Link
-												aria-label={`Manage team ${team.name}`}
+												aria-label={`API tokens for ${team.name}`}
 												className="team-edit-link btn-text"
-												params={{ team: team.handle }}
-												to="/teams/$team/details"
+												search={{
+													returnTo: `/teams/${encodeURIComponent(team.handle)}/machines`,
+													tokenTeam: team.handle,
+												}}
+												to="/account/api-tokens"
 											>
-												Manage team
+												API tokens
 											</Link>
-										) : null}
+										</footer>
 									</li>
 								))}
 							</ul>

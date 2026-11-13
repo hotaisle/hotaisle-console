@@ -17,6 +17,11 @@ bun run --cwd worker cf deploy --prebuilt --dry-run
 Run the Worker suite before every commit. Component tests are colocated with their source components and hooks;
 Worker tests run in Cloudflare's isolated runtime with a test-only upstream fixture. Never use real accounts,
 credentials, purchases, or machine operations in automated tests.
+All test projects must freeze time through the shared test setup. Use fake timers and explicit
+advancement for elapsed-time behavior, or controlled promises for in-flight work. Never add sleeps,
+real-time delays, or assertions that wait for wall-clock time to pass. Test fixtures in separate
+runtimes must receive the same controlled clock; native binding internals may need deterministic
+test doubles when their clocks cannot be overridden.
 
 Use Bun 1.4.4 for package management, frontend tools, TypeScript checks, and helper scripts. Source, configuration,
 fixtures, and helpers must be TypeScript, not JavaScript module scripts. Cloudflare's configuration loader requires
@@ -135,7 +140,12 @@ secrets, follow signed redirects, or sign unrelated endpoints. Tests use only a 
 - Failed releases, launches, and purchases must stay failures in the UI. Never synthesize successful results.
 - There is no browser-managed auto-end timer. The API must support scheduled shutdown before one can be promised.
 - Keep instrument widths stable and respect reduced motion. The drawing sleeps while idle and writes only changed values.
+- Standard buttons must keep the same size and position while pressed or changing labels. Use the shared
+  `ButtonLabels` control for pending/copied states; do not add click-to-shrink or shifting label animations.
 - Use native controls and labels, native dialogs for modal interaction, and accessible links for navigation.
+- Show transient errors through the shared out-of-flow error notices, never by inserting visible error rows
+  or retry controls into page layout. Keep field errors associated with invalid inputs and dialog notices
+  inside the dialog's accessibility scope; dismissing a notice must not change validation or operation results.
 
 ## GitHub workflow
 

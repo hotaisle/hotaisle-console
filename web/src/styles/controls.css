@@ -46,8 +46,7 @@ kbd {
 	border-radius: 10px;
 	transition:
 		background var(--d-1),
-		border-color var(--d-1),
-		transform var(--d-1) var(--ease);
+		border-color var(--d-1);
 }
 .btn-text {
 	padding: 0;
@@ -311,8 +310,15 @@ input.url {
 .btn.copy {
 	padding: 0 14px;
 }
-.btn .labels {
+.button-labels {
 	display: grid;
+}
+.button-labels > span {
+	grid-area: 1 / 1;
+	text-align: center;
+}
+.button-labels > [aria-hidden="true"] {
+	visibility: hidden;
 }
 .btn.new {
 	gap: 10px;
@@ -361,11 +367,6 @@ input.url {
 		0 10px 18px -10px rgb(0 0 0 / 40%),
 		inset 0 1px 0 rgb(255 255 255 / 20%);
 }
-.btn .labels > span {
-	grid-area: 1 / 1;
-	text-align: center;
-	transition: opacity var(--d-2) var(--ease);
-}
 .choice button:hover {
 	color: var(--ink);
 	background: var(--card-2);
@@ -386,9 +387,6 @@ input.url {
 }
 .btn:hover:not(:disabled) {
 	background: var(--card-2);
-}
-.btn:active:not(:disabled) {
-	transform: scale(0.97);
 }
 .btn.copy.done {
 	color: var(--on);
@@ -427,13 +425,6 @@ input.url {
 	border-radius: 50%;
 	animation: spin 0.8s linear infinite;
 }
-.btn.copy:not(.done) .labels > span:last-child {
-	opacity: 0;
-}
-.btn.copy.done .labels > span:first-child {
-	opacity: 0;
-}
-/* both labels share one grid cell, so the button is always as wide as the longer one */
 
 /* hold to confirm: fills left to right while you hold */
 /* the charge: a layer slid in from the left, brighter at its leading edge; a flash when it lands */

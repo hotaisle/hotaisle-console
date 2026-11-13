@@ -52,14 +52,14 @@ function AutoRebillControls({ team }: { team: string }) {
 	const { data } = status;
 	if (!data) {
 		return status.isError ? (
-			<div className="stack">
-				<FormError
-					message={`Couldn't load automatic rebill. ${status.error.message}`}
-				/>
-				<button className="btn" onClick={controls.refresh} type="button">
-					Try again
-				</button>
-			</div>
+			<FormError
+				actions={
+					<button className="btn" onClick={controls.refresh} type="button">
+						Try again
+					</button>
+				}
+				message={`Couldn't load automatic rebill. ${status.error.message}`}
+			/>
 		) : (
 			<p className="muted small" role="status">
 				Loading automatic rebill…
@@ -70,10 +70,9 @@ function AutoRebillControls({ team }: { team: string }) {
 		<div className="stack rebill-controls">
 			<RebillSummary data={data} />
 			{status.isError ? (
-				<p className="error" role="alert">
-					Couldn't refresh automatic rebill. The status above may be out of
-					date. {status.error.message}
-				</p>
+				<FormError
+					message={`Couldn't refresh automatic rebill. The status above may be out of date. ${status.error.message}`}
+				/>
 			) : null}
 			<RebillActions controls={controls} data={data} />
 			<FormError message={change.error?.message} />
@@ -154,13 +153,9 @@ function RebillActions({
 	controls: Controls;
 	data: AutoRebillStatus;
 }) {
-	const { change, mode, status } = controls;
+	const { change, mode, setupConfirmed } = controls;
 	const checkout = change.data?.kind === "setup" ? change.data.url : undefined;
-	const confirmed =
-		status.dataUpdatedAt > change.submittedAt &&
-		data.enabled &&
-		!data.setup_pending;
-	const showCheckout = checkout && !confirmed;
+	const showCheckout = checkout && !setupConfirmed;
 	const showForm =
 		(mode === "setup" && data.can_configure) ||
 		(mode === "edit" && data.can_update_settings);

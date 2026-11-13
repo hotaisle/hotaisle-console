@@ -4,6 +4,7 @@ import {
 	useState,
 	useSyncExternalStore,
 } from "react";
+import { FormError } from "../../components/forms/form-error";
 import { api } from "../../lib/api";
 import { cloudInitVault } from "../../lib/cloud-init-vault";
 import { historyVault } from "../../lib/history-vault";
@@ -54,16 +55,8 @@ export function HistoryAccess({ children }: { children: ReactNode }) {
 	}
 	return (
 		<div className="history-session">
-			{error ? (
-				<p className="history-warning" role="alert">
-					{error}
-				</p>
-			) : null}
-			{cloudInitError ? (
-				<p className="history-warning" role="alert">
-					{cloudInitError}
-				</p>
-			) : null}
+			{error ? <FormError message={error} /> : null}
+			{cloudInitError ? <FormError message={cloudInitError} /> : null}
 			{children}
 		</div>
 	);

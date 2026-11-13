@@ -6,6 +6,7 @@ import {
 	machineKind,
 } from "../../../../shared/machine-identity";
 import type { ConsoleSearch } from "../../app/route-state";
+import { FormError } from "../../components/forms/form-error";
 import type { Ended } from "../../lib/api";
 import { duration, money } from "../../lib/format";
 import { runTitle } from "./formatting";
@@ -73,14 +74,32 @@ export function HistoryView({
 			to: "/teams/$team/history",
 		});
 	}, [capacity, loaded, error, result.page, result.pageSize, router, team]);
-	if (error) {
-		return <p role="alert">Could not load machine history. {error.message}</p>;
-	}
+
 	if (!items) {
-		return <p role="status">Loading machine history…</p>;
+		return (
+			<>
+				<p role="status">
+					{error ? "Machine history unavailable." : "Loading machine history…"}
+				</p>
+				<FormError
+					message={
+						error
+							? `Could not load machine history. ${error.message}`
+							: undefined
+					}
+				/>
+			</>
+		);
 	}
 	return (
 		<section aria-label="Ended machines" className="history-view">
+			<FormError
+				message={
+					error
+						? `Could not refresh machine history. ${error.message}`
+						: undefined
+				}
+			/>
 			<p className="small muted">
 				History is encrypted in this browser and unlocks when you sign in to the
 				same account. Signing out keeps the encrypted entries. It does not sync

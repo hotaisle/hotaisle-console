@@ -7,6 +7,7 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { TEST_NOW } from "../../../../test/clock";
 import { mockNativeDialogs } from "../../../test/native-dialog";
 import { renderWithQuery } from "../../../test/render";
 import { ToastHost } from "../../components/ui/toast";
@@ -233,15 +234,12 @@ describe("machine operations", () => {
 		});
 		fireEvent.keyUp(hold, { key: "Enter" });
 		vi.useRealTimers();
-		expect(await confirmation.findByRole("alert")).toHaveTextContent(
-			"Reset refused"
-		);
+		vi.setSystemTime(TEST_NOW);
+		expect(await screen.findByRole("alert")).toHaveTextContent("Reset refused");
 		expect(input.onChanged).not.toHaveBeenCalled();
-		fireEvent.click(
-			confirmation.getByRole("button", { name: "Dismiss error" })
-		);
+		fireEvent.click(screen.getByRole("button", { name: "Dismiss error" }));
 		await waitFor(() =>
-			expect(confirmation.queryByRole("alert")).not.toBeInTheDocument()
+			expect(screen.queryByRole("alert")).not.toBeInTheDocument()
 		);
 		expect(confirmation.getByRole("button", { name: "Cancel" })).toHaveFocus();
 		expect(input.onChanged).not.toHaveBeenCalled();
@@ -266,7 +264,8 @@ describe("machine operations", () => {
 		});
 		fireEvent.keyUp(hold, { key: "Enter" });
 		vi.useRealTimers();
-		expect(await confirmation.findByRole("alert")).toHaveTextContent(
+		vi.setSystemTime(TEST_NOW);
+		expect(await screen.findByRole("alert")).toHaveTextContent(
 			"Power off the server before an AC reset."
 		);
 		expect(inspect).toHaveBeenCalledWith("lab", "fixture-id");

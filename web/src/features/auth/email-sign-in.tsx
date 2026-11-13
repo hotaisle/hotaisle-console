@@ -3,10 +3,14 @@ import { useState } from "react";
 import { Form } from "../../components/forms/form";
 import { FormError } from "../../components/forms/form-error";
 import { useAppForm } from "../../components/forms/use-app-form";
-import { api } from "../../lib/api";
+import { api, type PendingEmailLogin } from "../../lib/api";
 import { errorMessage } from "../../lib/error-message";
 
-export function EmailSignIn({ onSent }: { onSent: (email: string) => void }) {
+export function EmailSignIn({
+	onSent,
+}: {
+	onSent: (pending: PendingEmailLogin) => void;
+}) {
 	const client = useQueryClient();
 	const [error, setError] = useState("");
 	const form = useAppForm({
@@ -16,7 +20,7 @@ export function EmailSignIn({ onSent }: { onSent: (email: string) => void }) {
 			try {
 				const data = await api.emailStart(value.email.trim());
 				client.removeQueries({ queryKey: ["auth", "approval"] });
-				onSent(data.email);
+				onSent(data);
 			} catch (reason) {
 				setError(errorMessage(reason));
 			}

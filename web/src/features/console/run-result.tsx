@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { FormError } from "../../components/forms/form-error";
 import type { Ended } from "../../lib/api";
 import { RunView } from "./run-view";
 export function runSubtitle(run?: Ended) {
@@ -22,7 +23,7 @@ export function RunResult({
 		return <RunView run={run} />;
 	}
 	if (error) {
-		return <p role="alert">Could not load this run. {error.message}</p>;
+		return <FormError message={`Could not load this run. ${error.message}`} />;
 	}
 	if (loading) {
 		return <p role="status">Loading this run…</p>;

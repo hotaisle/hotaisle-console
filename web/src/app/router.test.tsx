@@ -7,7 +7,16 @@ import {
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useCallback } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	afterAll,
+	afterEach,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	vi,
+} from "vitest";
 import { machineKey } from "../../../shared/machine-identity";
 import { TestProvider, testClient } from "../../test/render";
 import { useNavigation } from "../features/console/use-navigation";
@@ -56,6 +65,30 @@ const USER = {
 	email_auth_enabled: true,
 	name: "Fixture",
 };
+const nativeDialogMethods = new Map(
+	["showModal", "close"].map((method) => [
+		method,
+		Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, method),
+	])
+);
+beforeAll(() => {
+	Object.defineProperties(HTMLDialogElement.prototype, {
+		close: {
+			configurable: true,
+			value(this: HTMLDialogElement) {
+				this.open = false;
+				this.dispatchEvent(new Event("close"));
+			},
+		},
+		showModal: {
+			configurable: true,
+			value(this: HTMLDialogElement) {
+				this.open = true;
+			},
+		},
+	});
+});
+
 beforeEach(() => {
 	vi.spyOn(api, "status").mockResolvedValue({
 		email_login: true,
@@ -71,6 +104,15 @@ afterEach(() => {
 	vi.useRealTimers();
 	focusManager.setFocused(undefined);
 });
+afterAll(() => {
+	for (const [method, descriptor] of nativeDialogMethods) {
+		if (descriptor) {
+			Object.defineProperty(HTMLDialogElement.prototype, method, descriptor);
+		} else {
+			Reflect.deleteProperty(HTMLDialogElement.prototype, method);
+		}
+	}
+});
 async function open(path: string) {
 	const history = createMemoryHistory({ initialEntries: [path] });
 	const router = createAppRouter(history);
@@ -82,7 +124,423 @@ async function open(path: string) {
 	await router.load();
 	return { history, router };
 }
+const API_TOKEN_LABEL = /^API token:/u;
+
 describe("console URLs", () => {
+	it("opens a team's token list from its card and creates grants only for that team", async () => {
+		vi.mocked(api.status).mockResolvedValue({
+			email_login: true,
+			key_stored: false,
+			kind: "email",
+			passkeys: false,
+			signed_in: true,
+			version: "test",
+		});
+		vi.mocked(api.user).mockResolvedValue({
+			teams: [TEAM, { ...TEAM, handle: "research", name: "Research" }],
+			user: USER,
+		});
+		const existing = [
+			{
+				label: "Lab CLI",
+				prefix: "lab-prefix",
+				teams: [{ handle: "lab", name: "Lab", roles: ["owner" as const] }],
+				user_role: "user" as const,
+			},
+			{
+				label: "Research CLI",
+				prefix: "research-prefix",
+				teams: [
+					{ handle: "research", name: "Research", roles: ["owner" as const] },
+				],
+				user_role: "user" as const,
+			},
+		];
+		const list = vi.spyOn(api, "apiTokens").mockResolvedValue(existing);
+		const details = {
+			...existing[0],
+			label: "Lab automation",
+			prefix: "new-team-prefix",
+		};
+		const create = vi.spyOn(api, "createAPIToken").mockImplementation(() => {
+			list.mockResolvedValue([...existing, details]);
+			return Promise.resolve({ ...details, token: "scoped-fixture-secret" });
+		});
+		const { router } = await open("/teams");
+		const user = userEvent.setup();
+		expect(
+			screen.queryByText(
+				"Open an existing team, accept an invitation, or create a new team."
+			)
+		).not.toBeInTheDocument();
+		await user.click(
+			await screen.findByRole("link", { name: "API tokens for Lab" })
+		);
+		expect(router.state.location.search.tokenTeam).toBe("lab");
+		expect(await screen.findByText("Lab CLI")).toBeVisible();
+		expect(screen.queryByText("Research CLI")).not.toBeInTheDocument();
+		expect(
+			screen.queryByText("Manage access for your applications and scripts.")
+		).not.toBeInTheDocument();
+		await user.click(screen.getByRole("link", { name: "Create API token" }));
+		expect(await screen.findByRole("group", { name: "Lab lab" })).toBeVisible();
+		expect(
+			screen.queryByRole("group", { name: "Research research" })
+		).not.toBeInTheDocument();
+		await user.type(screen.getByLabelText("Label"), "Lab automation");
+		await user.click(screen.getByRole("button", { name: "Create token" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"Choose at least one permission for this team."
+		);
+		expect(create).not.toHaveBeenCalled();
+		await user.click(screen.getByRole("checkbox", { name: "Owner" }));
+		await user.click(screen.getByRole("button", { name: "Create token" }));
+		expect(await screen.findByLabelText(API_TOKEN_LABEL)).toHaveValue(
+			"scoped-fixture-secret"
+		);
+		expect(create).toHaveBeenCalledWith({
+			label: "Lab automation",
+			teams: [{ roles: ["owner"], team: "lab" }],
+			user_role: "user",
+		});
+		expect(router.state.location.search.tokenTeam).toBe("lab");
+		await act(() =>
+			router.navigate({
+				search: { tokenTeam: "research" },
+				to: "/account/api-tokens",
+			})
+		);
+		expect(await screen.findByText("Research CLI")).toBeVisible();
+		expect(
+			screen.queryByDisplayValue("scoped-fixture-secret")
+		).not.toBeInTheDocument();
+		await act(() =>
+			router.navigate({
+				search: { tokenTeam: "lab" },
+				to: "/account/api-tokens",
+			})
+		);
+		expect(
+			screen.queryByDisplayValue("scoped-fixture-secret")
+		).not.toBeInTheDocument();
+	});
+	it("does not substitute another team or token for an inaccessible team scope", async () => {
+		vi.spyOn(api, "apiTokens").mockResolvedValue([
+			{
+				label: "Private automation",
+				prefix: "fixture-prefix",
+				teams: [],
+				user_role: "user",
+			},
+		]);
+		await open("/account/api-tokens?tokenTeam=unknown");
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"not a member of this team"
+		);
+		expect(screen.queryByText("Private automation")).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("link", { name: "Team console" })
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("link", { name: "Create API token" })
+		).not.toBeInTheDocument();
+	});
+	it("does not open another team's token through a scoped edit URL", async () => {
+		vi.spyOn(api, "apiTokens").mockResolvedValue([
+			{
+				label: "Research CLI",
+				prefix: "other-prefix",
+				teams: [{ handle: "research", name: "Research", roles: ["user"] }],
+				user_role: "user",
+			},
+		]);
+		await open("/account/api-tokens/other-prefix?tokenTeam=lab");
+		expect(await screen.findByRole("alert")).toHaveTextContent("not found");
+		expect(screen.queryByLabelText("Label")).not.toBeInTheDocument();
+	});
+	it("signs out after explicitly revoking the token used for the current sign-in", async () => {
+		vi.mocked(api.status).mockResolvedValue({
+			email_login: true,
+			key_stored: false,
+			kind: "key",
+			passkeys: false,
+			signed_in: true,
+			version: "test",
+		});
+		vi.spyOn(api, "activeTokenPrefix").mockReturnValue("current-prefix");
+		vi.spyOn(api, "apiTokens").mockResolvedValue([
+			{
+				label: "Current token",
+				prefix: "current-prefix",
+				teams: [],
+				user_role: "owner",
+			},
+		]);
+		vi.spyOn(api, "revokeAPIToken").mockResolvedValue(undefined);
+		const signOut = vi.spyOn(api, "signOut").mockResolvedValue({ ok: true });
+		await open("/account/api-tokens");
+		const user = userEvent.setup();
+		await user.click(await screen.findByRole("button", { name: "Revoke" }));
+		expect(
+			screen.getByText(
+				"This is the token you are signed in with. Revoking it will sign you out."
+			)
+		).toBeVisible();
+		expect(
+			within(screen.getByRole("dialog")).queryByRole("button", {
+				name: "Close",
+			})
+		).not.toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Revoke token" }));
+		await waitFor(() => expect(signOut).toHaveBeenCalledOnce());
+		expect(
+			await screen.findByRole("heading", { name: "Sign in" })
+		).toBeVisible();
+	});
+	it("does not expose a late-created token after the account changes", async () => {
+		vi.mocked(api.status).mockResolvedValue({
+			email_login: true,
+			key_stored: false,
+			kind: "email",
+			passkeys: false,
+			signed_in: true,
+			version: "test",
+		});
+		vi.spyOn(api, "apiTokens").mockResolvedValue([]);
+		const details = {
+			label: "Old account",
+			prefix: "old-account-prefix",
+			teams: [],
+			user_role: "user" as const,
+		};
+		let resolve: (value: typeof details & { token: string }) => void = () =>
+			undefined;
+		const request = new Promise<typeof details & { token: string }>((done) => {
+			resolve = done;
+		});
+		vi.spyOn(api, "createAPIToken").mockReturnValue(request);
+		await open("/account/api-tokens/new");
+		const user = userEvent.setup();
+		await user.type(await screen.findByLabelText("Label"), "Old account");
+		await user.click(screen.getByRole("button", { name: "Create token" }));
+		const other = {
+			teams: [TEAM],
+			user: { ...USER, email: "other@example.test" },
+		};
+		vi.mocked(api.user).mockResolvedValue(other);
+		act(() => {
+			testClient.setQueryData(ACCOUNT_KEY, other);
+		});
+		await act(async () => {
+			resolve({ ...details, token: "late-fixture-secret" });
+			await request;
+		});
+		expect(
+			screen.queryByDisplayValue("late-fixture-secret")
+		).not.toBeInTheDocument();
+		expect(JSON.stringify(testClient.getQueriesData({}))).not.toContain(
+			"old-account-prefix"
+		);
+	});
+	it("opens account-wide API tokens without requiring a team and preserves the sign-in destination", async () => {
+		vi.mocked(api.status).mockResolvedValue({
+			email_login: true,
+			key_stored: false,
+			passkeys: false,
+			signed_in: false,
+			version: "test",
+		});
+		const { router } = await open("/account/api-tokens/new");
+		await screen.findByRole("heading", { name: "Sign in" });
+		expect(router.state.location.search.returnTo).toBe(
+			"/account/api-tokens/new"
+		);
+	});
+	it("lists tokens for an account with no teams and hides mutation controls for read-only sign-ins", async () => {
+		vi.mocked(api.user).mockResolvedValue({ teams: [], user: USER });
+		vi.spyOn(api, "apiTokens").mockResolvedValue([
+			{
+				label: "Automation",
+				prefix: "fixture-prefix",
+				teams: [],
+				user_role: "user",
+			},
+		]);
+		await open("/account/api-tokens");
+		expect(await screen.findByText("Automation")).toBeVisible();
+		expect(
+			screen.queryByRole("link", { name: "Create API token" })
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: "Revoke" })
+		).not.toBeInTheDocument();
+	});
+	it("offers all accepted team memberships when creating a token from one team's settings", async () => {
+		vi.mocked(api.status).mockResolvedValue({
+			email_login: true,
+			key_stored: false,
+			kind: "email",
+			passkeys: false,
+			signed_in: true,
+			version: "test",
+		});
+		vi.mocked(api.user).mockResolvedValue({
+			teams: [
+				TEAM,
+				{ ...TEAM, handle: "research", name: "Research", roles: ["operator"] },
+				{ ...TEAM, handle: "pending", invitation: true, name: "Pending team" },
+			],
+			user: USER,
+		});
+		vi.spyOn(api, "apiTokens").mockResolvedValue([]);
+		const { router } = await open(
+			"/account/api-tokens/new?returnTo=%2Fteams%2Flab%2Fsettings"
+		);
+		const breadcrumbs = within(
+			await screen.findByRole("navigation", { name: "Breadcrumbs" })
+		);
+		expect(
+			breadcrumbs.getByRole("link", { name: "Create token" })
+		).toHaveAttribute("aria-current", "page");
+		expect(
+			breadcrumbs.getByRole("link", { name: "Your teams" })
+		).toHaveAttribute("href", "/teams");
+		expect(screen.getByRole("link", { name: "Team console" })).toHaveAttribute(
+			"href",
+			"/teams/lab/machines"
+		);
+		expect(await screen.findByRole("group", { name: "Lab lab" })).toBeVisible();
+		const research = within(
+			screen.getByRole("group", { name: "Research research" })
+		);
+		expect(research.getByRole("checkbox", { name: "Operator" })).toBeVisible();
+		expect(
+			research.queryByRole("checkbox", { name: "Owner" })
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("group", { name: "Pending team pending" })
+		).not.toBeInTheDocument();
+		await userEvent
+			.setup()
+			.click(breadcrumbs.getByRole("link", { name: "API tokens" }));
+		expect(router.state.location.pathname).toBe("/account/api-tokens");
+		expect(router.state.location.search.returnTo).toBe("/teams/lab/settings");
+		expect(screen.getByRole("link", { name: "API tokens" })).toHaveAttribute(
+			"aria-current",
+			"page"
+		);
+	});
+	it("creates a token, shows its value once, and never caches or stores the secret", async () => {
+		vi.mocked(api.status).mockResolvedValue({
+			email_login: true,
+			key_stored: false,
+			kind: "email",
+			passkeys: false,
+			signed_in: true,
+			version: "test",
+		});
+		const details = {
+			label: "Deployment",
+			prefix: "new-prefix",
+			teams: [],
+			user_role: "user" as const,
+		};
+		const list = vi.spyOn(api, "apiTokens").mockResolvedValue([]);
+		vi.spyOn(api, "createAPIToken").mockImplementation(() => {
+			list.mockResolvedValue([details]);
+			return Promise.resolve({ ...details, token: "one-time-fixture-secret" });
+		});
+		const { router } = await open("/account/api-tokens/new");
+		const user = userEvent.setup();
+		await user.type(await screen.findByLabelText("Label"), "Deployment");
+		await user.click(screen.getByRole("button", { name: "Create token" }));
+		expect(await screen.findByLabelText(API_TOKEN_LABEL)).toHaveValue(
+			"one-time-fixture-secret"
+		);
+		await waitFor(() =>
+			expect(router.state.location.pathname).toBe("/account/api-tokens")
+		);
+		expect(JSON.stringify(testClient.getQueriesData({}))).not.toContain(
+			"one-time-fixture-secret"
+		);
+		expect(
+			JSON.stringify(testClient.getMutationCache().getAll())
+		).not.toContain("one-time-fixture-secret");
+		expect(JSON.stringify(localStorage)).not.toContain(
+			"one-time-fixture-secret"
+		);
+		await user.click(screen.getByRole("button", { name: "I saved it" }));
+		expect(screen.queryByLabelText(API_TOKEN_LABEL)).not.toBeInTheDocument();
+		await user.click(screen.getByRole("link", { name: "Edit" }));
+		expect(router.state.location.pathname).toBe(
+			"/account/api-tokens/new-prefix"
+		);
+		expect(
+			screen.queryByDisplayValue("one-time-fixture-secret")
+		).not.toBeInTheDocument();
+	});
+	it("requires confirmation for revocation and keeps rejected revocations visible", async () => {
+		vi.mocked(api.status).mockResolvedValue({
+			email_login: true,
+			key_stored: false,
+			kind: "email",
+			passkeys: false,
+			signed_in: true,
+			version: "test",
+		});
+		vi.spyOn(api, "apiTokens").mockResolvedValue([
+			{
+				label: "Automation",
+				prefix: "fixture-prefix",
+				teams: [],
+				user_role: "user",
+			},
+		]);
+		const revoke = vi
+			.spyOn(api, "revokeAPIToken")
+			.mockRejectedValue(new Error("Revocation rejected"));
+		await open("/account/api-tokens");
+		const user = userEvent.setup();
+		await user.click(await screen.findByRole("button", { name: "Revoke" }));
+		expect(revoke).not.toHaveBeenCalled();
+		expect(
+			screen.getByRole("dialog", { name: "Revoke API token?" })
+		).toBeVisible();
+		await user.click(screen.getByRole("button", { name: "Revoke token" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"Revocation rejected"
+		);
+		expect(screen.getByRole("dialog")).toBeVisible();
+		expect(
+			within(screen.getByRole("list", { name: "Your API tokens" })).getByText(
+				"Automation"
+			)
+		).toBeVisible();
+	});
+	it("does not show an unrelated token for an unknown token URL", async () => {
+		vi.spyOn(api, "apiTokens").mockResolvedValue([]);
+		await open("/account/api-tokens/unknown-prefix");
+		expect(await screen.findByRole("alert")).toHaveTextContent("not found");
+		expect(screen.queryByLabelText("Label")).not.toBeInTheDocument();
+	});
+	it("restores the email comparison code from the pending session after reload", async () => {
+		vi.mocked(api.status).mockResolvedValue({
+			email_login: true,
+			key_stored: false,
+			passkeys: false,
+			signed_in: false,
+			version: "test",
+			waiting_for_email: {
+				email: "fixture@example.test",
+				expires_at: "2030-01-01",
+				request_code: "Q9W1-DFWF",
+			},
+		});
+		vi.spyOn(api, "emailWait").mockResolvedValue({ done: false });
+		const { router } = await open("/sign-in/check-email");
+		expect(await screen.findByText("Q9W1-DFWF")).toBeVisible();
+		expect(router.state.location.pathname).toBe("/sign-in/check-email");
+	});
 	it.each(["virtual_machines", "bare_metal"])(
 		"restores the API resource kind in canonical %s URLs",
 		async (kind) => {

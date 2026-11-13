@@ -10,7 +10,7 @@ export function AuthShell({
 	label = "Sign in",
 }: {
 	children: ReactNode;
-	footer: ReactNode;
+	footer?: ReactNode;
 	label?: string;
 }) {
 	return (
@@ -36,7 +36,7 @@ export function AuthShell({
 			</header>
 			<section aria-label={label} className="auth-content">
 				{children}
-				<div className="auth-alternative">{footer}</div>
+				{footer ? <div className="auth-alternative">{footer}</div> : null}
 			</section>
 			<footer className="auth-footer">
 				<BuildDate />

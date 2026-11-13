@@ -1,0 +1,173 @@
+.auth-content:has(.token-page-heading) {
+	padding-block-start: 32px;
+}
+.token-page-heading {
+	display: grid;
+	gap: 16px;
+	margin-block-end: 28px;
+}
+.auth-content .token-page-heading :is(h1, .lede) {
+	margin: 0;
+}
+.token-management {
+	display: grid;
+	gap: 24px;
+}
+.auth-content .token-form {
+	display: grid;
+	gap: 28px;
+	max-inline-size: 640px;
+	margin: 0;
+}
+.token-create {
+	justify-self: start;
+}
+.token-management .btn,
+.created-token .btn {
+	block-size: 36px;
+	min-block-size: 36px;
+}
+.token-form .btn {
+	justify-self: start;
+}
+.token-list {
+	display: grid;
+	gap: 12px;
+	padding: 0;
+	margin: 0;
+	list-style: none;
+}
+.token-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px 24px;
+	align-items: center;
+	padding: 16px;
+	background: var(--card);
+	border: 1px solid var(--line-2);
+	border-radius: 8px;
+}
+.token-identity,
+.token-access {
+	display: grid;
+	gap: 5px;
+	min-inline-size: 0;
+	overflow-wrap: anywhere;
+}
+.token-identity {
+	flex: 1 1 160px;
+}
+.token-identity code {
+	font-size: 0.875rem;
+	color: var(--ink-2);
+}
+.token-access {
+	flex: 1 1 200px;
+	font-size: 0.875rem;
+}
+.token-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.account-navigation {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: center;
+	justify-content: space-between;
+	margin-block-end: 24px;
+	font-size: 0.875rem;
+}
+.account-breadcrumbs ol {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	padding: 0;
+	margin: 0;
+	list-style: none;
+}
+.account-breadcrumbs li {
+	display: inline-flex;
+	gap: 8px;
+	align-items: center;
+	min-inline-size: 0;
+}
+.account-breadcrumbs li + li::before {
+	flex: none;
+	inline-size: 5px;
+	block-size: 5px;
+	content: "";
+	border-block-start: 1px solid var(--muted);
+	border-inline-end: 1px solid var(--muted);
+	transform: rotate(45deg);
+}
+.account-breadcrumbs a,
+.account-console-link {
+	padding-block: 4px;
+	color: var(--ink-2);
+	overflow-wrap: anywhere;
+	text-decoration: underline;
+	text-decoration-color: var(--line-2);
+	text-underline-offset: 3px;
+}
+.account-breadcrumbs a[aria-current="page"] {
+	font-weight: 600;
+	color: var(--ink);
+	text-decoration: none;
+}
+.account-breadcrumbs a:hover,
+.account-console-link:hover {
+	color: var(--ink);
+	text-decoration-color: currentColor;
+}
+.token-permissions {
+	display: grid;
+	gap: 8px;
+	min-inline-size: 0;
+	padding: 0;
+	margin: 0;
+	border: 0;
+}
+.token-permissions legend {
+	margin-block-end: 8px;
+	font-weight: 600;
+}
+.token-team {
+	min-inline-size: 0;
+	padding: 8px 12px 12px;
+	margin: 8px 0 0;
+	background: var(--card-2);
+	border: 1px solid var(--line-2);
+	border-radius: 8px;
+}
+.token-team legend {
+	max-inline-size: 100%;
+	padding-inline: 4px;
+	margin-block-end: 0;
+	font-weight: 500;
+}
+.token-team-heading {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 4px 10px;
+	align-items: baseline;
+	overflow-wrap: anywhere;
+}
+.token-team-heading strong {
+	font-weight: 600;
+}
+.created-token {
+	padding: 20px;
+	margin-block-end: 24px;
+	background: var(--card-2);
+	border: 1px solid var(--line-2);
+	border-radius: 8px;
+}
+.created-token textarea {
+	inline-size: 100%;
+	padding: 12px;
+	font: 1rem / 1.5 var(--mono);
+	overflow-wrap: anywhere;
+}

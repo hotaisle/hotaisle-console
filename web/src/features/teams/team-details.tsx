@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useCallback } from "react";
+import { FormError } from "../../components/forms/form-error";
 import { api, type Team } from "../../lib/api";
 import { AuthShell } from "../auth/auth-shell";
 import { EditTeamForm } from "./edit-team-form";
@@ -45,12 +46,14 @@ export function TeamDetails({
 			</header>
 			{details.isPending ? <p role="status">Loading team details…</p> : null}
 			{details.error ? (
-				<div className="stack">
-					<p role="alert">{details.error.message}</p>
-					<button className="btn" onClick={retry} type="button">
-						Try again
-					</button>
-				</div>
+				<FormError
+					actions={
+						<button className="btn" onClick={retry} type="button">
+							Try again
+						</button>
+					}
+					message={details.error.message}
+				/>
 			) : null}
 			{details.data ? (
 				<TeamDetailsContent

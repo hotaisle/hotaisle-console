@@ -1,4 +1,5 @@
 import { useId, useRef } from "react";
+import { FormError } from "../../../components/forms/form-error";
 import { Modal } from "../../../components/ui/modal";
 import type { SSHKey } from "../../../lib/api";
 import { keyLabel } from "../../../lib/format";
@@ -24,6 +25,7 @@ export function RemoveKeyDialog({
 			descriptionId={descriptionId}
 			initialFocus={keep}
 			onClose={onClose}
+			showClose={false}
 			title="Remove SSH key?"
 		>
 			<div className="remove-key-details">
@@ -34,16 +36,8 @@ export function RemoveKeyDialog({
 				New machines won't accept this key. Bare-metal servers stop accepting it
 				immediately.
 			</p>
-			{error ? (
-				<p className="error" role="alert">
-					{error}
-				</p>
-			) : null}
-			{busy ? (
-				<p className="muted" role="status">
-					Removing the key. Please wait…
-				</p>
-			) : null}
+			{error ? <FormError message={error} /> : null}
+
 			<form className="modal-actions" method="dialog">
 				<button className="btn" disabled={busy} ref={keep} type="submit">
 					Keep key

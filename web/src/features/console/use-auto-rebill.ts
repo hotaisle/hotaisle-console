@@ -9,6 +9,7 @@ type Change =
 	| { kind: "disable" };
 interface ChangeResult {
 	kind: Change["kind"];
+	statusUpdateCount?: number;
 	url?: string;
 }
 
@@ -35,7 +36,13 @@ export function useAutoRebill(team: string) {
 				return { kind: value.kind };
 			}
 			const session = await api.setupAutoRebill(team, value.settings);
-			return { kind: value.kind, url: checkoutURL(session.checkout_url) };
+			const statusUpdateCount =
+				client.getQueryState(queryKey)?.dataUpdateCount ?? 0;
+			return {
+				kind: value.kind,
+				statusUpdateCount,
+				url: checkoutURL(session.checkout_url),
+			};
 		},
 		onSuccess: async () => {
 			setMode(null);
@@ -79,5 +86,23 @@ export function useAutoRebill(team: string) {
 	const refresh = useCallback(() => {
 		status.refetch();
 	}, [status]);
-	return { cancel, change, disable, edit, mode, refresh, save, setup, status };
+	const setupConfirmed =
+		change.data?.kind === "setup" &&
+		!status.isFetching &&
+		status.data?.enabled &&
+		!status.data.setup_pending &&
+		(client.getQueryState(queryKey)?.dataUpdateCount ?? 0) >
+			(change.data.statusUpdateCount ?? 0);
+	return {
+		cancel,
+		change,
+		disable,
+		edit,
+		mode,
+		refresh,
+		save,
+		setup,
+		setupConfirmed,
+		status,
+	};
 }

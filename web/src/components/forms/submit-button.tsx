@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ButtonLabels } from "../ui/button-labels";
 import { useFormContext } from "./form-context";
 
 const submitting = (state: { isSubmitting: boolean }) => state.isSubmitting;
@@ -24,10 +25,9 @@ export function SubmitButton({
 					disabled={disabled || pending}
 					type="submit"
 				>
-					<span className="submit-labels">
-						<span aria-hidden={pending}>{children}</span>
-						<span aria-hidden={!pending}>{pendingText}</span>
-					</span>
+					<ButtonLabels active={pending} alternate={pendingText}>
+						{children}
+					</ButtonLabels>
 				</button>
 			)}
 		</form.Subscribe>

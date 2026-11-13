@@ -3,7 +3,7 @@ import { useLocation, useRouter, useSearch } from "@tanstack/react-router";
 import { type ReactNode, useCallback, useState } from "react";
 import { Redirect } from "../../app/redirect";
 import { STATUS_KEY } from "../../hooks/use-session";
-import type { Status } from "../../lib/api";
+import type { PendingEmailLogin, Status } from "../../lib/api";
 import { ApiKeySignIn } from "./api-key-sign-in";
 import { AuthShell } from "./auth-shell";
 import { EmailApproval } from "./email-approval";
@@ -20,7 +20,8 @@ export function Connect({
 	const router = useRouter();
 	const client = useQueryClient();
 	const search = useSearch({ from: "__root__" });
-	const [email, setEmail] = useState(status.waiting_for_email?.email ?? "");
+	const [sentLogin, setSentLogin] = useState(status.waiting_for_email);
+	const pending = status.waiting_for_email ?? sentLogin;
 	const chooseEmail = useCallback(
 		() => router.navigate({ replace: true, search, to: "/sign-in" }),
 		[router, search]
@@ -30,15 +31,12 @@ export function Connect({
 		[router, search]
 	);
 	const sent = useCallback(
-		(address: string) => {
-			setEmail(address);
+		(login: PendingEmailLogin) => {
+			setSentLogin(login);
 			client.setQueryData<Status>(STATUS_KEY, (previous) => ({
 				...status,
 				...previous,
-				waiting_for_email: {
-					email: address,
-					expires_at: new Date(Date.now() + 900_000).toISOString(),
-				},
+				waiting_for_email: login,
 			}));
 			router.navigate({ search, to: "/sign-in/check-email" });
 		},
@@ -46,7 +44,7 @@ export function Connect({
 	);
 	const waiting = location.pathname === "/sign-in/check-email";
 	const useKey = location.pathname === "/sign-in/key" || !status.email_login;
-	if (waiting && !email) {
+	if (waiting && !pending) {
 		return <Redirect href="/sign-in" />;
 	}
 	let footer: ReactNode = null;
@@ -65,8 +63,12 @@ export function Connect({
 	}
 	return (
 		<AuthShell footer={footer}>
-			{waiting ? (
-				<EmailApproval email={email} onConnected={onConnected} />
+			{waiting && pending ? (
+				<EmailApproval
+					email={pending.email}
+					onConnected={onConnected}
+					requestCode={pending.request_code}
+				/>
 			) : null}
 			{!waiting && useKey ? <ApiKeySignIn onConnected={onConnected} /> : null}
 			{waiting || useKey ? null : <EmailSignIn onSent={sent} />}

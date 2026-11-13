@@ -1,5 +1,6 @@
 import { type ComponentProps, useCallback, useId } from "react";
 import { useFieldContext } from "./form-context";
+import { FormError } from "./form-error";
 
 interface TextFieldProps
 	extends Omit<
@@ -56,11 +57,7 @@ export function TextField({
 					{help}
 				</p>
 			) : null}
-			{error ? (
-				<p className="error" id={`${id}-error`} role="alert">
-					{error}
-				</p>
-			) : null}
+			{error ? <FormError id={`${id}-error`} message={error} /> : null}
 		</div>
 	);
 }

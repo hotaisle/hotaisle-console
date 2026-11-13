@@ -240,12 +240,14 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 					{sub !== undefined && <p className="pv-sub">{sub}</p>}
 				</header>
 				{!!vms.error && (
-					<p className="banner">
-						{vms.error.message}{" "}
-						<button className="btn-text" onClick={refreshAll} type="button">
-							Try again
-						</button>
-					</p>
+					<FormError
+						actions={
+							<button className="btn-text" onClick={refreshAll} type="button">
+								Try again
+							</button>
+						}
+						message={vms.error.message}
+					/>
 				)}
 				<PanelScroll>
 					{loaded ? body : <div aria-busy="true" className="placeholder" />}

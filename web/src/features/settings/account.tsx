@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { type ChangeEvent, useCallback } from "react";
+import { FormError } from "../../components/forms/form-error";
 import { useSessionActions } from "../../hooks/use-session";
 import type { Status, Team } from "../../lib/api";
 
@@ -35,6 +36,15 @@ export function AccountSettings({
 			>
 				Manage team
 			</Link>
+			<Link
+				className="btn-text more"
+				search={{
+					returnTo: `/teams/${encodeURIComponent(team.handle)}/settings`,
+				}}
+				to="/account/api-tokens"
+			>
+				Manage API tokens
+			</Link>
 			{teams.length > 1 ? (
 				<div className="field">
 					<label className="field-l" htmlFor="team">
@@ -50,11 +60,7 @@ export function AccountSettings({
 				</div>
 			) : null}
 			<p className="muted small">{method}</p>
-			{logout.error ? (
-				<p className="error" role="alert">
-					{logout.error.message}
-				</p>
-			) : null}
+			{logout.error ? <FormError message={logout.error.message} /> : null}
 			<button
 				className="btn"
 				disabled={logout.isPending}

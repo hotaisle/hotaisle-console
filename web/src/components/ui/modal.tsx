@@ -6,6 +6,7 @@ import {
 	useId,
 	useRef,
 } from "react";
+import { ErrorNotices } from "./error-notices";
 import { KeyboardScope } from "./keyboard-scope";
 
 export function Modal({
@@ -15,6 +16,7 @@ export function Modal({
 	busy = false,
 	initialFocus,
 	descriptionId,
+	showClose = true,
 }: {
 	title: string;
 	onClose: () => void;
@@ -22,6 +24,7 @@ export function Modal({
 	busy?: boolean;
 	initialFocus?: RefObject<HTMLElement | null>;
 	descriptionId?: string;
+	showClose?: boolean;
 }) {
 	const ref = useRef<HTMLDialogElement>(null);
 	const titleId = useId();
@@ -61,22 +64,26 @@ export function Modal({
 				onClose={closed}
 				ref={ref}
 			>
-				<div className="modal">
-					<div className="modal-h">
-						<h2 id={titleId}>{title}</h2>
-						<form method="dialog">
-							<button
-								aria-label="Close"
-								className="btn ghost sm"
-								disabled={busy}
-								type="submit"
-							>
-								Close
-							</button>
-						</form>
+				<ErrorNotices>
+					<div className="modal">
+						<div className="modal-h">
+							<h2 id={titleId}>{title}</h2>
+							{showClose ? (
+								<form method="dialog">
+									<button
+										aria-label="Close"
+										className="btn ghost sm"
+										disabled={busy}
+										type="submit"
+									>
+										Close
+									</button>
+								</form>
+							) : null}
+						</div>
+						{children}
 					</div>
-					{children}
-				</div>
+				</ErrorNotices>
 			</dialog>
 		</KeyboardScope>
 	);

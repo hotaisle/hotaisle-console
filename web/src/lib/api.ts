@@ -68,6 +68,22 @@ export interface Team {
 	roles: string[];
 }
 export type TeamRole = "owner" | "purchaser" | "operator" | "user";
+export interface APIToken {
+	label: string;
+	prefix: string;
+	teams: {
+		handle: string;
+		name: string;
+		description?: string;
+		roles: TeamRole[];
+	}[];
+	user_role: "owner" | "user";
+}
+export interface APITokenRequest {
+	label: string;
+	teams?: { team: string; roles: TeamRole[] }[];
+	user_role: "owner" | "user";
+}
 export interface TeamMember {
 	created: string;
 	email: string;
@@ -104,6 +120,12 @@ export interface SSHKey {
 	public_key: string;
 	type: string;
 }
+export interface PendingEmailLogin {
+	email: string;
+	expires_at: string;
+	request_code: string;
+}
+
 /** Who is signed in, as the Worker sees it. */
 export interface Status {
 	/** Email sign-in is available (Hot Aisle's API must publish it, and the Worker be told its paths). */
@@ -114,7 +136,7 @@ export interface Status {
 	signed_in: boolean;
 	version: string;
 	/** An email sign-in waiting for its link to be opened. */
-	waiting_for_email?: { email: string; expires_at: string };
+	waiting_for_email?: PendingEmailLogin;
 }
 
 export type { Ended, Machine as MachineRecord } from "../../../shared/records";
@@ -209,8 +231,10 @@ const POWER: Record<PowerAction, string> = {
 export const api = {
 	acceptTeamInvitation: (team: string) =>
 		call<Team>("POST", `${t(team)}/accept-invitation/`),
+	activeTokenPrefix: () => keyVault.token()?.split(".")[0],
 	addKey: (authorized_key: string) =>
 		call<SSHKey>("POST", "/api/user/ssh_keys/", { authorized_key }),
+	apiTokens: () => call<APIToken[]>("GET", "/api/user/api_keys/"),
 	autoRebill: (team: string) =>
 		call<AutoRebillStatus>("GET", `${t(team)}/auto-rebill/`),
 	balance: (team: string) => call<Balance>("GET", `${t(team)}/balance/`),
@@ -224,13 +248,15 @@ export const api = {
 			`${t(team)}/purchase-credits/`,
 			{ cents }
 		),
+	createAPIToken: (request: APITokenRequest) =>
+		call<APIToken & { token: string }>("POST", "/api/user/api_keys/", request),
 	createTeam: (team: { name: string; handle: string }) =>
 		call<Team>("POST", "/api/teams/", team),
 	disableAutoRebill: (team: string) =>
 		call<void>("DELETE", `${t(team)}/auto-rebill/`),
 	/** Emails a sign-in link. */
 	emailStart: (email: string) =>
-		call<{ email: string; expires_at: string }>("POST", "/auth/email/start", {
+		call<PendingEmailLogin>("POST", "/auth/email/start", {
 			email,
 		}),
 	/** Whether the emailed link has been opened yet; once it has, the session is signed in. */
@@ -310,6 +336,8 @@ export const api = {
 				specs: offer.rawSpecs,
 			})
 		),
+	revokeAPIToken: (prefix: string) =>
+		call<void>("DELETE", `/api/user/api_keys/${encodeURIComponent(prefix)}/`),
 	setupAutoRebill: (team: string, settings: AutoRebillSettings) =>
 		call<{ checkout_url: string; expires_at: string }>(
 			"POST",
@@ -362,6 +390,12 @@ export const api = {
 			throw error;
 		}
 	},
+	updateAPIToken: (prefix: string, request: APITokenRequest) =>
+		call<APIToken>(
+			"PATCH",
+			`/api/user/api_keys/${encodeURIComponent(prefix)}/`,
+			request
+		),
 	updateAutoRebill: (team: string, settings: AutoRebillSettings) =>
 		call<void>("PATCH", `${t(team)}/auto-rebill/`, settings),
 	updateTeam: (
