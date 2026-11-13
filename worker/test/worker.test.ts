@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import type { Env } from "../src/hotaisle";
+import entrypoint from "../src/index";
+import { rateLimitWindow } from "./fixtures/rate-limit";
 import { env, worker } from "./runtime";
 
 const HTTP_ONLY_PATTERN = /HttpOnly/u;
@@ -14,7 +17,18 @@ const H = {
 };
 
 /** One browser: keeps the session cookie between calls, like a real one. */
-function browser() {
+function browser(
+	rateBindings?: Partial<
+		Pick<
+			Env,
+			| "API_READ_RATE_LIMITER"
+			| "API_WRITE_RATE_LIMITER"
+			| "AUTH_RATE_LIMITER"
+			| "EMAIL_LOGIN_EMAIL_RATE_LIMITER"
+			| "EMAIL_LOGIN_IP_RATE_LIMITER"
+		>
+	>
+) {
 	let cookie = "";
 	let requestKey: string | undefined;
 	const call = async (
@@ -23,7 +37,7 @@ function browser() {
 		body?: unknown,
 		headers: Record<string, string> = H
 	) => {
-		const r = await worker.default.fetch(ORIGIN + path, {
+		const request = new Request(ORIGIN + path, {
 			body: body === undefined ? undefined : JSON.stringify(body),
 			headers: {
 				...headers,
@@ -32,6 +46,9 @@ function browser() {
 			},
 			method,
 		});
+		const r: Response = rateBindings
+			? await entrypoint.fetch(request, { ...env, ...rateBindings })
+			: await worker.default.fetch(request);
 		const set = r.headers.get("Set-Cookie");
 		if (set) {
 			cookie = set.split(";")[0].endsWith("=") ? "" : set.split(";")[0];
@@ -182,7 +199,10 @@ describe("stateless API keys", () => {
 
 describe("the guard", () => {
 	it("limits email starts by address and by client IP", async () => {
-		const visitor = browser();
+		const visitor = browser({
+			EMAIL_LOGIN_EMAIL_RATE_LIMITER: rateLimitWindow(3).binding,
+			EMAIL_LOGIN_IP_RATE_LIMITER: rateLimitWindow(10).binding,
+		});
 		const addressHeaders = {
 			...H,
 			"CF-Connecting-IP": "198.51.100.41",
@@ -229,7 +249,9 @@ describe("the guard", () => {
 		).toBe(429);
 	});
 	it("limits repeated API mutations without forwarding the blocked call", async () => {
-		const visitor = browser();
+		const visitor = browser({
+			API_WRITE_RATE_LIMITER: rateLimitWindow(30).binding,
+		});
 		visitor.authorize("tok-bob");
 		const before = (await upstreamCalls()).filter((call) =>
 			call.startsWith("POST /limit-test/")
@@ -247,18 +269,49 @@ describe("the guard", () => {
 		).toBe(before + 30);
 	});
 	it("limits repeated API reads per credential and path", async () => {
-		const visitor = browser();
+		const window = rateLimitWindow(120);
+		const visitor = browser({ API_READ_RATE_LIMITER: window.binding });
 		visitor.authorize("tok-bob");
 		const read = () => visitor.call("GET", "/api/limit-test/read/");
 		expect(await sequentialStatuses(120, read)).toEqual(
 			Array.from({ length: 120 }, () => 200)
 		);
+		const calls = (await upstreamCalls()).filter((call) =>
+			call.startsWith("GET /limit-test/read/")
+		);
 		const blocked = await read();
 		expect(blocked.status).toBe(429);
 		expect(blocked.headers.get("Retry-After")).toBe("60");
+		expect(
+			(await upstreamCalls()).filter((call) =>
+				call.startsWith("GET /limit-test/read/")
+			)
+		).toEqual(calls);
+		expect((await visitor.call("GET", "/api/user/")).status).toBe(200);
+		visitor.authorize("tok-alice");
+		expect((await read()).status).toBe(200);
+		visitor.authorize("tok-bob");
+		window.nextWindow();
+		expect((await read()).status).toBe(200);
+	});
+	it("fails closed without forwarding when the rate-limit binding is unavailable", async () => {
+		const visitor = browser({
+			API_READ_RATE_LIMITER: {
+				limit: () => Promise.reject(new Error("Fixture limiter unavailable")),
+			},
+		});
+		visitor.authorize("tok-bob");
+		const result = await visitor.call("GET", "/api/limit-test/unavailable/");
+		expect(result.status).toBe(503);
+		expect(result.text).toBe("Request limiting is temporarily unavailable.");
+		expect(
+			(await upstreamCalls()).some((call) =>
+				call.startsWith("GET /limit-test/unavailable/")
+			)
+		).toBe(false);
 	});
 	it("limits repeated upstream credential checks by client IP", async () => {
-		const visitor = browser();
+		const visitor = browser({ AUTH_RATE_LIMITER: rateLimitWindow(60).binding });
 		const headers = { ...H, "CF-Connecting-IP": "198.51.100.43" };
 		visitor.authorize("tok-alice");
 		expect(
