@@ -140,6 +140,8 @@ secrets, follow signed redirects, or sign unrelated endpoints. Tests use only a 
 - Failed releases, launches, and purchases must stay failures in the UI. Never synthesize successful results.
 - There is no browser-managed auto-end timer. The API must support scheduled shutdown before one can be promised.
 - Keep instrument widths stable and respect reduced motion. The drawing sleeps while idle and writes only changed values.
+- Standard buttons must keep the same size and position while pressed or changing labels. Use the shared
+  `ButtonLabels` control for pending/copied states; do not add click-to-shrink or shifting label animations.
 - Use native controls and labels, native dialogs for modal interaction, and accessible links for navigation.
 - Show transient errors through the shared out-of-flow error notices, never by inserting visible error rows
   or retry controls into page layout. Keep field errors associated with invalid inputs and dialog notices

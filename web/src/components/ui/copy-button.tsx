@@ -1,6 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useEffect } from "react";
 import { sound } from "../../lib/sound";
+import { FormError } from "../forms/form-error";
+import { ButtonLabels } from "./button-labels";
 
 export function CopyButton({
 	text,
@@ -30,15 +32,12 @@ export function CopyButton({
 				onClick={click}
 				type="button"
 			>
-				<span className="labels">
-					<span aria-hidden={copy.isSuccess}>{label}</span>
-					<span aria-hidden={!copy.isSuccess}>Copied</span>
-				</span>
+				<ButtonLabels active={copy.isSuccess} alternate="Copied">
+					{label}
+				</ButtonLabels>
 			</button>
 			{!!copy.isError && (
-				<span className="small" role="alert">
-					Copy failed. Select the text and copy it manually.
-				</span>
+				<FormError message="Copy failed. Select the text and copy it manually." />
 			)}
 		</span>
 	);
