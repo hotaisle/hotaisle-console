@@ -99,6 +99,16 @@ without one, its fallback still uses the public commit-specific association API.
 Incidental body references and foreign-repository URLs are not accepted as PR
 metadata.
 
+When merging with a custom squash subject, retain the final `(#<PR number>)`
+suffix, or include a canonical `Pull-Request:` URL trailer in the commit body.
+Overriding GitHub's default subject without either value forces the public REST
+fallback, which may be rate limited even when all repository checks passed.
+PR #8 encountered that fallback after its custom merge subject omitted the
+number; the build stopped before compilation and left the previous deployment
+serving traffic. A subsequent normal PR merge with canonical Git metadata can
+publish the accumulated main changes without changing credentials or bypassing
+the source-provenance checks.
+
 The final main-revision check uses Git's remote-ref advertisement for this public
 repository rather than the REST API quota. Credential helpers, extra HTTP headers,
 redirects and interactive prompts are disabled for that read. It has a bounded
