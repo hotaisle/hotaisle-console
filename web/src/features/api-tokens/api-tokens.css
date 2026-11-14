@@ -1,4 +1,5 @@
 .auth-content:has(.token-page-heading) {
+	max-inline-size: 1040px;
 	padding-block-start: 32px;
 }
 .token-page-heading {
@@ -11,7 +12,8 @@
 }
 .token-management {
 	display: grid;
-	gap: 24px;
+	gap: 16px;
+	container-type: inline-size;
 }
 .auth-content .token-form {
 	display: grid;
@@ -32,52 +34,71 @@
 }
 .token-list {
 	display: grid;
-	gap: 12px;
 	padding: 0;
 	margin: 0;
 	list-style: none;
-}
-.token-row {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 16px 24px;
-	align-items: center;
-	padding: 16px;
 	background: var(--card);
 	border: 1px solid var(--line-2);
 	border-radius: 8px;
 }
+.token-row {
+	display: grid;
+	grid-template-areas:
+		"identity actions"
+		"access dates";
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 12px 24px;
+	align-items: center;
+	padding: 16px 20px;
+	border-block-end: 1px solid var(--line-2);
+}
+.token-row:last-child {
+	border-block-end: 0;
+}
 .token-identity,
 .token-access {
 	display: grid;
-	gap: 5px;
+	gap: 4px;
 	min-inline-size: 0;
 	overflow-wrap: anywhere;
 }
 .token-identity {
-	flex: 1 1 160px;
+	grid-area: identity;
 }
 .token-identity code {
-	font-size: 0.875rem;
+	font-size: 0.8125rem;
 	color: var(--ink-2);
 }
 .token-access {
-	flex: 1 1 200px;
-	font-size: 0.875rem;
+	grid-area: access;
+	font-size: 0.8125rem;
+	color: var(--ink-2);
 }
 .token-dates {
 	display: grid;
-	gap: 5px;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px;
+	min-inline-size: 0;
 	margin: 0;
-	font-size: 0.875rem;
+	font-size: 0.8125rem;
+	line-height: 1.5;
 	color: var(--ink-2);
 }
 .token-dates > div {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 4px 8px;
+	display: grid;
+	align-content: start;
+	min-inline-size: 0;
+}
+.token-row > .token-dates {
+	grid-area: dates;
+	min-inline-size: 15rem;
+}
+.token-dates dt {
+	font-size: 0.75rem;
+	color: var(--muted);
 }
 .token-dates dd {
+	min-inline-size: 0;
 	margin: 0;
 }
 .token-timestamp {
@@ -129,8 +150,37 @@
 }
 .token-actions {
 	display: flex;
-	flex-wrap: wrap;
+	grid-area: actions;
 	gap: 8px;
+	justify-self: end;
+}
+@container (min-width: 56rem) {
+	.token-row {
+		grid-template-areas: "identity access dates actions";
+		grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(15rem, 1fr) auto;
+	}
+}
+@container (max-width: 35rem) {
+	.token-row {
+		grid-template-areas:
+			"identity actions"
+			"access access"
+			"dates dates";
+		gap: 12px 16px;
+		padding: 16px;
+	}
+	.token-row > .token-dates {
+		min-inline-size: 0;
+	}
+}
+@container (max-width: 25rem) {
+	.token-row {
+		grid-template-areas:
+			"identity identity"
+			"access access"
+			"dates dates"
+			"actions actions";
+	}
 }
 .account-navigation {
 	display: flex;

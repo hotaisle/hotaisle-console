@@ -22,7 +22,6 @@ function TokenRow({
 				<strong>{token.label || "Unlabelled token"}</strong>
 				<code>{token.prefix}</code>
 				{current ? <span className="small">Current sign-in</span> : null}
-				<TokenDates token={token} />
 			</div>
 			<div className="token-access">
 				<span>Account: {token.user_role}</span>
@@ -36,6 +35,7 @@ function TokenRow({
 					<span className="muted">No team access</span>
 				)}
 			</div>
+			<TokenDates token={token} />
 			{canManage ? (
 				<div className="token-actions">
 					<Link
@@ -46,7 +46,7 @@ function TokenRow({
 					>
 						Edit
 					</Link>
-					<button className="btn primary" onClick={revoke} type="button">
+					<button className="btn" onClick={revoke} type="button">
 						Revoke
 					</button>
 				</div>
