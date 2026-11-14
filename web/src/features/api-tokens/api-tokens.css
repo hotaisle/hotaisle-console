@@ -283,3 +283,57 @@
 	font: 1rem / 1.5 var(--mono);
 	overflow-wrap: anywhere;
 }
+
+.token-skeleton-line {
+	max-inline-size: 100%;
+	block-size: 12px;
+	background: var(--line-2);
+	border-radius: 4px;
+}
+.token-skeleton-title {
+	inline-size: 96px;
+	block-size: 16px;
+}
+.token-skeleton-prefix {
+	inline-size: 180px;
+}
+.token-skeleton-meta {
+	inline-size: 210px;
+}
+.token-skeleton .token-dates > div {
+	gap: 8px;
+}
+.token-skeleton-date-label {
+	inline-size: 48px;
+	block-size: 10px;
+}
+.token-skeleton-date-value {
+	inline-size: 80px;
+}
+.token-skeleton-button {
+	inline-size: 132px;
+	block-size: 36px;
+	border-radius: 10px;
+}
+.token-skeleton-field {
+	display: grid;
+	gap: 8px;
+}
+.token-skeleton-input {
+	inline-size: 100%;
+	block-size: 36px;
+	border-radius: 10px;
+}
+@media (prefers-reduced-motion: no-preference) {
+	.token-skeleton-line {
+		animation: token-skeleton-pulse 1.5s ease-in-out infinite alternate;
+	}
+}
+@keyframes token-skeleton-pulse {
+	from {
+		opacity: 0.45;
+	}
+	to {
+		opacity: 0.85;
+	}
+}

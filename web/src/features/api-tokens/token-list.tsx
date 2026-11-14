@@ -65,18 +65,9 @@ export function TokenList({
 	canManage: boolean;
 	onRevoke: (token: APIToken) => void;
 }) {
-	const search = useSearch({ from: "__root__" });
 	return (
 		<>
-			{canManage ? (
-				<Link
-					className="btn token-create"
-					search={search}
-					to="/account/api-tokens/new"
-				>
-					Create API token
-				</Link>
-			) : null}
+			{canManage ? <CreateTokenLink /> : null}
 			{tokens.length ? (
 				<ul aria-label="Your API tokens" className="token-list">
 					{tokens.map((token) => (
@@ -93,5 +84,18 @@ export function TokenList({
 				<p className="muted">No API tokens yet.</p>
 			)}
 		</>
+	);
+}
+
+export function CreateTokenLink() {
+	const search = useSearch({ from: "__root__" });
+	return (
+		<Link
+			className="btn token-create"
+			search={search}
+			to="/account/api-tokens/new"
+		>
+			Create API token
+		</Link>
 	);
 }
