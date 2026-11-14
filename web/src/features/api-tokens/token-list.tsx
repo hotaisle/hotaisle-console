@@ -1,6 +1,7 @@
 import { Link, useSearch } from "@tanstack/react-router";
 import { useCallback } from "react";
 import type { APIToken } from "../../lib/api";
+import { TokenDates } from "./token-dates";
 
 function TokenRow({
 	token,
@@ -21,6 +22,7 @@ function TokenRow({
 				<strong>{token.label || "Unlabelled token"}</strong>
 				<code>{token.prefix}</code>
 				{current ? <span className="small">Current sign-in</span> : null}
+				<TokenDates token={token} />
 			</div>
 			<div className="token-access">
 				<span>Account: {token.user_role}</span>

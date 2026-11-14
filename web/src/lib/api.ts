@@ -69,6 +69,7 @@ export interface Team {
 }
 export type TeamRole = "owner" | "purchaser" | "operator" | "user";
 export interface APIToken {
+	created?: string | null;
 	label: string;
 	prefix: string;
 	teams: {
@@ -77,6 +78,7 @@ export interface APIToken {
 		description?: string;
 		roles: TeamRole[];
 	}[];
+	updated?: string | null;
 	user_role: "owner" | "user";
 }
 export interface APITokenRequest {

@@ -18,9 +18,11 @@ const TEAM: Team = {
 	roles: ["owner", "operator", "user"],
 };
 const TOKEN: APIToken = {
+	created: "2026-11-01T08:15:30Z",
 	label: "Automation",
 	prefix: "fixture-prefix",
 	teams: [{ handle: "lab", name: "Lab", roles: ["operator"] }],
+	updated: "2026-11-02T20:45:50Z",
 	user_role: "user",
 };
 

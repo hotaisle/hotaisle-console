@@ -9,6 +9,7 @@ import {
 	type Team,
 } from "../../lib/api";
 import { errorMessage } from "../../lib/error-message";
+import { TokenDates } from "./token-dates";
 import { TokenAccountAccess, TokenTeamAccess } from "./token-fields";
 
 function grantSignature(teams: APITokenRequest["teams"] = []) {
@@ -86,9 +87,11 @@ export function TokenForm({
 					? await api.updateAPIToken(token.prefix, request)
 					: await api.createAPIToken(request);
 				const details: APIToken = {
+					created: response.created,
 					label: response.label,
 					prefix: response.prefix,
 					teams: response.teams,
+					updated: response.updated,
 					user_role: response.user_role,
 				};
 				const secret =
@@ -136,6 +139,7 @@ export function TokenForm({
 			className="team-form token-form stack"
 			onSubmit={form.handleSubmit}
 		>
+			{token ? <TokenDates token={token} /> : null}
 			{token ? null : (
 				<h2 className="team-section-title" id={heading}>
 					Create a token
