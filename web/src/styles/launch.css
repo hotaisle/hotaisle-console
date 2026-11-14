@@ -5,6 +5,9 @@
 	flex-direction: column;
 	gap: 14px;
 }
+.order:has(> .offer-status) {
+	gap: 32px;
+}
 
 .availability-empty {
 	display: grid;
