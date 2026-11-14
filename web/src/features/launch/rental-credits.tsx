@@ -39,7 +39,7 @@ export function RentalCredits({
 				</p>
 			</div>
 			{canBuy ? (
-				<button className="btn" onClick={onAddCredits} type="button">
+				<button className="btn primary" onClick={onAddCredits} type="button">
 					Add credits
 				</button>
 			) : null}

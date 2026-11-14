@@ -42,15 +42,6 @@ dialog::backdrop {
 	min-inline-size: 112px;
 	min-block-size: 40px;
 }
-.modal-actions .destructive {
-	color: white;
-	background: var(--bad);
-	border-color: var(--bad);
-}
-.modal-actions .destructive:hover:not(:disabled) {
-	background: var(--bad-deep);
-	border-color: var(--bad-deep);
-}
 .remove-key-details {
 	display: grid;
 	gap: 6px;

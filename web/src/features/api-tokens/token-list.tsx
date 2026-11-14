@@ -46,7 +46,7 @@ function TokenRow({
 					>
 						Edit
 					</Link>
-					<button className="btn" onClick={revoke} type="button">
+					<button className="btn danger" onClick={revoke} type="button">
 						Revoke
 					</button>
 				</div>
@@ -91,7 +91,7 @@ export function CreateTokenLink() {
 	const search = useSearch({ from: "__root__" });
 	return (
 		<Link
-			className="btn token-create"
+			className="btn primary token-create"
 			search={search}
 			to="/account/api-tokens/new"
 		>

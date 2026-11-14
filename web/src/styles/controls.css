@@ -28,6 +28,12 @@ kbd {
 	border-radius: 6px;
 }
 .btn {
+	--btn-color: var(--ink);
+	--btn-background: var(--card);
+	--btn-hover: var(--card-2);
+	--btn-active: var(--line);
+	--btn-border: var(--button-outline);
+	--btn-hover-border: var(--muted);
 	display: inline-flex;
 	gap: 8px;
 	align-items: center;
@@ -36,22 +42,25 @@ kbd {
 	padding: 0 14px;
 	font-size: 14px;
 	font-weight: 500;
-	color: var(--ink);
+	color: var(--btn-color);
 	white-space: nowrap;
 	text-decoration: none;
 	appearance: none;
 	cursor: pointer;
-	background: var(--card);
-	border: 1px solid var(--line-2);
+	background: var(--btn-background);
+	border: 1px solid var(--btn-border);
 	border-radius: 10px;
 	transition:
 		background var(--d-1),
 		border-color var(--d-1);
 }
 .btn-text {
+	--btn-text-color: var(--ink-2);
+	--btn-text-hover: var(--ink);
+	min-block-size: 24px;
 	padding: 0;
 	font-size: inherit;
-	color: var(--ink-2);
+	color: var(--btn-text-color);
 	text-decoration: underline;
 	text-decoration-color: var(--line-2);
 	text-underline-offset: 3px;
@@ -102,6 +111,10 @@ kbd {
 	cursor: pointer;
 }
 .hold {
+	--hold-background: var(--button-primary);
+	--hold-hover: var(--button-primary-hover);
+	--hold-active: var(--button-primary-active);
+	--hold-edge: var(--button-primary-active);
 	position: relative;
 	overflow: hidden;
 	width: 100%;
@@ -111,7 +124,7 @@ kbd {
 	cursor: pointer;
 	margin-bottom: 4px;
 	box-shadow:
-		0 4px 0 0 var(--signal-deep),
+		0 4px 0 0 var(--hold-edge),
 		0 12px 20px -10px rgb(0 0 0 / 40%),
 		inset 0 1px 0 rgb(255 255 255 / 22%),
 		inset 0 -1px 0 rgb(0 0 0 / 12%);
@@ -120,8 +133,8 @@ kbd {
 	justify-content: space-between;
 	gap: 16px;
 	padding: 0 20px;
-	background: var(--signal);
-	color: #fff;
+	background: var(--hold-background);
+	color: var(--button-on-fill);
 	font-size: 16px;
 	font-weight: 600;
 	touch-action: none;
@@ -140,10 +153,10 @@ kbd {
 	inset: 0;
 	background: linear-gradient(
 		90deg,
-		rgb(255 255 255 / 12%),
-		rgb(255 255 255 / 20%) calc(100% - 36px),
-		rgb(255 255 255 / 42%) calc(100% - 2px),
-		rgb(255 255 255 / 0%) 100%
+		rgb(0 0 0 / 12%),
+		rgb(0 0 0 / 20%) calc(100% - 36px),
+		rgb(0 0 0 / 32%) calc(100% - 2px),
+		rgb(0 0 0 / 0%) 100%
 	);
 	transform: translateX(calc((var(--p, 0) - 1) * 100%));
 	will-change: transform;
@@ -281,18 +294,44 @@ input.url {
 		opacity var(--d-2) var(--ease),
 		transform var(--d-2) var(--ease);
 }
-.btn:disabled {
-	cursor: not-allowed;
-	opacity: 0.45;
-}
 .btn.on {
-	background: var(--card-2);
-	box-shadow: inset 0 0 0 1px var(--line-2);
+	--btn-background: var(--card-2);
+	box-shadow: inset 0 0 0 1px var(--btn-border);
 }
 .btn.primary {
-	color: var(--page);
-	background: var(--ink);
-	border-color: var(--ink);
+	--btn-color: var(--button-on-fill);
+	--btn-background: var(--button-primary);
+	--btn-hover: var(--button-primary-hover);
+	--btn-active: var(--button-primary-active);
+	--btn-border: transparent;
+	--btn-hover-border: transparent;
+}
+.btn.ghost {
+	--btn-background: transparent;
+	--btn-border: transparent;
+	--btn-hover-border: transparent;
+}
+.btn.danger {
+	--btn-color: var(--bad);
+	--btn-active: var(--card-2);
+	--btn-border: var(--bad);
+	--btn-hover-border: var(--bad);
+}
+.btn.destructive {
+	--btn-color: var(--button-on-fill);
+	--btn-background: var(--button-danger);
+	--btn-hover: var(--button-danger-hover);
+	--btn-active: var(--button-danger-active);
+	--btn-border: transparent;
+	--btn-hover-border: transparent;
+}
+.btn:disabled,
+.btn[aria-disabled="true"] {
+	color: var(--muted);
+	cursor: not-allowed;
+	background: var(--card-2);
+	border-color: var(--line-2);
+	box-shadow: none;
 }
 .btn.big {
 	height: 48px;
@@ -300,12 +339,14 @@ input.url {
 	border-radius: 12px;
 }
 .btn.icon {
+	--btn-color: var(--ink-2);
 	width: 36px;
 	padding: 0;
-	color: var(--ink-2);
 }
-.btn.end {
-	color: var(--bad);
+.btn.sm {
+	height: 32px;
+	padding-inline: 10px;
+	font-size: 13px;
 }
 .btn.copy {
 	padding: 0 14px;
@@ -324,9 +365,18 @@ input.url {
 	gap: 10px;
 	padding: 0 14px 0 10px;
 }
-.btn-text:hover {
-	color: var(--ink);
+.btn-text.danger {
+	--btn-text-color: var(--bad);
+	--btn-text-hover: var(--bad);
+}
+.btn-text:hover:not(:disabled) {
+	color: var(--btn-text-hover);
 	text-decoration-color: currentColor;
+}
+.btn-text:disabled {
+	color: var(--muted);
+	text-decoration: none;
+	cursor: not-allowed;
 }
 .hold.holding {
 	transform: translateY(calc(2px + var(--p, 0) * 2px));
@@ -334,7 +384,7 @@ input.url {
 }
 .hold.done {
 	box-shadow:
-		0 1px 0 0 var(--signal-deep),
+		0 1px 0 0 var(--hold-edge),
 		0 4px 8px -6px rgb(0 0 0 / 40%),
 		inset 0 1px 0 rgb(255 255 255 / 14%),
 		inset 0 -1px 0 rgb(0 0 0 / 12%);
@@ -342,30 +392,33 @@ input.url {
 }
 .hold.busy {
 	box-shadow:
-		0 1px 0 0 var(--signal-deep),
+		0 1px 0 0 var(--hold-edge),
 		0 4px 8px -6px rgb(0 0 0 / 40%),
 		inset 0 1px 0 rgb(255 255 255 / 14%),
 		inset 0 -1px 0 rgb(0 0 0 / 12%);
 	transform: translateY(3px);
 }
+.hold.danger {
+	--hold-background: var(--button-danger);
+	--hold-hover: var(--button-danger-hover);
+	--hold-active: var(--button-danger-active);
+	--hold-edge: var(--button-danger-active);
+	justify-content: center;
+	height: 46px;
+	font-size: 15px;
+	border-radius: 12px;
+	box-shadow:
+		0 3px 0 0 var(--hold-edge),
+		0 10px 18px -10px rgb(0 0 0 / 40%),
+		inset 0 1px 0 rgb(255 255 255 / 20%);
+}
 .hold:disabled {
-	color: var(--faint);
+	color: var(--muted);
 	cursor: not-allowed;
 	background: var(--card-2);
 	box-shadow:
 		0 3px 0 0 var(--line-2),
 		inset 0 0 0 1px var(--line);
-}
-.hold.danger {
-	justify-content: center;
-	height: 46px;
-	font-size: 15px;
-	background: var(--bad);
-	border-radius: 12px;
-	box-shadow:
-		0 3px 0 0 var(--bad-deep),
-		0 10px 18px -10px rgb(0 0 0 / 40%),
-		inset 0 1px 0 rgb(255 255 255 / 20%);
 }
 .choice button:hover {
 	color: var(--ink);
@@ -385,14 +438,19 @@ input.url {
 	opacity: 1;
 	transform: none;
 }
-.btn:hover:not(:disabled) {
-	background: var(--card-2);
+.btn:hover:not(:disabled):not([aria-disabled="true"]) {
+	background: var(--btn-hover);
+	border-color: var(--btn-hover-border);
+}
+.btn:active:not(:disabled):not([aria-disabled="true"]) {
+	background: var(--btn-active);
+	border-color: var(--btn-hover-border);
 }
 .btn.copy.done {
 	color: var(--on);
 }
 .hold:hover:not(:disabled) {
-	background: var(--signal-press);
+	background: var(--hold-hover);
 }
 .hold.done .hold-flash {
 	animation: hold-flash 520ms var(--ease) both;
@@ -401,17 +459,14 @@ input.url {
 	justify-items: center;
 }
 .hold:active:not(:disabled) {
+	background: var(--hold-active);
 	transform: translateY(3px);
 }
 .hold.danger.holding {
 	box-shadow:
-		0 1px 0 0 var(--bad-deep),
+		0 1px 0 0 var(--hold-edge),
 		inset 0 1px 0 rgb(255 255 255 / 14%);
 	transform: translateY(2px);
-}
-.btn.primary:hover:not(:disabled) {
-	background: var(--ink);
-	opacity: 0.88;
 }
 .hold.busy .hold-label > span[data-on="true"]::after {
 	display: inline-block;
@@ -427,13 +482,13 @@ input.url {
 }
 
 /* hold to confirm: fills left to right while you hold */
-/* the charge: a layer slid in from the left, brighter at its leading edge; a flash when it lands */
+/* A darker progress fill preserves contrast with the white confirmation label. */
 @keyframes hold-flash {
 	0% {
-		background: rgb(255 255 255 / 34%);
+		background: rgb(0 0 0 / 16%);
 	}
 	100% {
-		background: rgb(255 255 255 / 0%);
+		background: rgb(0 0 0 / 0%);
 	}
 }
 @keyframes spin {

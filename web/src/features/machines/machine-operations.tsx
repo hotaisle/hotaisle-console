@@ -13,11 +13,13 @@ import type { TripContext } from "./use-trip";
 function Operation({
 	label,
 	description,
+	danger = false,
 	disabled = false,
 	onClick,
 }: {
 	label: string;
 	description: string;
+	danger?: boolean;
 	disabled?: boolean;
 	onClick: () => void;
 }) {
@@ -26,7 +28,7 @@ function Operation({
 		<button
 			aria-describedby={descriptionId}
 			aria-label={label}
-			className="operation"
+			className={danger ? "operation danger" : "operation"}
 			disabled={disabled}
 			onClick={onClick}
 			type="button"
@@ -121,12 +123,14 @@ export function MachineOperations({
 						))}
 						{phase !== "building" && phase !== "releasing" ? (
 							<Operation
+								danger
 								description="Deletes all data and reinstalls from a fresh image."
 								label={vm.metal ? "Wipe and reinstall" : "Rebuild VM"}
 								onClick={confirmRebuild}
 							/>
 						) : null}
 						<Operation
+							danger
 							description="Permanently deletes its data and stops billing. Minimum charges still apply."
 							label={vm.metal ? "Release server" : "Delete VM"}
 							onClick={confirmRelease}

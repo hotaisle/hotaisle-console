@@ -2,8 +2,8 @@
    Two panes, no page scroll. On the left, the panel: one view at a time (rent, your machines, settings),
    pushed and popped like a phone app. On the right, the plate: a drawing of the server you are renting,
    which answers everything you do. One easing curve and three durations for all motion. Cards keep
-   one size in every state, so nothing jumps. Orange is Hot Aisle's: the button that spends money,
-   and the heat of GPUs that are yours. */
+   one size in every state, so nothing jumps. Orange identifies the primary action;
+   neutral controls are secondary and red identifies destructive actions. */
 
 * {
 	box-sizing: border-box;
@@ -94,6 +94,14 @@ kbd {
 	--ink-2: #484844;
 	--muted: #62625c;
 	--faint: #b1b1a9;
+	--button-primary: #c04712;
+	--button-primary-hover: #a33b0e;
+	--button-primary-active: #8a3210;
+	--button-danger: #b3341f;
+	--button-danger-hover: #982b1a;
+	--button-danger-active: #85251a;
+	--button-on-fill: #ffffff;
+	--button-outline: #8b8a83;
 	--signal: #c04712;
 	--signal-press: #a33b0e;
 	--signal-deep: #8a3210;
@@ -153,6 +161,17 @@ kbd {
 :focus {
 	outline: none;
 }
+:focus-visible,
+label:has(> input.visually-hidden:focus-visible) {
+	outline: 2px solid var(--ink);
+	outline-offset: 3px;
+}
+@media (forced-colors: active) {
+	:focus-visible,
+	label:has(> input.visually-hidden:focus-visible) {
+		outline-color: Highlight;
+	}
+}
 .grow {
 	flex: 1;
 }
@@ -179,6 +198,7 @@ kbd {
 	font-variant-numeric: tabular-nums;
 }
 :root[data-theme="dark"] {
+	--button-outline: #706e65;
 	--copper: #a8714b;
 	--page: #121210;
 	--panel: #121210;
@@ -229,6 +249,7 @@ kbd {
 }
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme="light"]) {
+		--button-outline: #706e65;
 		--page: #121210;
 		--panel: #121210;
 		--card: #1c1b19;

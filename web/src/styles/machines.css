@@ -95,6 +95,9 @@
 	line-height: 1.45;
 	color: var(--ink-2);
 }
+.operation.danger strong {
+	color: var(--bad);
+}
 .operation:hover:not(:disabled) {
 	background: var(--card-2);
 }

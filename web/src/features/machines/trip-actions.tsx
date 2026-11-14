@@ -37,7 +37,7 @@ export function TripActions({ context }: { context: TripContext }) {
 			</div>
 			{canOperate ? (
 				<button
-					className="btn end"
+					className="btn danger"
 					disabled={!!context.busy}
 					onClick={end}
 					type="button"

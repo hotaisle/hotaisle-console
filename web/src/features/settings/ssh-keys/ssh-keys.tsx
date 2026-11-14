@@ -152,9 +152,7 @@ export function SshKeys({
 						)}
 					</form.AppField>
 					<form.AppForm>
-						<form.SubmitButton className="btn" pendingText="Adding…">
-							Add
-						</form.SubmitButton>
+						<form.SubmitButton pendingText="Adding…">Add</form.SubmitButton>
 					</form.AppForm>
 				</Form>
 				{error ? (
