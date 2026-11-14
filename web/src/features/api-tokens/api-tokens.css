@@ -80,6 +80,53 @@
 .token-dates dd {
 	margin: 0;
 }
+.token-timestamp {
+	position: relative;
+	inline-size: fit-content;
+}
+.token-timestamp summary {
+	display: flex;
+	align-items: center;
+	min-block-size: 24px;
+	cursor: pointer;
+	list-style: none;
+}
+.token-timestamp summary::-webkit-details-marker {
+	display: none;
+}
+.token-timestamp summary time {
+	text-decoration: underline dotted var(--muted);
+	text-underline-offset: 3px;
+}
+.token-timestamp summary:hover,
+.token-timestamp[open] summary {
+	color: var(--ink);
+}
+.token-timestamp summary:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 3px;
+	border-radius: 2px;
+}
+.token-timestamp-exact {
+	position: absolute;
+	inset-inline-start: 0;
+	z-index: 1;
+	display: block;
+	inline-size: max-content;
+	max-inline-size: min(28ch, calc(100dvw - 48px));
+	padding: 6px 10px;
+	margin-block-start: 4px;
+	font-variant-numeric: tabular-nums;
+	color: var(--ink-2);
+	overflow-wrap: anywhere;
+	background: var(--card-2);
+	border: 1px solid var(--line-2);
+	border-radius: 6px;
+	box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+}
+.token-dates > div:last-child:not(:first-child) .token-timestamp-exact {
+	inset-inline: auto 0;
+}
 .token-actions {
 	display: flex;
 	flex-wrap: wrap;
