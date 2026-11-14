@@ -14,6 +14,7 @@ export default defineConfig({
 						".github/scripts/*.test.ts",
 						"worker/scripts/*.test.ts",
 						"web/vite.config.test.ts",
+						"worker/vite.config.test.ts",
 					],
 					name: "tooling",
 					setupFiles: ["./test/setup.ts"],
