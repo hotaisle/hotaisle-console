@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
 import { requireValue } from "../../../../shared/require-value";
 import { bezier, type View } from "../../lib/camera";
+import { motionEnabled } from "../../lib/motion";
 import type { Signal } from "../../lib/signal";
 import { gpuAppearance } from "./gpu-appearance";
 import { FanLayer } from "./iso/fan-gl";
@@ -166,7 +167,7 @@ export function startStageAnimation({
 	scheme.addEventListener("change", recolor);
 	const themeWatch = new MutationObserver(() => requestAnimationFrame(recolor));
 	themeWatch.observe(document.documentElement, {
-		attributeFilter: ["data-theme", "class", "style"],
+		attributeFilter: ["data-theme", "data-status-motion", "class", "style"],
 		attributes: true,
 	});
 	// only spin while the drawing is on screen
@@ -178,7 +179,9 @@ export function startStageAnimation({
 		}
 	});
 	seen.observe(surface);
-	const still = window.matchMedia("(prefers-reduced-motion: reduce)");
+	const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+	const motionChanged = () => wake.current();
+	motionQuery.addEventListener("change", motionChanged);
 	const gpus = new Map<string, SVGGElement>();
 	for (const g of fr.querySelectorAll<SVGGElement>("[data-gpu]")) {
 		if (g.dataset.gpu) {
@@ -232,7 +235,7 @@ export function startStageAnimation({
 	];
 	// Arriving, the camera starts on the whole row and travels in to your servers; the drawers come out as it lands.
 	const target0: View = framing(scene, live.current.lay.frame);
-	const arriving = first.current && !still.matches;
+	const arriving = first.current && motionEnabled();
 	// after a resize the old view box means nothing, so start from the new frame; otherwise keep the camera where it is
 	const sameScale =
 		camKept.current &&
@@ -297,7 +300,7 @@ export function startStageAnimation({
 		eps = 1e-3
 	) => {
 		if (
-			still.matches ||
+			!motionEnabled() ||
 			(Math.abs(target - s.x) < eps && Math.abs(s.v) < eps * 4)
 		) {
 			const was = s.x !== target;
@@ -459,6 +462,13 @@ export function startStageAnimation({
 		now: number,
 		delay: number
 	) {
+		if (!motionEnabled()) {
+			s.glide = null;
+			s.to = target;
+			s.pull.x = target;
+			paintDrawer(s);
+			return false;
+		}
 		let moving = false;
 		if (target !== s.to) {
 			startDrawer(s, target, now, delay);
@@ -733,6 +743,7 @@ export function startStageAnimation({
 		document.removeEventListener("visibilitychange", visibilityChanged);
 		themeWatch.disconnect();
 		scheme.removeEventListener("change", recolor);
+		motionQuery.removeEventListener("change", motionChanged);
 		wake.current = () => undefined;
 	};
 }

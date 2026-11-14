@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { type StatusMotion, setPrefs } from "../../lib/prefs";
 import { signal } from "../../lib/signal";
 import type { Hall } from "./iso/hall";
 import { layout, type StageState } from "./model";
@@ -31,12 +32,18 @@ vi.mock("./iso/fan-gl", () => ({
 }));
 
 afterEach(() => {
+	setPrefs({ statusMotion: "on" });
 	fans.available = true;
 	vi.clearAllMocks();
 	vi.unstubAllGlobals();
 });
 
-function animate(reducedMotion = false, fanMotion = true) {
+function animate(
+	reducedMotion = false,
+	fanMotion = true,
+	statusMotion: StatusMotion = "on"
+) {
+	setPrefs({ statusMotion });
 	vi.stubGlobal("matchMedia", (media: string) =>
 		Object.assign(new EventTarget(), {
 			addListener: vi.fn(),
@@ -157,6 +164,35 @@ function animate(reducedMotion = false, fanMotion = true) {
 }
 
 describe("drawer fan power", () => {
+	it.each([
+		[false, "off"],
+		[true, "system"],
+	] as const)(
+		"snaps drawer movement with reduced motion %s and preference %s",
+		(reduced, preference) => {
+			const app = animate(reduced, false, preference);
+			try {
+				app.frames(1);
+				expect(app.front.querySelector("[data-tray]")).toHaveAttribute(
+					"data-drawer-open",
+					"true"
+				);
+				expect(app.front.querySelector("[data-tray]")).toHaveAttribute(
+					"transform",
+					"translate(0.00 0.00)"
+				);
+				app.live.current.lay = { ...app.live.current.lay, out: [] };
+				app.wake.current();
+				app.frames(1);
+				expect(app.front.querySelector("[data-tray]")).toHaveAttribute(
+					"data-drawer-open",
+					"false"
+				);
+			} finally {
+				app.stop();
+			}
+		}
+	);
 	it("spins fans with reduced motion and still supports manual pause", () => {
 		const app = animate(true);
 		try {

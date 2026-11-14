@@ -423,10 +423,10 @@ path.iso-dots[data-tone="faint"] {
 	}
 }
 @media (prefers-reduced-motion: reduce) {
-	.iso-line[data-flow] {
+	:root:not([data-status-motion="on"]) .iso-line[data-flow] {
 		animation: none;
 	}
-	.iso-dots circle[data-pulse] {
+	:root:not([data-status-motion="on"]) .iso-dots circle[data-pulse] {
 		animation: none;
 	}
 }

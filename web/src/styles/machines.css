@@ -609,15 +609,14 @@
 		animation: boot-sweep 1.8s ease-in-out infinite;
 	}
 }
-/* Explicit status-animation opt-in overrides the system's motion preference.
-   Other app animations continue to respect reduced motion. */
+/* Explicit browser opt-in applies even when the device prefers reduced motion. */
 :root[data-status-motion="on"] :is(.c-booting, .c-claimed) i::after {
-	animation: boot-pulse 1.6s ease-in-out infinite !important;
-	animation-delay: calc(var(--i) * 0.18s) !important;
+	animation: boot-pulse 1.6s ease-in-out infinite;
+	animation-delay: calc(var(--i) * 0.18s);
 }
 :root[data-status-motion="on"] .track.is-active li.now .bar::after {
 	inline-size: 40%;
-	animation: boot-sweep 1.8s ease-in-out infinite !important;
+	animation: boot-sweep 1.8s ease-in-out infinite;
 }
 @keyframes boot-pulse {
 	0%,

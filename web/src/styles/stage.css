@@ -804,7 +804,7 @@
 	}
 }
 @media (prefers-reduced-motion: reduce) {
-	.ytag.starting .ytag-dot {
+	:root:not([data-status-motion="on"]) .ytag.starting .ytag-dot {
 		animation: none;
 	}
 }
