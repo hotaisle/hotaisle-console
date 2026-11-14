@@ -65,6 +65,21 @@
 	flex: 1 1 200px;
 	font-size: 0.875rem;
 }
+.token-dates {
+	display: grid;
+	gap: 5px;
+	margin: 0;
+	font-size: 0.875rem;
+	color: var(--ink-2);
+}
+.token-dates > div {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 8px;
+}
+.token-dates dd {
+	margin: 0;
+}
 .token-actions {
 	display: flex;
 	flex-wrap: wrap;
