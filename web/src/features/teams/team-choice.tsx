@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { FormError } from "../../components/forms/form-error";
+import { ButtonLabels } from "../../components/ui/button-labels";
 import { useSessionActions } from "../../hooks/use-session";
 import type { Team } from "../../lib/api";
 import { AuthShell } from "../auth/auth-shell";
@@ -68,12 +69,15 @@ export function TeamChoice({
 				<FormError
 					actions={
 						<button
+							aria-busy={refresh.isPending}
 							className="btn-text"
 							disabled={refresh.isPending}
 							onClick={reload}
 							type="button"
 						>
-							{refresh.isPending ? "Retrying…" : "Retry update"}
+							<ButtonLabels active={refresh.isPending} alternate="Retrying…">
+								Retry update
+							</ButtonLabels>
 						</button>
 					}
 					message={"Could not update teams. Your current list is still shown."}

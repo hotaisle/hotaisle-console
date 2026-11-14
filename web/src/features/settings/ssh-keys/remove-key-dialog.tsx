@@ -1,5 +1,6 @@
 import { useId, useRef } from "react";
 import { FormError } from "../../../components/forms/form-error";
+import { ButtonLabels } from "../../../components/ui/button-labels";
 import { Modal } from "../../../components/ui/modal";
 import type { SSHKey } from "../../../lib/api";
 import { keyLabel } from "../../../lib/format";
@@ -43,12 +44,15 @@ export function RemoveKeyDialog({
 					Keep key
 				</button>
 				<button
+					aria-busy={busy}
 					className="btn destructive"
 					disabled={busy}
 					onClick={onRemove}
 					type="button"
 				>
-					{busy ? "Removing…" : "Remove key"}
+					<ButtonLabels active={busy} alternate="Removing…">
+						Remove key
+					</ButtonLabels>
 				</button>
 			</form>
 		</Modal>
