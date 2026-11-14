@@ -22,7 +22,7 @@ import { TestProvider, testClient } from "../../test/render";
 import { useNavigation } from "../features/console/use-navigation";
 import { useOrder } from "../features/launch/use-order";
 import { ACCOUNT_KEY, STATUS_KEY } from "../hooks/use-session";
-import { APIError, api, type Team } from "../lib/api";
+import { APIError, type APIToken, api, type Team } from "../lib/api";
 import { createAppRouter } from "./router";
 
 function ConsoleProbe({ team }: { team: Team }) {
@@ -124,9 +124,138 @@ async function open(path: string) {
 	await router.load();
 	return { history, router };
 }
+function pendingTokens() {
+	let resolve: (value: APIToken[]) => void = () => undefined;
+	let reject: (reason: Error) => void = () => undefined;
+	const promise = new Promise<APIToken[]>((fulfill, fail) => {
+		resolve = fulfill;
+		reject = fail;
+	});
+	return { promise, reject, resolve };
+}
 const API_TOKEN_LABEL = /^API token:/u;
 
 describe("console URLs", () => {
+	it.each([
+		["/account/api-tokens", "API token list"],
+		["/account/api-tokens/fixture-prefix", "API token details"],
+		["/account/api-tokens/new", "API token details"],
+	])(
+		"keeps navigation and shows content chrome while %s is pending",
+		async (path, label) => {
+			vi.mocked(api.status).mockResolvedValue({
+				email_login: true,
+				key_stored: false,
+				kind: "email",
+				passkeys: false,
+				signed_in: true,
+				version: "test",
+			});
+			const request = pendingTokens();
+			vi.spyOn(api, "apiTokens").mockReturnValue(request.promise);
+			await open(path);
+			expect(
+				await screen.findByRole("heading", { name: "API tokens" })
+			).toBeVisible();
+			expect(
+				screen.getByRole("navigation", { name: "Breadcrumbs" })
+			).toBeVisible();
+			const pending = screen.getByRole("progressbar", { name: label });
+			expect(pending).toHaveAttribute("aria-busy", "true");
+			expect(pending.querySelector(".token-skeleton")).toHaveAttribute(
+				"aria-hidden",
+				"true"
+			);
+			expect(screen.queryByText("Loading API tokens…")).not.toBeInTheDocument();
+			expect(screen.queryByText("No API tokens yet.")).not.toBeInTheDocument();
+			expect(
+				screen.queryByRole("link", { name: "Create API token" }) !== null
+			).toBe(path === "/account/api-tokens");
+			await act(async () => {
+				request.resolve([
+					{
+						label: "Automation",
+						prefix: "fixture-prefix",
+						teams: [],
+						user_role: "owner",
+					},
+				]);
+				await request.promise;
+			});
+			await waitFor(() =>
+				expect(
+					screen.queryByRole("progressbar", { name: label })
+				).not.toBeInTheDocument()
+			);
+			const content =
+				path === "/account/api-tokens"
+					? screen.getByRole("list", { name: "Your API tokens" })
+					: screen.getByRole("textbox", { name: "Label" });
+			expect(content).toBeVisible();
+			const expectedLabel = path.endsWith("/new") ? "" : "Automation";
+			expect(content instanceof HTMLInputElement ? content.value : null).toBe(
+				path === "/account/api-tokens" ? null : expectedLabel
+			);
+		}
+	);
+
+	it("replaces token chrome with the real error when its request fails", async () => {
+		const request = pendingTokens();
+		vi.spyOn(api, "apiTokens").mockReturnValue(request.promise);
+		await open("/account/api-tokens");
+		await screen.findByRole("progressbar", { name: "API token list" });
+		act(() => {
+			request.reject(new Error("Token request rejected"));
+		});
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"Token request rejected"
+		);
+		expect(
+			screen.queryByRole("progressbar", { name: "API token list" })
+		).not.toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "API tokens" })).toBeVisible();
+	});
+
+	it("keeps the token form and edits mounted during a background refresh", async () => {
+		vi.mocked(api.status).mockResolvedValue({
+			email_login: true,
+			key_stored: false,
+			kind: "email",
+			passkeys: false,
+			signed_in: true,
+			version: "test",
+		});
+		const token: APIToken = {
+			label: "Automation",
+			prefix: "fixture-prefix",
+			teams: [],
+			user_role: "owner",
+		};
+		const request = pendingTokens();
+		vi.spyOn(api, "apiTokens")
+			.mockResolvedValueOnce([token])
+			.mockReturnValue(request.promise);
+		await open("/account/api-tokens/fixture-prefix");
+		const input = await screen.findByRole("textbox", { name: "Label" });
+		await userEvent.setup().type(input, " edit");
+		let refresh: Promise<void> | undefined;
+		act(() => {
+			refresh = testClient.refetchQueries({
+				queryKey: ["resource", "api-tokens"],
+			});
+		});
+		expect(screen.getByRole("textbox", { name: "Label" })).toBe(input);
+		expect(input).toHaveValue("Automation edit");
+		expect(
+			screen.queryByRole("progressbar", { name: "API token details" })
+		).not.toBeInTheDocument();
+		await act(async () => {
+			request.resolve([token]);
+			await refresh;
+		});
+		expect(input).toHaveValue("Automation edit");
+	});
+
 	it("opens a team's token list from its card and creates grants only for that team", async () => {
 		vi.mocked(api.status).mockResolvedValue({
 			email_login: true,

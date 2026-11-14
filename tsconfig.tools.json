@@ -16,6 +16,7 @@
 		"worker/cloudflare.config.ts",
 		"worker/scripts/*.ts",
 		"worker/vite.config.ts",
+		"worker/vite.config.test.ts",
 		"worker/vitest.config.ts",
 		"web/vite.config.ts",
 		"web/vite.config.test.ts",

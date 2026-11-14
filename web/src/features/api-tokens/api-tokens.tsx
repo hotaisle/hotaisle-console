@@ -7,6 +7,7 @@ import { RevokeToken } from "./revoke-token";
 import { TokenForm } from "./token-form";
 import { TokenList } from "./token-list";
 import { TokenNavigation } from "./token-navigation";
+import { TokenSkeleton } from "./token-skeleton";
 import { TOKEN_PATH, useTokenManagement } from "./use-token-management";
 import "../teams/teams.css";
 import "./api-tokens.css";
@@ -93,8 +94,8 @@ export function APITokens({
 					}
 				/>
 			)}
-			{manager.tokens.isPending ? (
-				<p role="status">Loading API tokens…</p>
+			{manager.tokens.isPending && validScope ? (
+				<TokenSkeleton canManage={manager.canManage} />
 			) : null}
 			{manager.tokens.error ? (
 				<FormError

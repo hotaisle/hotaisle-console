@@ -1,10 +1,8 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { TEST_NOW } from "../../../../test/clock";
 import type { APIToken } from "../../lib/api";
 import { TokenDates } from "./token-dates";
-
-const TIME = /:\d{2}:\d{2}/u;
-const TIMEZONE = /UTC|GMT|[A-Z]{3,4}$/u;
 
 const TOKEN: APIToken = {
 	label: "Fixture",
@@ -12,28 +10,98 @@ const TOKEN: APIToken = {
 	teams: [],
 	user_role: "user",
 };
+const exactFormat = new Intl.DateTimeFormat(undefined, {
+	dateStyle: "medium",
+	timeStyle: "long",
+});
 
 describe("token timestamps", () => {
-	it("shows both recorded instants as localized dates and times with a timezone", () => {
+	it("shows short relative times with exact recorded instants available through native disclosures", () => {
+		const created = new Date(TEST_NOW - 2 * 86_400_000).toISOString();
+		const updated = new Date(TEST_NOW - 3 * 3_600_000).toISOString();
 		const { container } = render(
+			<TokenDates token={{ ...TOKEN, created, updated }} />
+		);
+		expect(screen.getByText("2 days ago")).toBeVisible();
+		expect(screen.getByText("3 hours ago")).toBeVisible();
+		const details = container.querySelectorAll("details");
+		for (const [index, value] of [created, updated].entries()) {
+			const disclosure = details[index];
+			const summary = disclosure.querySelector("summary");
+			expect(summary).toHaveAttribute(
+				"title",
+				exactFormat.format(new Date(value))
+			);
+			const exact = disclosure.querySelector(".token-timestamp-exact");
+			expect(exact).toHaveAttribute("datetime", value);
+			expect(exact).not.toBeVisible();
+			if (!summary) {
+				throw new Error("Missing timestamp disclosure");
+			}
+			fireEvent.click(summary);
+			expect(disclosure).toHaveAttribute("open");
+			expect(exact).toBeVisible();
+			expect(exact).toHaveTextContent(exactFormat.format(new Date(value)));
+		}
+	});
+	it("keeps the exact date open when pressed inside and dismisses it when pressed outside", () => {
+		const outside = vi.fn();
+		render(
+			<>
+				<TokenDates
+					token={{ ...TOKEN, created: new Date(TEST_NOW).toISOString() }}
+				/>
+				<button onClick={outside} type="button">
+					Outside action
+				</button>
+			</>
+		);
+		const trigger = screen.getByText("Just now");
+		const exact = screen.getByText(exactFormat.format(new Date(TEST_NOW)));
+		fireEvent.click(trigger);
+		expect(exact).toBeVisible();
+		fireEvent.pointerDown(exact);
+		expect(exact).toBeVisible();
+		fireEvent.pointerDown(trigger);
+		expect(exact).toBeVisible();
+		const action = screen.getByRole("button", { name: "Outside action" });
+		fireEvent.pointerDown(action);
+		expect(exact).not.toBeVisible();
+		fireEvent.click(action);
+		expect(outside).toHaveBeenCalledOnce();
+	});
+	it("dismisses a timestamp when another timestamp is pressed", () => {
+		const created = new Date(TEST_NOW - 2 * 86_400_000).toISOString();
+		const updated = new Date(TEST_NOW - 3 * 3_600_000).toISOString();
+		render(<TokenDates token={{ ...TOKEN, created, updated }} />);
+		const createdExact = screen.getByText(
+			exactFormat.format(new Date(created))
+		);
+		const updatedExact = screen.getByText(
+			exactFormat.format(new Date(updated))
+		);
+		fireEvent.click(screen.getByText("2 days ago"));
+		expect(createdExact).toBeVisible();
+		const updatedTrigger = screen.getByText("3 hours ago");
+		fireEvent.pointerDown(updatedTrigger);
+		fireEvent.click(updatedTrigger);
+		expect(createdExact).not.toBeVisible();
+		expect(updatedExact).toBeVisible();
+	});
+	it("refreshes relative labels as elapsed time changes and releases its timer on unmount", () => {
+		vi.useFakeTimers();
+		const { unmount } = render(
 			<TokenDates
-				token={{
-					...TOKEN,
-					created: "2026-11-01T08:15:30Z",
-					updated: "2026-11-02T20:45:50Z",
-				}}
+				token={{ ...TOKEN, created: new Date(TEST_NOW - 59_000).toISOString() }}
 			/>
 		);
-		expect(screen.getByText("Created")).toBeInTheDocument();
-		expect(screen.getByText("Updated")).toBeInTheDocument();
-		const dates = container.querySelectorAll("time");
-		expect(dates[0]).toHaveAttribute("datetime", "2026-11-01T08:15:30.000Z");
-		expect(dates[1]).toHaveAttribute("datetime", "2026-11-02T20:45:50.000Z");
-		for (const date of dates) {
-			expect(date.textContent).toContain("2026");
-			expect(date.textContent).toMatch(TIME);
-			expect(date.textContent).toMatch(TIMEZONE);
-		}
+		expect(screen.getByText("Just now")).toBeVisible();
+		act(() => {
+			vi.advanceTimersByTime(60_000);
+		});
+		expect(screen.getByText("1 minute ago")).toBeVisible();
+		unmount();
+		expect(vi.getTimerCount()).toBe(0);
 	});
 	it("omits missing and invalid timestamps without inventing dates", () => {
 		const { container, rerender } = render(<TokenDates token={TOKEN} />);
@@ -43,22 +111,25 @@ describe("token timestamps", () => {
 		);
 		expect(container).toBeEmptyDOMElement();
 		rerender(
-			<TokenDates token={{ ...TOKEN, created: "2026-11-01T08:15:30Z" }} />
+			<TokenDates
+				token={{ ...TOKEN, created: new Date(TEST_NOW).toISOString() }}
+			/>
 		);
 		expect(screen.getByText("Created")).toBeInTheDocument();
 		expect(screen.queryByText("Updated")).not.toBeInTheDocument();
 	});
-	it("hides null timestamps while the API rollout is in progress", () => {
-		const { container, rerender } = render(
-			<TokenDates token={{ ...TOKEN, created: null, updated: null }} />
-		);
-		expect(container).toBeEmptyDOMElement();
-		rerender(
+	it("shows a valid update even when creation time is absent", () => {
+		render(
 			<TokenDates
-				token={{ ...TOKEN, created: null, updated: "2026-11-02T20:45:50Z" }}
+				token={{
+					...TOKEN,
+					created: null,
+					updated: new Date(TEST_NOW - 120_000).toISOString(),
+				}}
 			/>
 		);
 		expect(screen.queryByText("Created")).not.toBeInTheDocument();
 		expect(screen.getByText("Updated")).toBeInTheDocument();
+		expect(screen.getByText("2 minutes ago")).toBeVisible();
 	});
 });
