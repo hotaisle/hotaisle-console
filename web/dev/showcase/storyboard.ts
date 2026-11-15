@@ -13,12 +13,14 @@ export interface Scene {
 	actions?: Action[];
 	approve?: boolean;
 	at?: number;
+	/** Navigation that must finish before this scene's captions and voice begin. */
+	enter?: Action[];
 	focus?: Target;
 	id: string;
 	narration: string;
 	seconds?: number;
 }
-export const SHOWCASE_SECONDS = 68.64;
+export const SHOWCASE_SECONDS = 70.56;
 export const SHOWCASE_GRID = { bpm: 125, offset: 0.06 };
 export const WELCOME = {
 	id: "welcome",
@@ -132,7 +134,6 @@ export const STORYBOARD: Scene[] = [
 	},
 	{
 		actions: [
-			{ kind: "click", selector: 'a[aria-label="Settings"]' },
 			{
 				kind: "click",
 				selector: ".settings label",
@@ -141,17 +142,21 @@ export const STORYBOARD: Scene[] = [
 			},
 		],
 		at: 51.84,
+		enter: [
+			{ kind: "click", selector: 'a[aria-label="Settings"]' },
+			{ kind: "wait", selector: ".settings label", text: "Light" },
+		],
 		id: "theme",
 		narration: "Make the console yours. Choose light or dark.",
 	},
 	{
 		actions: [{ kind: "select", selector: "#def-image", value: "vllm" }],
-		at: 57.6,
+		at: 59.52,
 		id: "defaults",
 		narration: "Set a default image for your next machine.",
 	},
 	{
-		at: 63.84,
+		at: 65.76,
 		id: "finish",
 		narration: "Hot Aisle Console, enterprise compute at your fingertips.",
 	},

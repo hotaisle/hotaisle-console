@@ -208,7 +208,7 @@ tracked excerpt and existing voice configuration. Current composition uses the
 provided Flavour Trip excerpt beginning at 33.04 seconds, 118 BPM, Bella's original
 voice pitch/speed, and at most 6 dB music ducking. Keep these choices unless the
 user changes them. The two-minute excerpt is retained in
-`tools/showcase/assets/flavour-trip-brunch-excerpt.m4a`, including roughly 37 seconds
+`tools/showcase/assets/flavour-trip-brunch-excerpt.m4a`, including roughly 35 seconds
 beyond the current edit; a clone includes it. The full recording stays untracked.
 Do not trim the excerpt again or silently substitute a different song or voice.
 
@@ -222,7 +222,7 @@ The composer creates the master, edited SRT/timing, and closing PNG/SVG. It uses
 the exact current narration and rejects stale clips. The source grid is 125 BPM;
 composition retimes footage, voice, and captions together to the music BPM. Do not
 feed the edited timing back into composition or add the intro/credits pause twice.
-The current finished story is about 83 seconds. The opening logo is frame one,
+The current finished story is about 85 seconds. The opening logo is frame one,
 the greeting accompanies URL typing after a short hold, and the final line appears
 with the matching closing card and website address.
 
