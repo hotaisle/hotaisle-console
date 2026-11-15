@@ -37,6 +37,84 @@ describe("showcase playback", () => {
 		expect(clicked).toHaveBeenCalledOnce();
 	});
 
+	it("keeps email approval pending until the narrated scene finishes", async () => {
+		vi.useFakeTimers();
+		const approve = vi.fn();
+		const scene = vi.fn();
+		const result = play(
+			[
+				{
+					approve: true,
+					at: 0,
+					id: "approve",
+					narration: "Approve the link in your browser.",
+				},
+				{ at: 4, id: "create-team", narration: "Create your team." },
+			],
+			{
+				approve,
+				point: vi.fn(),
+				scene,
+				signal: new AbortController().signal,
+				voice: () => ({ done: Promise.resolve(), duration: 2.3 }),
+			}
+		);
+		await vi.advanceTimersByTimeAsync(3999);
+		expect(approve).not.toHaveBeenCalled();
+		expect(scene).toHaveBeenCalledTimes(1);
+		await vi.advanceTimersByTimeAsync(1);
+		expect(approve).toHaveBeenCalledOnce();
+		await vi.advanceTimersToNextTimerAsync();
+		expect(scene).toHaveBeenCalledTimes(2);
+		expect(approve.mock.invocationCallOrder[0]).toBeLessThan(
+			scene.mock.invocationCallOrder[1] ?? 0
+		);
+		await vi.runAllTimersAsync();
+		await result;
+	});
+
+	it("enters the destination before showing its caption or speaking", async () => {
+		vi.useFakeTimers();
+		document.body.innerHTML =
+			'<div id="root"><button type="button">Settings</button><h1>History</h1></div>';
+		vi.spyOn(HTMLElement.prototype, "getClientRects").mockReturnValue([
+			new DOMRect(0, 0, 100, 40),
+		] as unknown as DOMRectList);
+		document.querySelector("button")?.addEventListener("click", () => {
+			const heading = document.querySelector("h1");
+			if (heading) {
+				heading.textContent = "Settings";
+			}
+		});
+		const visiblePages: string[] = [];
+		const capturePage = () => {
+			visiblePages.push(document.querySelector("h1")?.textContent ?? "");
+		};
+		const result = play(
+			[
+				{
+					at: 0,
+					enter: [{ kind: "click", selector: "button" }],
+					id: "theme",
+					narration: "Choose light or dark.",
+				},
+			],
+			{
+				approve: vi.fn(),
+				point: vi.fn(),
+				scene: capturePage,
+				signal: new AbortController().signal,
+				voice: () => {
+					capturePage();
+					return { done: Promise.resolve(), duration: 2 };
+				},
+			}
+		);
+		await vi.runAllTimersAsync();
+		await result;
+		expect(visiblePages).toEqual(["Settings", "Settings"]);
+	});
+
 	it("releases the pointer if playback is cancelled during a theme change", async () => {
 		vi.useFakeTimers();
 		document.body.innerHTML =

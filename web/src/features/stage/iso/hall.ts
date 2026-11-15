@@ -300,7 +300,7 @@ function fanCassette(sh: Shapes, x: number, y: number) {
 		.rect("hardware-led", x + MOD.w - 1.6, y + 0.35, 0.35, 0.3, 0.05)
 		.path(
 			"metal-detail",
-			`M${fmt(cx - 1.6)} ${fmt(y + 6.8)}Q${fmt(cx)} ${fmt(y + 5.9)} ${fmt(cx + 1.6)} ${fmt(y + 6.8)}M${fmt(x + 0.2)} ${fmt(y + 0.12)}h${fmt(MOD.w - 0.4)}`
+			`M${fmt(x + 0.2)} ${fmt(y + 0.12)}h${fmt(MOD.w - 0.4)}`
 		);
 }
 

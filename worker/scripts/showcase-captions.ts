@@ -43,15 +43,20 @@ export async function captionTrack(
 		const canvas = createCanvas(width, height);
 		const context = canvas.getContext("2d");
 		const heading = cue && captionHeading(cue.id);
-		if (cue && heading) {
+		if (cue) {
 			const motion = captionMotion(time, cue.start, cue.end);
-			const colors = captionColors(time, lightAt);
-			const layout = captionLayout(cue.id);
+			const colors = captionColors(
+				time,
+				heading ? lightAt : Number.POSITIVE_INFINITY
+			);
+			const layout = heading
+				? captionLayout(cue.id)
+				: { width: 0.8, x: 0.5, y: 0.84 };
 			const x = width * layout.x;
 			let y = height * layout.y + motion.offset * scale;
 			context.globalAlpha = motion.opacity;
 			context.textBaseline = "alphabetic";
-			context.textAlign = "left";
+			context.textAlign = heading ? "left" : "center";
 			const lines = (
 				text: string,
 				font: string,
@@ -74,9 +79,19 @@ export async function captionTrack(
 				context.fillText(line, x, y + lineHeight * 0.8);
 				y += lineHeight;
 			};
-			lines(heading, `600 ${52 * scale}px Arial`, colors.title, 58 * scale);
-			y += 16 * scale;
-			lines(cue.text, `${24 * scale}px Arial`, colors.body, 36 * scale);
+			if (heading) {
+				lines(heading, `600 ${52 * scale}px Arial`, colors.title, 58 * scale);
+				y += 16 * scale;
+			}
+			const body = heading
+				? { lineHeight: 36, size: 24 }
+				: { lineHeight: 40, size: 32 };
+			lines(
+				cue.text,
+				`${body.size * scale}px Arial`,
+				colors.body,
+				body.lineHeight * scale
+			);
 		}
 		const path = join(directory, `${name}.png`);
 		writeFileSync(path, canvas.toBuffer("image/png"));
@@ -85,9 +100,6 @@ export async function captionTrack(
 	const initial = render(undefined, 0, "caption-blank");
 	const entries = [{ path: initial, time: 0 }];
 	for (const [index, cue] of cues.entries()) {
-		if (!captionHeading(cue.id)) {
-			continue;
-		}
 		const times = new Set([cue.start, cue.start + CAPTION_ENTER_SECONDS]);
 		for (let frame = 0; frame <= 10; frame += 1) {
 			times.add(cue.start + (frame / 10) * CAPTION_ENTER_SECONDS);

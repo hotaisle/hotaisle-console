@@ -6,6 +6,7 @@ export type Theme = "system" | "light" | "dark";
 export type StatusMotion = "system" | "on" | "off";
 export interface Prefs {
 	image: Image;
+	motionVersion: 1;
 	notify: boolean; // desktop notification when a machine is ready
 	shortcuts: boolean;
 	sound: boolean; // soft key clicks and a chime when a machine is ready
@@ -16,18 +17,20 @@ export interface Prefs {
 const KEY = "hotaisle-ui:prefs";
 const DEFAULTS: Prefs = {
 	image: "standard",
+	motionVersion: 1,
 	notify: false,
 	shortcuts: true,
 	sound: true,
-	statusMotion: "system",
+	statusMotion: "on",
 	theme: "system",
 };
 
 function read(): Prefs {
 	try {
+		const stored = JSON.parse(localStorage.getItem(KEY) || "{}");
 		const saved = {
 			...DEFAULTS,
-			...JSON.parse(localStorage.getItem(KEY) || "{}"),
+			...stored,
 		} as Omit<Prefs, "statusMotion"> & {
 			customURL?: string;
 			statusMotion: StatusMotion | boolean;
@@ -37,12 +40,16 @@ function read(): Prefs {
 		if (saved.theme !== "light" && saved.theme !== "dark") {
 			saved.theme = "system";
 		}
-		// The old checkbox followed the system when enabled.
+		// Older automatic defaults now opt in; retain explicit Off and newer System choices.
 		if (saved.statusMotion === false) {
 			saved.statusMotion = "off";
-		} else if (saved.statusMotion !== "on" && saved.statusMotion !== "off") {
-			saved.statusMotion = "system";
+		} else if (
+			saved.statusMotion !== "off" &&
+			!(saved.statusMotion === "system" && stored.motionVersion === 1)
+		) {
+			saved.statusMotion = "on";
 		}
+		saved.motionVersion = 1;
 		return saved as Prefs;
 	} catch {
 		return DEFAULTS;
@@ -70,6 +77,7 @@ export const getPrefs = () => current;
 
 export function setPrefs(patch: Partial<Prefs>) {
 	current = { ...current, ...patch };
+	applyStatusMotion(current.statusMotion);
 	try {
 		const previous = JSON.parse(localStorage.getItem(KEY) || "{}");
 		const legacy =
@@ -108,7 +116,10 @@ export function applyTheme(t: Theme) {
 }
 
 export function applyStatusMotion(preference: StatusMotion) {
-	document.documentElement.dataset.statusMotion = preference;
+	const root = document.documentElement;
+	if (root.dataset.statusMotion !== preference) {
+		root.dataset.statusMotion = preference;
+	}
 }
 
 export const VLLM_URL =

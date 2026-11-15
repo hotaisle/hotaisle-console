@@ -57,7 +57,7 @@ export function CreatedToken({
 			/>
 			{error ? <FormError message={error} /> : null}
 			<div className="token-actions">
-				<button className="btn primary" onClick={copy} type="button">
+				<button className="btn" onClick={copy} type="button">
 					<ButtonLabels active={copied} alternate="Copied">
 						Copy token
 					</ButtonLabels>

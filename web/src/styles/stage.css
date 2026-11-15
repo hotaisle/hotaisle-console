@@ -618,6 +618,27 @@
 .fig [data-drawer-open="true"] .hardware-led {
 	fill: var(--bad);
 }
+@media (prefers-reduced-motion: no-preference) {
+	:root:not([data-status-motion="off"])
+		.fig
+		[data-drawer-open="true"]
+		.hardware-led {
+		animation: drawer-led 3s steps(1, end) infinite;
+	}
+}
+/* Explicit browser opt-in applies even when the device prefers reduced motion. */
+:root[data-status-motion="on"] .fig [data-drawer-open="true"] .hardware-led {
+	animation: drawer-led 3s steps(1, end) infinite;
+}
+@keyframes drawer-led {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.15;
+	}
+}
 .fig .board > .iso-top {
 	fill: color-mix(in srgb, var(--anatomy-shade-0) 70%, #0f2a1c);
 }
@@ -804,7 +825,7 @@
 	}
 }
 @media (prefers-reduced-motion: reduce) {
-	.ytag.starting .ytag-dot {
+	:root:not([data-status-motion="on"]) .ytag.starting .ytag-dot {
 		animation: none;
 	}
 }

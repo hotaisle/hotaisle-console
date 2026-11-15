@@ -11,8 +11,8 @@ approves a fixture email, creates a team with a simulated balance, previews Add 
 opens automatic rebill to show its balance trigger, top-up amount, and monthly cap,
 backs out without submitting either payment flow, launches two GPUs with vLLM cloud-init, releases the
 machine, reviews its history, and changes appearance and the default image.
-The browser walkthrough is about 69 seconds, beginning with sign-in and team creation.
-The finished composition is about 83 seconds with the current music: it adds a logo card and URL typing before sign-in,
+The browser walkthrough is about 71 seconds, beginning with sign-in and team creation.
+The finished composition is about 85 seconds with the current music: it adds a logo card and URL typing before sign-in,
 two extra seconds on Add credits, and a closing card with a reading pause.
 Cloud-init startup is compressed to three seconds in this isolated showcase fixture.
 No real email, payment, credential, or machine operation is used. Unknown requests
@@ -68,6 +68,11 @@ After completion, save the WebM video, SRT captions, and JSON timing. Stop cance
 pending actions and releases capture/audio resources. A missing or disabled control
 fails with a visible error rather than silently skipping an action. Use Reset
 before each new take. A partial recording can be saved after interruption.
+Release playback selects the visible “End” label rather than its styling class,
+so shared button styling changes do not break the walkthrough.
+Email approval waits until its narration and scene have finished, keeping the
+“Check your email” screen visible before transitioning to team creation.
+Settings navigation finishes before its theme caption and narration begin.
 
 Convert a recording to a broadly playable 1080p MP4:
 
@@ -95,7 +100,7 @@ and restore any motion emulation together with the original window settings.
 This composition uses frame timestamps to preserve pacing and adds the generated
 voice clips at each scene's actual start. It renders gently fading scene headings
 and the exact spoken text, with caption colors following the recorded theme click.
-Opening and closing artwork carry their own branding without a duplicate caption.
+Opening and closing artwork display the spoken subtitles below their branding.
 Both composition and
 browser playback reject stale voice clips after their text changes; regenerate
 them instead of exporting mismatched subtitles. Capture only this preview tab, and keep
@@ -148,7 +153,7 @@ capture timing as composition input, so the added pauses are applied only once.
 The current music excerpt is tracked at
 [`tools/showcase/assets/flavour-trip-brunch-excerpt.m4a`](../tools/showcase/assets/flavour-trip-brunch-excerpt.m4a).
 It contains two minutes starting at 33.04 seconds of the supplied recording, at
-118 BPM. The current walkthrough uses about 83 seconds, leaving roughly 37 seconds
+118 BPM. The current walkthrough uses about 85 seconds, leaving roughly 35 seconds
 for future extensions. See the [source credit and edit details](../tools/showcase/assets/README.md).
 
 Analyze the excerpt before building the preview:

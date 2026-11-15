@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { FormError } from "../../components/forms/form-error";
+import { ButtonLabels } from "../../components/ui/button-labels";
 import { APIError, api, type Team } from "../../lib/api";
 
 export function TeamInvitation({
@@ -28,13 +29,16 @@ export function TeamInvitation({
 					<span className="mono muted">{team.handle}</span>
 				</div>
 				<button
+					aria-busy={invitation.isPending}
 					aria-label={`Accept invitation to ${team.name}`}
 					className="btn"
 					disabled={invitation.isPending}
 					onClick={accept}
 					type="button"
 				>
-					{invitation.isPending ? "Joining…" : "Accept invitation"}
+					<ButtonLabels active={invitation.isPending} alternate="Joining…">
+						Accept invitation
+					</ButtonLabels>
 				</button>
 			</div>
 			<FormError message={message} />

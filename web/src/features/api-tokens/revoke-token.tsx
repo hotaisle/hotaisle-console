@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { FormError } from "../../components/forms/form-error";
+import { ButtonLabels } from "../../components/ui/button-labels";
 import { Modal } from "../../components/ui/modal";
 import { type APIToken, api } from "../../lib/api";
 
@@ -54,12 +55,15 @@ export function RevokeToken({
 					Keep token
 				</button>
 				<button
+					aria-busy={revoke.isPending}
 					className="btn destructive"
 					disabled={revoke.isPending}
 					onClick={confirm}
 					type="button"
 				>
-					{revoke.isPending ? "Revoking…" : "Revoke token"}
+					<ButtonLabels active={revoke.isPending} alternate="Revoking…">
+						Revoke token
+					</ButtonLabels>
 				</button>
 			</form>
 		</Modal>

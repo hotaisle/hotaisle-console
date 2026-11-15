@@ -14,9 +14,9 @@ const THEMES: readonly SegmentOption<Theme>[] = [
 	{ label: "Dark", value: "dark" },
 ];
 const STATUS_MOTION: readonly SegmentOption<StatusMotion>[] = [
-	{ label: "System", value: "system" },
 	{ label: "On", value: "on" },
 	{ label: "Off", value: "off" },
+	{ label: "System", value: "system" },
 ];
 async function enableNotifications(enabled: boolean) {
 	if (!enabled) {
@@ -55,17 +55,17 @@ export function AppearanceSettings() {
 				/>
 			</div>
 			<div className="field">
-				<span className="field-l">Status animation</span>
+				<span className="field-l">Interface animation</span>
 				<SegmentedControl
-					label="Status animation"
+					label="Interface animation"
 					onChange={motion}
 					options={STATUS_MOTION}
 					value={prefs.statusMotion}
 				/>
 			</div>
 			<p className="hint">
-				System follows your reduced-motion preference. On enables status
-				animations even when reduced motion is enabled.
+				On is the default for this browser. System follows your device's motion
+				preference. Fan rotation has its own pause button.
 			</p>
 			<PreferenceToggle
 				checked={prefs.sound}

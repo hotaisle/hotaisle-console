@@ -329,6 +329,9 @@
 		animation: token-skeleton-pulse 1.5s ease-in-out infinite alternate;
 	}
 }
+:root[data-status-motion="on"] .token-skeleton-line {
+	animation: token-skeleton-pulse 1.5s ease-in-out infinite alternate;
+}
 @keyframes token-skeleton-pulse {
 	from {
 		opacity: 0.45;

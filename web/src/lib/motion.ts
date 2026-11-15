@@ -1,11 +1,23 @@
 import { flushSync } from "react-dom";
+import { getPrefs } from "./prefs";
+
+export function motionEnabled() {
+	const preference = getPrefs().statusMotion;
+	return (
+		preference === "on" ||
+		(preference === "system" &&
+			!window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+	);
+}
 
 interface VT {
 	finished: Promise<void>;
 	ready: Promise<void>;
 	updateCallbackDone: Promise<void>;
 }
-type VTDocument = Document & { startViewTransition?: (cb: () => void) => VT };
+type VTDocument = Omit<Document, "startViewTransition"> & {
+	startViewTransition?: (cb: () => void) => VT;
+};
 
 /**
  * Run a state change as a view transition: the browser animates every element that has a
@@ -13,10 +25,7 @@ type VTDocument = Document & { startViewTransition?: (cb: () => void) => VT };
  */
 export function transition(change: () => void) {
 	const d = document as VTDocument;
-	if (
-		!d.startViewTransition ||
-		window.matchMedia("(prefers-reduced-motion: reduce)").matches
-	) {
+	if (!(d.startViewTransition && motionEnabled())) {
 		change();
 		return;
 	}

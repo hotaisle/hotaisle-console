@@ -86,19 +86,10 @@ export function ConsoleHeader({
 			{canBuy ? (
 				<Link
 					aria-current={view === "credits" ? "page" : undefined}
-					className="btn credits-cta"
+					className="btn primary credits-cta"
 					search={search}
 					to={viewPath(team.handle, "credits")}
 				>
-					<svg aria-hidden="true" height="16" viewBox="0 0 16 16" width="16">
-						<path
-							d="M8 3v10M3 8h10"
-							fill="none"
-							stroke="currentColor"
-							strokeLinecap="round"
-							strokeWidth="2"
-						/>
-					</svg>
 					Add credits
 				</Link>
 			) : null}

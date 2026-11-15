@@ -20,7 +20,7 @@ export function KeyRow({
 			<span className="muted">{sshKey.type.replace("ssh-", "")}</span>
 			<button
 				aria-label={`Remove ${keyLabel(sshKey)}`}
-				className="btn-text key-x"
+				className="btn-text danger key-x"
 				disabled={busy}
 				onClick={confirm}
 				type="button"

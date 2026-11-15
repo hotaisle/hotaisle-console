@@ -126,20 +126,19 @@
 		overflow: visible;
 	}
 }
+:root[data-status-motion="off"] *,
+:root[data-status-motion="off"] *::before,
+:root[data-status-motion="off"] *::after {
+	transition-property:
+		color, background-color, border-color, fill, stroke !important;
+	animation: none !important;
+}
 @media (prefers-reduced-motion: reduce) {
-	* {
-		transition-duration: 0.01ms !important;
-		animation-duration: 0.01ms !important;
-		animation-iteration-count: 1 !important;
-	}
-	*::before {
-		transition-duration: 0.01ms !important;
-		animation-duration: 0.01ms !important;
-		animation-iteration-count: 1 !important;
-	}
-	*::after {
-		transition-duration: 0.01ms !important;
-		animation-duration: 0.01ms !important;
-		animation-iteration-count: 1 !important;
+	:root:not([data-status-motion="on"]) *,
+	:root:not([data-status-motion="on"]) *::before,
+	:root:not([data-status-motion="on"]) *::after {
+		transition-property:
+			color, background-color, border-color, fill, stroke !important;
+		animation: none !important;
 	}
 }

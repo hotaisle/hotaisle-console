@@ -179,6 +179,17 @@ export async function play(scenes: Scene[], options: Playback): Promise<Cue[]> {
 			);
 		}
 		options.signal.throwIfAborted();
+		await (scene.enter ?? []).reduce(async (previousEntry, action) => {
+			await previousEntry;
+			await act(
+				action,
+				options.signal,
+				options.point,
+				beat,
+				undefined,
+				options.press
+			);
+		}, Promise.resolve());
 		const start = (performance.now() - started) / 1000;
 		const framing = options.scene(scene, index);
 		const audio = options.voice(scene.id, scene.narration);
@@ -208,11 +219,6 @@ export async function play(scenes: Scene[], options: Playback): Promise<Cue[]> {
 				options.press
 			);
 		}, Promise.resolve());
-		if (scene.approve) {
-			await pause(250, options.signal);
-			await beat();
-			options.approve();
-		}
 		const nextAt = scenes[index + 1]?.at;
 		const deadline =
 			scene.at === undefined
@@ -239,6 +245,9 @@ export async function play(scenes: Scene[], options: Playback): Promise<Cue[]> {
 			options.signal
 		);
 		await audio.done;
+		if (scene.approve) {
+			options.approve();
+		}
 		timeline.push({
 			end: (performance.now() - started) / 1000,
 			events,
