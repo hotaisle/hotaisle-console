@@ -68,6 +68,8 @@ After completion, save the WebM video, SRT captions, and JSON timing. Stop cance
 pending actions and releases capture/audio resources. A missing or disabled control
 fails with a visible error rather than silently skipping an action. Use Reset
 before each new take. A partial recording can be saved after interruption.
+Release playback selects the visible “End” label rather than its styling class,
+so shared button styling changes do not break the walkthrough.
 
 Convert a recording to a broadly playable 1080p MP4:
 

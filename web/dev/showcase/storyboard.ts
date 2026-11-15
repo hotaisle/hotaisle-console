@@ -114,7 +114,7 @@ export const STORYBOARD: Scene[] = [
 	},
 	{
 		actions: [
-			{ kind: "click", selector: ".card-foot button.end" },
+			{ kind: "click", selector: ".card-foot button", text: "End" },
 			{ kind: "hold", selector: ".sheet .hold" },
 		],
 		at: 44.16,
