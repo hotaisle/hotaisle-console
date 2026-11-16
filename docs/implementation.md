@@ -227,6 +227,13 @@ There is no automatic shutdown timer: the upstream API cannot schedule an end, a
 while the machine continues billing. Add-credit checkout uses Hot Aisle's Stripe checkout link; this app does
 not handle card details or claim a payment succeeded before confirmation.
 
+The Add credits page identifies the $20 minimum as a credit purchase, not a compute reservation.
+It warns that payment does not guarantee an immediate launch. When availability is confirmed empty
+and the team has no provisioned machines, a prominent notice explains that launching must wait
+for capacity. Loading or failed availability requests are not presented as confirmed shortages.
+The local **No capacity** preview starts with no provisioned machines and zero available quantities
+to exercise this warning without real payments.
+
 ## Repository workflow
 
 Work on a descriptive branch and open a PR into `main`. PRs authored by `jon-hotaisle` or `clint-hotaisle`
