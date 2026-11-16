@@ -136,7 +136,7 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 	let sub: string | undefined;
 	const action: React.ReactNode = null;
 	const launchSubtitle = sizes.some((size) => size.Quantity > 0)
-		? "Pick a size, hold the button, and SSH in a minute later."
+		? "Availability refreshes automatically every 10 seconds"
 		: undefined;
 	if (view === "home" && rootIsOrder) {
 		sub = launchSubtitle;
@@ -201,6 +201,14 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 				)}
 				onDone={creditsDone}
 				team={h}
+				waitingForCapacity={
+					offers.data !== undefined &&
+					!offers.error &&
+					!sizes.some((size) => size.Quantity > 0) &&
+					vms.data !== undefined &&
+					!vms.error &&
+					list.length === 0
+				}
 			/>
 		);
 	} else if (view === "run") {

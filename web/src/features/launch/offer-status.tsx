@@ -27,7 +27,7 @@ export function OfferStatus({
 				<p className="small muted availability-state" role="status">
 					{loading
 						? "Loading available sizes and prices…"
-						: "Availability refreshes automatically every 10 seconds"}
+						: "Pick a size, hold the button, and SSH in a minute later."}
 				</p>
 			)}
 			<FormError

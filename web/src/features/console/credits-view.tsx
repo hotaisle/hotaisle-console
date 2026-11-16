@@ -15,10 +15,21 @@ const amounts = (state: { values: { amount: number; custom: string } }) =>
 export function CreditsView(props: {
 	team: string;
 	gpuHour: number;
+	waitingForCapacity: boolean;
 	onDone: () => void;
 }) {
 	return (
 		<div className="credits-view">
+			{!!props.waitingForCapacity && (
+				<p className="availability-empty" role="status">
+					<strong>No compute is available right now.</strong>
+					<span>
+						Your team has no provisioned machines. If you add credits now,
+						you'll need to wait for availability before you can launch. Paying
+						does not reserve a machine.
+					</span>
+				</p>
+			)}
 			<section aria-label="One-time credits">
 				<OneTimeCredits {...props} />
 			</section>
@@ -134,6 +145,7 @@ function OneTimeCredits({
 							<span className="dollar">
 								<span aria-hidden="true">$</span>
 								<input
+									aria-describedby={`${group}-minimum`}
 									id={`${group}-custom`}
 									inputMode="decimal"
 									max={999_999}
@@ -147,9 +159,15 @@ function OneTimeCredits({
 								/>
 							</span>
 						</label>
+						<p className="small" id={`${group}-minimum`}>
+							<strong>
+								$20 minimum credit purchase—not a compute reservation.
+							</strong>{" "}
+							Adding credits does not guarantee an immediate launch. You may
+							need to wait for a machine to become available.
+						</p>
 						<p className="muted small">
-							The minimum is $20. You pay on Stripe's page; this app never sees
-							your card.
+							You pay on Stripe's page; this app never sees your card.
 						</p>
 						{!!checkout.isError && (
 							<FormError

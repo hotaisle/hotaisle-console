@@ -1,5 +1,6 @@
 export const SCENARIOS = [
 	{ id: "empty", label: "Empty" },
+	{ id: "no-capacity", label: "No capacity" },
 	{ id: "assigned", label: "Assigned" },
 	{ id: "setting-up", label: "Cloud-init" },
 	{ id: "booting", label: "Booting" },

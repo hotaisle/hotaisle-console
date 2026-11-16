@@ -11,11 +11,38 @@ beforeEach(() => {
 	vi.spyOn(window, "open").mockReturnValue(null);
 });
 describe("credits checkout", () => {
+	it("discloses the wait before checkout and updates when capacity changes", async () => {
+		const props = { gpuHour: 200, onDone: vi.fn(), team: "lab" };
+		const { rerender } = renderWithQuery(
+			<CreditsView {...props} waitingForCapacity />
+		);
+		expect(screen.getByRole("status")).toHaveTextContent(
+			"you'll need to wait for availability before you can launch"
+		);
+		const user = userEvent.setup();
+		const custom = screen.getByRole("spinbutton", { name: "Other" });
+		await user.type(custom, "20");
+		expect(custom).toHaveAccessibleDescription(
+			expect.stringContaining("not a compute reservation")
+		);
+		rerender(<CreditsView {...props} waitingForCapacity={false} />);
+		expect(screen.queryByRole("status")).not.toBeInTheDocument();
+		expect(custom).toHaveAccessibleDescription(
+			expect.stringContaining("does not guarantee an immediate launch")
+		);
+	});
 	it("does not create checkout below the minimum amount", async () => {
 		const user = userEvent.setup();
 		const buy = vi.spyOn(api, "buyCredits");
 		const done = vi.fn();
-		renderWithQuery(<CreditsView gpuHour={200} onDone={done} team="lab" />);
+		renderWithQuery(
+			<CreditsView
+				gpuHour={200}
+				onDone={done}
+				team="lab"
+				waitingForCapacity={false}
+			/>
+		);
 		await user.type(screen.getByRole("spinbutton", { name: "Other" }), "19");
 		await user.click(screen.getByRole("button", { name: CHECKOUT_PATTERN }));
 		expect(buy).not.toHaveBeenCalled();
@@ -39,7 +66,14 @@ describe("credits checkout", () => {
 			expires_at: "2030-01-01",
 		});
 		const done = vi.fn();
-		renderWithQuery(<CreditsView gpuHour={200} onDone={done} team="lab" />);
+		renderWithQuery(
+			<CreditsView
+				gpuHour={200}
+				onDone={done}
+				team="lab"
+				waitingForCapacity={false}
+			/>
+		);
 		await user.click(screen.getByRole("radio", { name: AMOUNT_PATTERN }));
 		await user.click(screen.getByRole("button", { name: CHECKOUT_PATTERN }));
 		await waitFor(() => expect(buy).toHaveBeenCalledWith("lab", 25_000));
@@ -60,7 +94,14 @@ describe("credits checkout", () => {
 			checkout_url: "https://checkout.stripe.com/test",
 			expires_at: "2030-01-01",
 		});
-		renderWithQuery(<CreditsView gpuHour={200} onDone={vi.fn()} team="lab" />);
+		renderWithQuery(
+			<CreditsView
+				gpuHour={200}
+				onDone={vi.fn()}
+				team="lab"
+				waitingForCapacity={false}
+			/>
+		);
 		await userEvent
 			.setup()
 			.click(screen.getByRole("button", { name: CHECKOUT_PATTERN }));
@@ -80,7 +121,14 @@ describe("credits checkout", () => {
 			checkout_url: "https://checkout.stripe.com.evil.test/pay",
 			expires_at: "2030-01-01",
 		});
-		renderWithQuery(<CreditsView gpuHour={200} onDone={vi.fn()} team="lab" />);
+		renderWithQuery(
+			<CreditsView
+				gpuHour={200}
+				onDone={vi.fn()}
+				team="lab"
+				waitingForCapacity={false}
+			/>
+		);
 		await userEvent
 			.setup()
 			.click(screen.getByRole("button", { name: CHECKOUT_PATTERN }));
@@ -95,7 +143,14 @@ describe("credits checkout", () => {
 			new Error("Checkout unavailable")
 		);
 		const done = vi.fn();
-		renderWithQuery(<CreditsView gpuHour={200} onDone={done} team="lab" />);
+		renderWithQuery(
+			<CreditsView
+				gpuHour={200}
+				onDone={done}
+				team="lab"
+				waitingForCapacity={false}
+			/>
+		);
 		await userEvent
 			.setup()
 			.click(screen.getByRole("button", { name: CHECKOUT_PATTERN }));

@@ -260,7 +260,12 @@ export class PreviewAPI {
 			return this.metal ? this.metal.request(request, url, parts) : json([]);
 		}
 		if (method === "GET" && parts[1] === "available") {
-			return json(available(this.machines.values()));
+			const offers = available(this.machines.values());
+			return json(
+				this.scenario === "no-capacity"
+					? offers.map((offer) => ({ ...offer, Quantity: 0 }))
+					: offers
+			);
 		}
 		if (parts[0] !== "virtual_machines") {
 			return fail(
