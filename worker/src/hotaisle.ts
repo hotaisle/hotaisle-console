@@ -28,19 +28,15 @@ export interface Env {
 	VERSION?: string;
 }
 
-/**
- * What a session calls the API with. An API key goes in `Authorization: Token <key>`; a session from email sign-in
- * goes in `X-Session-Key: <token>`.
- */
+/** Both API keys and email access tokens use one canonical bearer header. */
 export interface Credential {
 	kind: "key" | "email";
 	token: string;
 }
 
-export const authHeaders = (c: Credential): Record<string, string> =>
-	c.kind === "email"
-		? { "X-Session-Key": c.token }
-		: { Authorization: `Token ${c.token}` };
+export const authHeaders = (c: Credential): Record<string, string> => ({
+	Authorization: `Bearer ${c.token}`,
+});
 
 /** Sends a request to the Hot Aisle API (or, in tests and local development, its stand-in). */
 export const send = (env: Env, url: string, init: RequestInit) =>
@@ -106,16 +102,17 @@ export async function whoIs(
 	| { ok: false; status: number; message: string }
 > {
 	let r: Response;
+	let body: string;
 	try {
 		r = await upstream(env, "GET", "/user/", { cred });
-	} catch (e) {
+		body = await r.text();
+	} catch {
 		return {
-			message: `Could not reach the Hot Aisle API: ${(e as Error).message}`,
+			message: "Could not reach the Hot Aisle API.",
 			ok: false,
 			status: 502,
 		};
 	}
-	const body = await r.text();
 	if (r.status === 401 || r.status === 403) {
 		return {
 			message:
@@ -128,13 +125,21 @@ export async function whoIs(
 	}
 	if (!r.ok) {
 		return {
-			message: `The API answered ${r.status}: ${body.trim().slice(0, 300)}`,
+			message: `The API answered ${r.status}.`,
 			ok: false,
 			status: 502,
 		};
 	}
 	try {
-		return { body, ok: true, who: JSON.parse(body) as Who };
+		const who = JSON.parse(body) as Who | null;
+		if (
+			!who?.user ||
+			typeof who.user !== "object" ||
+			!Array.isArray(who.teams)
+		) {
+			throw new Error("Invalid account response");
+		}
+		return { body, ok: true, who };
 	} catch {
 		return {
 			message: "The API answered with something other than JSON.",
@@ -148,8 +153,9 @@ export async function whoIs(
 //
 //   POST /user/email/login/     {email}        -> 200 {email, claim_ticket, expires_at}; Hot Aisle emails an approval link
 //   POST /user/email/wait/      {claim_ticket} -> waits up to 20 s: 202 still pending, 204 approved
-//   POST /user/email/complete/  {claim_ticket} -> 204, the session in X-New-Session-Key and X-Session-Key-Expires;
-//                                                 401 if unapproved, expired or already used
+//   POST /user/email/complete/  {claim_ticket} -> 200 TokenPair; 401 if unavailable
+//   POST /auth/token/          form grant_type=refresh_token&refresh_token=... -> 200 TokenPair
+//   POST /auth/logout/         {refresh_token} -> 204 (including an authentic spent verifier)
 //
 // The claim ticket is private to this Worker (it lives in the encrypted session); the emailed link only approves.
 
@@ -170,8 +176,10 @@ export async function startEmailLogin(
 	| { ok: false; status: number; message: string }
 > {
 	let r: Response;
+	let text: string;
 	try {
 		r = await upstream(env, "POST", EMAIL_LOGIN_PATH, { body: { email } });
+		text = await r.text();
 	} catch (e) {
 		return {
 			message:
@@ -182,7 +190,6 @@ export async function startEmailLogin(
 			status: e instanceof EmailLoginSigningError ? 503 : 502,
 		};
 	}
-	const text = await r.text();
 	if (!r.ok) {
 		let status = 400;
 		if (r.status === 429) {
@@ -191,7 +198,7 @@ export async function startEmailLogin(
 			status = 502;
 		}
 		return {
-			message: messageOf(text) || `The API answered ${r.status}`,
+			message: `Could not start email sign-in (${r.status}). Try again shortly.`,
 			ok: false,
 			status,
 		};
@@ -221,12 +228,9 @@ export async function waitEmailLogin(
 		r = await upstream(env, "POST", EMAIL_WAIT, {
 			body: { claim_ticket: ticket },
 		});
-	} catch (e) {
-		return {
-			failed: `Could not reach the Hot Aisle API: ${(e as Error).message}`,
-		};
+	} catch {
+		return { failed: "Could not reach the Hot Aisle API." };
 	}
-	const text = await r.text();
 	if (r.status === 204) {
 		return "approved";
 	}
@@ -237,48 +241,138 @@ export async function waitEmailLogin(
 		failed:
 			r.status === 401
 				? "That sign-in link has expired. Send a new one."
-				: messageOf(text) || `The API answered ${r.status}`,
+				: `Could not check email approval (${r.status}). Send a new link.`,
 	};
 }
 
-/** Exchanges an approved claim ticket for a session token. */
+export interface TokenPair {
+	accessExpiresAt: number;
+	accessToken: string;
+	refreshExpiresAt: number;
+	refreshToken: string;
+	sessionExpiresAt: number;
+	sessionHandle: string;
+}
+
+const ACCESS_TOKEN = /^ha_at_[0-9a-f]{24}\.[0-9a-f]{64}$/u;
+const REFRESH_TOKEN = /^ha_rt_[0-9a-f]{24}\.[0-9a-f]{64}$/u;
+const HANDLE = /^[0-9a-f]{24}$/u;
+
+export function isTokenPair(value: unknown): value is TokenPair {
+	if (!value || typeof value !== "object") {
+		return false;
+	}
+	const p = value as TokenPair;
+	return (
+		typeof p.accessToken === "string" &&
+		p.accessToken.length <= 4096 &&
+		ACCESS_TOKEN.test(p.accessToken) &&
+		typeof p.refreshToken === "string" &&
+		p.refreshToken.length <= 4096 &&
+		REFRESH_TOKEN.test(p.refreshToken) &&
+		typeof p.sessionHandle === "string" &&
+		HANDLE.test(p.sessionHandle) &&
+		Number.isFinite(p.accessExpiresAt) &&
+		Number.isFinite(p.refreshExpiresAt) &&
+		Number.isFinite(p.sessionExpiresAt) &&
+		p.accessExpiresAt <= p.refreshExpiresAt &&
+		p.refreshExpiresAt <= p.sessionExpiresAt
+	);
+}
+
+function parseTokenPair(
+	value: unknown,
+	previous?: TokenPair
+): TokenPair | undefined {
+	if (!value || typeof value !== "object") {
+		return undefined;
+	}
+	const wire = value as Record<string, unknown>;
+	if (wire.token_type !== "Bearer") {
+		return undefined;
+	}
+	const deadline = (v: unknown) =>
+		typeof v === "string" ? Date.parse(v) : Number.NaN;
+	const pair = {
+		accessExpiresAt: deadline(wire.access_token_expires_at),
+		accessToken: wire.access_token,
+		refreshExpiresAt: deadline(wire.refresh_token_expires_at),
+		refreshToken: wire.refresh_token,
+		sessionExpiresAt: deadline(wire.session_expires_at),
+		sessionHandle: wire.session_handle,
+	};
+	if (
+		!isTokenPair(pair) ||
+		pair.accessExpiresAt <= Date.now() ||
+		pair.refreshExpiresAt <= Date.now() ||
+		(previous &&
+			(pair.sessionHandle !== previous.sessionHandle ||
+				pair.sessionExpiresAt !== previous.sessionExpiresAt ||
+				pair.accessToken === previous.accessToken ||
+				pair.refreshToken === previous.refreshToken))
+	) {
+		return undefined;
+	}
+	return pair;
+}
+
+/** A single-use exchange is never retried, even if its response is lost or malformed. */
 export async function completeEmailLogin(
 	env: Env,
 	ticket: string
-): Promise<{ token: string; expires?: number } | { failed: string }> {
-	let r: Response;
+): Promise<TokenPair | { failed: string }> {
 	try {
-		r = await upstream(env, "POST", EMAIL_COMPLETE, {
+		const response = await upstream(env, "POST", EMAIL_COMPLETE, {
 			body: { claim_ticket: ticket },
 		});
-	} catch (e) {
-		return {
-			failed: `Could not reach the Hot Aisle API: ${(e as Error).message}`,
-		};
+		const pair =
+			response.status === 200
+				? parseTokenPair(await response.json())
+				: undefined;
+		return (
+			pair ?? { failed: "Could not finish email sign-in. Send a new link." }
+		);
+	} catch {
+		return { failed: "Could not finish email sign-in. Send a new link." };
 	}
-	await r.text();
-	const token = r.headers.get("X-New-Session-Key");
-	if (r.status === 401) {
-		return {
-			failed:
-				"That sign-in was not approved, has expired, or was already used. Send a new link.",
-		};
-	}
-	if (!(r.ok && token)) {
-		return {
-			failed: `Unexpected answer from the API when finishing email sign-in (${r.status}).`,
-		};
-	}
-	const expires = Date.parse(r.headers.get("X-Session-Key-Expires") ?? "");
-	return { expires: Number.isFinite(expires) ? expires : undefined, token };
 }
 
-function messageOf(text: string): string {
-	const t = text.trim();
+export async function refreshEmailSession(
+	env: Env,
+	previous: TokenPair
+): Promise<TokenPair | undefined> {
 	try {
-		const j = JSON.parse(t);
-		return String(j.message || j.error || j.detail || "").slice(0, 300);
+		const response = await send(env, `${apiBase(env)}/auth/token/`, {
+			body: new URLSearchParams({
+				grant_type: "refresh_token",
+				refresh_token: previous.refreshToken,
+			}).toString(),
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/x-www-form-urlencoded",
+				"User-Agent": UA(env),
+			},
+			method: "POST",
+			redirect: "manual",
+		});
+		return response.status === 200
+			? parseTokenPair(await response.json(), previous)
+			: undefined;
 	} catch {
-		return t.slice(0, 300);
+		return undefined;
+	}
+}
+
+export async function logoutEmailSession(
+	env: Env,
+	refreshToken: string
+): Promise<boolean> {
+	try {
+		const response = await upstream(env, "POST", "/auth/logout/", {
+			body: { refresh_token: refreshToken },
+		});
+		return response.status === 204;
+	} catch {
+		return false;
 	}
 }

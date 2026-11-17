@@ -10,6 +10,13 @@ import {
 	machineAddress,
 } from "../../../shared/machine-identity";
 import type { AutoRebillSettings, AutoRebillStatus } from "./auto-rebill";
+import {
+	EmailSessionError,
+	type EmailSessionReply,
+	emailSessionEnded,
+	emailSessionRequest,
+	endEmailSession,
+} from "./email-session";
 import { type HistoryKey, historyVault } from "./history-vault";
 import { keyVault } from "./key-vault";
 
@@ -17,7 +24,10 @@ export type { GPU, Offer, Specs } from "../../../shared/availability";
 
 // Email sessions use the Worker cookie; API keys are encrypted locally and forwarded per request.
 
-const TOKEN_PREFIX_PATTERN = /^Token\s+/iu;
+const TOKEN_PREFIX_PATTERN = /^(?:Bearer|Token)\s+/iu;
+const API_KEY_PREFIX_PATTERN = /^ha_ak_/u;
+const apiKeyCredential = (key: string) =>
+	key.trim().replace(TOKEN_PREFIX_PATTERN, "");
 // Shapes follow https://admin.hotaisle.app/api/docs/swagger.json
 
 /** Where a bare-metal server is in its install, as the API reports it. */
@@ -157,18 +167,48 @@ async function call<T>(
 	body?: unknown,
 	requestKey = keyVault.token()
 ): Promise<T> {
-	const res = await fetch(path, {
+	const options: RequestInit = {
 		body: body === undefined ? undefined : JSON.stringify(body),
 		credentials: "same-origin",
 		headers: {
 			Accept: "application/json",
-			...(requestKey ? { Authorization: `Token ${requestKey}` } : {}),
+			...(requestKey
+				? { Authorization: `Bearer ${apiKeyCredential(requestKey)}` }
+				: {}),
 			"X-Requested-With": "hotaisle-console",
 			...(body === undefined ? {} : { "Content-Type": "application/json" }),
 		},
 		method,
-	});
-	const text = await res.text();
+	};
+	const request = async () => {
+		const response = await fetch(path, options);
+		return { response, text: await response.text() };
+	};
+	const cookieExchange =
+		path === "/auth/email/start" ||
+		path === "/auth/email/wait" ||
+		path === "/auth/signout" ||
+		(!requestKey &&
+			(path.startsWith("/api/") ||
+				path === "/auth/history-key" ||
+				path === "/auth/status"));
+	let reply: EmailSessionReply;
+	try {
+		reply = cookieExchange
+			? await emailSessionRequest(path, request)
+			: await request();
+	} catch (error) {
+		if (cookieExchange) {
+			historyVault.lock();
+		}
+		if (error instanceof EmailSessionError) {
+			const failure = new APIError(401, error.message);
+			failure.cause = error;
+			throw failure;
+		}
+		throw error;
+	}
+	const { response: res, text } = reply;
 	if (!res.ok) {
 		if (res.status === 401) {
 			historyVault.lock();
@@ -233,7 +273,14 @@ const POWER: Record<PowerAction, string> = {
 export const api = {
 	acceptTeamInvitation: (team: string) =>
 		call<Team>("POST", `${t(team)}/accept-invitation/`),
-	activeTokenPrefix: () => keyVault.token()?.split(".")[0],
+	activeTokenPrefix: () => {
+		const token = keyVault.token();
+		return token === undefined
+			? undefined
+			: apiKeyCredential(token)
+					.replace(API_KEY_PREFIX_PATTERN, "")
+					.split(".")[0];
+	},
 	addKey: (authorized_key: string) =>
 		call<SSHKey>("POST", "/api/user/ssh_keys/", { authorized_key }),
 	apiTokens: () => call<APIToken[]>("GET", "/api/user/api_keys/"),
@@ -348,7 +395,7 @@ export const api = {
 		),
 	/** API keys are checked per request and saved only as browser-local ciphertext. */
 	signInWithKey: async (key: string, passphrase: string) => {
-		const token = key.trim().replace(TOKEN_PREFIX_PATTERN, "");
+		const token = apiKeyCredential(key);
 		const account = await call<{ user: User; teams: Team[] }>(
 			"GET",
 			"/auth/key",
@@ -363,6 +410,7 @@ export const api = {
 		historyVault.lock();
 		const localKey = keyVault.token() !== undefined;
 		keyVault.lock();
+		endEmailSession();
 		if (localKey) {
 			return { ok: true };
 		}
@@ -379,7 +427,11 @@ export const api = {
 				signed_in: true,
 			};
 		}
-		return { ...status, key_stored: stored };
+		return {
+			...status,
+			key_stored: stored,
+			signed_in: status.signed_in && !emailSessionEnded(),
+		};
 	},
 	team: (handle: string) => call<Team>("GET", `${t(handle)}/`),
 	teams: () => call<Team[]>("GET", "/api/teams/"),

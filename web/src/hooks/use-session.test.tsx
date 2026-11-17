@@ -70,8 +70,10 @@ describe("history session lock signals", () => {
 	});
 	it("locks decrypted history immediately even if the signout request fails", async () => {
 		vi.spyOn(api, "signOut").mockRejectedValue(new Error("Offline"));
-		const { Wrapper } = queryWrapper();
+		const { Wrapper, client } = queryWrapper();
 		const { result } = renderHook(useSessionActions, { wrapper: Wrapper });
+		client.setQueryData(STATUS_KEY, { signed_in: true });
+		client.setQueryData(ACCOUNT_KEY, { private: "account" });
 		historyVault.record({ name: "private-machine", team: "lab" });
 		await act(async () => {
 			await expect(result.current.logout.mutateAsync()).rejects.toThrow(
@@ -79,5 +81,7 @@ describe("history session lock signals", () => {
 			);
 		});
 		expect(historyVault.getSnapshot().records.machines).toEqual({});
+		expect(client.getQueryData(STATUS_KEY)).toMatchObject({ signed_in: false });
+		expect(client.getQueryData(ACCOUNT_KEY)).toBeUndefined();
 	});
 });

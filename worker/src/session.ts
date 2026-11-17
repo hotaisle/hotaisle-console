@@ -1,3 +1,5 @@
+import { isTokenPair, type TokenPair } from "./hotaisle";
+
 const BASE64_PADDING_PATTERN = /[=]+$/u;
 // The session: who is signed in, and the Hot Aisle token their calls go out with.
 //
@@ -7,17 +9,14 @@ const BASE64_PADDING_PATTERN = /[=]+$/u;
 // length of one request and never reaches the page.
 
 export interface Session {
-	/** When this session stops being accepted (ms since 1970). */
+	/** Retain the verifier for explicit logout only after an uncertain exchange. */
+	ended?: true;
+	/** Absolute cookie deadline; renewal never extends the logical session. */
 	exp: number;
-	/** How it was obtained. */
-	kind?: "key" | "email" | "passkey";
-	/** An email sign-in waiting for its link to be opened. */
+	kind?: "email";
+	pair?: TokenPair;
 	pending?: { ticket: string; email: string; expires_at: string };
-	/** The Hot Aisle token API calls are made with. */
-	token?: string;
-	/** When Hot Aisle stops accepting the token (ms since 1970). Email sessions last about 20 minutes and are renewed. */
-	tokenExp?: number;
-	v: 1;
+	v: 2;
 }
 
 export const COOKIE = "hai_session";
@@ -125,11 +124,15 @@ export async function readSession(
 		return undefined;
 	}
 	const s = await open<Session>(await deriveKey(secret, "session"), v);
-	if (s?.v !== 1 || !(s.exp > Date.now()) || s.kind === "key") {
+	if (
+		s?.v !== 2 ||
+		!Number.isFinite(s.exp) ||
+		s.exp <= Date.now() ||
+		(s.pair && (!isTokenPair(s.pair) || s.kind !== "email")) ||
+		!(s.pair || s.pending) ||
+		(s.pair && s.pending)
+	) {
 		return undefined;
-	}
-	if (s.tokenExp && s.tokenExp <= Date.now()) {
-		return undefined; // Hot Aisle's session has ended: sign in again
 	}
 	return s;
 }
@@ -144,11 +147,11 @@ export async function sessionCookie(
 	if (!s) {
 		return `${COOKIE}=; ${attrs}; Max-Age=0`;
 	}
-	const exp = Date.now() + maxAgeDays * 86_400_000;
+	const exp = s.pair?.sessionExpiresAt ?? Date.now() + maxAgeDays * 86_400_000;
 	const value = await seal(await deriveKey(secret, "session"), {
 		...s,
 		exp,
-		v: 1,
+		v: 2,
 	});
-	return `${COOKIE}=${value}; ${attrs}; Max-Age=${maxAgeDays * 86_400}`;
+	return `${COOKIE}=${value}; ${attrs}; Max-Age=${Math.max(0, Math.floor((exp - Date.now()) / 1000))}`;
 }

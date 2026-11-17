@@ -3,9 +3,12 @@ import { cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
 import { historyVault } from "../src/lib/history-vault";
 import { testClient } from "./render";
+import { installWebLocks } from "./web-locks";
 
 // jsdom has no layout engine; scroll restoration is verified in the browser.
 beforeEach(() => {
+	installWebLocks();
+	localStorage.removeItem("hotaisle-console:email-session:v2");
 	vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
 	// jsdom does not implement media queries; individual tests can change matches.
 	vi.stubGlobal(
