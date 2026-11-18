@@ -1,4 +1,50 @@
 import type { Offer } from "../../lib/api";
+import type { Order } from "./types";
+
+/** Class identity excludes changing stock and prices; bare metal retains its full reservation spec. */
+export function offerKey(offer: Offer): string {
+	return JSON.stringify(
+		[offer.metal ? "metal" : "vm", offer.rawSpecs ?? offer.Specs],
+		(_key, value: unknown) =>
+			value && typeof value === "object" && !Array.isArray(value)
+				? Object.fromEntries(
+						Object.entries(value).sort(([a], [b]) => a.localeCompare(b))
+					)
+				: value
+	);
+}
+
+export function selectedOffer(
+	sizes: Offer[],
+	order: Pick<Order, "count" | "offer">
+) {
+	if (order.offer) {
+		return sizes.find((size) => offerKey(size) === order.offer);
+	}
+	return (
+		sizes.find(
+			(size) => size.Specs.gpus?.[0]?.count === order.count && size.Quantity > 0
+		) ?? sizes.find((size) => size.Specs.gpus?.[0]?.count === order.count)
+	);
+}
+
+/** Only legacy count-only links may switch to the nearest available size. */
+export function fallbackGPUCount(
+	sizes: Offer[],
+	order: Pick<Order, "count" | "offer">,
+	current?: Offer
+) {
+	if (order.offer || current?.Quantity) {
+		return;
+	}
+	return sizes
+		.filter((size) => size.Quantity > 0)
+		.sort(
+			(a, b) =>
+				Math.abs((a.Specs.gpus?.[0]?.count ?? 0) - order.count) -
+				Math.abs((b.Specs.gpus?.[0]?.count ?? 0) - order.count)
+		)[0]?.Specs.gpus?.[0]?.count;
+}
 
 export function availabilityBlocker({
 	offers,
@@ -22,6 +68,9 @@ export function availabilityBlocker({
 	}
 	if (offer?.OnDemandPrice === undefined) {
 		return "Pricing is not available for this size.";
+	}
+	if (offer.Quantity <= 0) {
+		return "This server class is no longer available. Choose another class.";
 	}
 	return "";
 }

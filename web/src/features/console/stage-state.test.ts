@@ -1,17 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import { machineKey } from "../../../../shared/machine-identity";
 import type { Ended, VM } from "../../lib/api";
+import { offerKey } from "../launch/offers";
 import { layout } from "../stage/model";
 import { buildStage, type StageInput } from "./stage-state";
 
 function input(): StageInput {
 	return {
 		list: [],
-		offerFor: vi.fn(),
 		offers: [],
 		order: { count: 1, customURL: "", image: "standard" },
 		orderContext: true,
-		priceOf: vi.fn(),
 		receipts: [],
 		records: {},
 		serverOf: vi.fn(),
@@ -20,6 +19,35 @@ function input(): StageInput {
 	};
 }
 describe("machine preview availability", () => {
+	it("previews the selected server class rather than the first matching GPU count", () => {
+		const offers = [64, 104].map((cpu_cores) => ({
+			MinimumReservationMinutes: 480,
+			metal: true,
+			OnDemandPrice: 2712,
+			Quantity: 1,
+			Specs: {
+				cpu_cores,
+				disk_capacity: 100,
+				gpus: [{ count: 8 }],
+				ram_capacity: 200,
+			},
+		}));
+		const drawing = buildStage({
+			...input(),
+			offers,
+			order: {
+				count: 8,
+				customURL: "",
+				image: "standard",
+				offer: offerKey(offers[1]),
+			},
+		});
+		expect(drawing.spec).toEqual(
+			expect.arrayContaining([
+				expect.arrayContaining([expect.stringContaining("104")]),
+			])
+		);
+	});
 	it("focuses the right tray and status for a VM and bare-metal server sharing a name", () => {
 		const vm: VM = {
 			cpu_cores: 1,
@@ -85,10 +113,8 @@ describe("history drawing", () => {
 		const historical: StageInput = {
 			focusedReceipt: receipt,
 			list: [],
-			offerFor: () => undefined,
 			order: { count: 1, customURL: "", image: "standard" },
 			orderContext: false,
-			priceOf: () => undefined,
 			receipts: [receipt],
 			records: {},
 			serverOf: () => "newly-assigned-server",

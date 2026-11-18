@@ -46,13 +46,11 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 		launchedNow,
 		list,
 		loaded,
-		offerFor,
 		offers,
 		onEnded,
 		onLaunched,
 		onTeam,
 		order,
-		priceOf,
 		push,
 		receipts,
 		recByIdentity,
@@ -150,12 +148,10 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 					focused={focusedKey}
 					launchedNow={launchedNow}
 					list={list}
-					offerFor={offerFor}
 					onChanged={refreshAll}
 					onDismiss={dismiss}
 					onEnded={onEnded}
 					onFocus={focusMachine}
-					priceOf={priceOf}
 					receipts={receipts}
 					records={recByIdentity}
 					serverOf={serverOf}

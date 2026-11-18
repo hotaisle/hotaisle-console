@@ -163,23 +163,6 @@ export function useConsole({
 		(vms.data !== undefined || vms.error) &&
 		(offers.data !== undefined || offers.error);
 	const sizes = sizesOf(offers.data);
-	const offerFor = useCallback(
-		(n?: number, model?: string, metal?: boolean) =>
-			sizes.find(
-				(o) =>
-					o.Specs.gpus?.[0]?.count === n &&
-					(!model || o.Specs.gpus?.[0]?.model === model) &&
-					(metal === undefined || !!o.metal === metal)
-			),
-		[sizes]
-	);
-	const priceOf = useCallback(
-		(vm: VM) =>
-			recByIdentity[machineKey(h, vm)]?.price_cents ||
-			offerFor(vm.gpus?.[0]?.count, vm.gpus?.[0]?.model, !!vm.metal)
-				?.OnDemandPrice,
-		[recByIdentity, offerFor, h]
-	);
 
 	// ---------------------------------------------------------------- what the drawing shows
 	// Every machine on the server the API says it runs on. Ended ones keep theirs while their GPUs cool.
@@ -200,12 +183,10 @@ export function useConsole({
 		focused,
 		focusedReceipt,
 		list: viewingRun ? [] : list,
-		offerFor,
 		offers: offers.data,
 		offersError: offers.error,
 		order,
 		orderContext,
-		priceOf,
 		receipts: viewingRun ? [run].filter(isPresent) : receipts,
 		records: recByIdentity,
 		serverOf,
@@ -252,13 +233,11 @@ export function useConsole({
 		launchedNow,
 		list,
 		loaded,
-		offerFor,
 		offers,
 		onEnded,
 		onLaunched,
 		onTeam,
 		order,
-		priceOf,
 		push,
 		recByIdentity,
 		receipts,

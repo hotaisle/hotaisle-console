@@ -16,11 +16,11 @@ export function TripDetails({ context }: { context: TripContext }) {
 		<>
 			<TripConnection context={context} />
 			<div className="run">
-				{launched ? null : (
+				{launched === undefined ? (
 					<p className="small muted">
-						Launch time is unavailable in this browser session.
+						Reservation start is unavailable from the API.
 					</p>
-				)}
+				) : null}
 				<Timeline endLabel="Until you end it" now={now} start={launched} />
 				<Facts
 					rows={[

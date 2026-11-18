@@ -9,7 +9,14 @@ import {
 	RouterProvider,
 	useRouterState,
 } from "@tanstack/react-router";
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+	within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -18,6 +25,7 @@ import { createAppRouter } from "../../app/router";
 import { ToastHost } from "../../components/ui/toast";
 import { api, type Offer } from "../../lib/api";
 import { signal } from "../../lib/signal";
+import { offerKey } from "./offers";
 import { OrderView } from "./order-view";
 import { useOrder } from "./use-order";
 
@@ -81,21 +89,23 @@ function open(overrides: Partial<ComponentProps<typeof OrderView>> = {}) {
 	);
 	return props;
 }
-function RoutedOrderView() {
+function RoutedOrderView({ offers }: { offers?: () => Offer[] }) {
 	useRouterState();
 	const { order, setOrder } = useOrder();
 	// Query updates can deliver new offer arrays while a fallback navigation is pending.
 	const props = makeProps({
-		offers: [{ ...OFFER, Specs: { ...OFFER.Specs, gpus: [{ count: 2 }] } }],
+		offers: offers?.() ?? [
+			{ ...OFFER, Specs: { ...OFFER.Specs, gpus: [{ count: 2 }] } },
+		],
 		order,
 		setOrder,
 	});
 	return <OrderView {...props} />;
 }
-function openRouted(path: string, browser = false) {
+function openRouted(path: string, browser = false, offers?: () => Offer[]) {
 	const root = createRootRoute({ component: Outlet, validateSearch });
 	const route = createRoute({
-		component: RoutedOrderView,
+		component: () => <RoutedOrderView offers={offers} />,
 		getParentRoute: () => root,
 		path: "/teams/$team/launch",
 	});
@@ -124,7 +134,112 @@ function openRouted(path: string, browser = false) {
 }
 const HOLD = /Hold to launch/u;
 const HOLD_TWO = /Hold to launch 2×/u;
+const CORES_64 = /64 cores/u;
+const CORES_104 = /104 cores/u;
+const HOLD_METAL = /Hold to reserve/u;
+const HOLD_ANY = /Hold to (?:reserve|launch)/u;
 describe("rental availability and credits", () => {
+	it("selects and reserves one exact bare-metal class across URL navigation and inventory refreshes", async () => {
+		const classes = [64, 104].map(
+			(cores, index): Offer => ({
+				...OFFER,
+				MinimumReservationMinutes: 480,
+				metal: true,
+				OnDemandPrice: 2700 + index * 100,
+				rawSpecs: { cpu_cores: cores, gpus: [{ count: 8, model: "MI300X" }] },
+				Specs: {
+					...OFFER.Specs,
+					cpu_cores: cores,
+					gpus: [{ count: 8, model: "MI300X" }],
+				},
+			})
+		);
+		let inventory = classes;
+		const router = openRouted(
+			"/teams/lab/launch?gpus=8",
+			false,
+			() => inventory
+		);
+		const user = userEvent.setup();
+		const first = await screen.findByRole("radio", { name: CORES_64 });
+		const second = screen.getByRole("radio", { name: CORES_104 });
+		expect(first).toBeChecked();
+		expect(second).not.toBeChecked();
+		await user.click(second);
+		await waitFor(() =>
+			expect(router.state.location.search.offer).toBe(offerKey(classes[1]))
+		);
+		expect(first).not.toBeChecked();
+		expect(second).toBeChecked();
+		expect(
+			within(screen.getByRole("region", { name: "Estimate" })).getByText(
+				"$28.00"
+			)
+		).toBeInTheDocument();
+
+		inventory = [
+			{ ...classes[1], OnDemandPrice: 2900, Quantity: 1 },
+			classes[0],
+		];
+		await act(async () => {
+			await router.navigate({
+				search: { ...router.state.location.search, image: "vllm" },
+				to: "/teams/lab/launch",
+			});
+		});
+		expect(screen.getByRole("radio", { name: CORES_104 })).toBeChecked();
+		expect(screen.getByRole("radio", { name: CORES_64 })).not.toBeChecked();
+		const savedSearch = { ...router.state.location.search };
+		await user.click(screen.getByRole("radio", { name: CORES_64 }));
+		await act(async () => {
+			await router.navigate({ search: savedSearch, to: "/teams/lab/launch" });
+		});
+		expect(screen.getByRole("radio", { name: CORES_104 })).toBeChecked();
+
+		const reserve = vi
+			.spyOn(api, "reserve")
+			.mockReturnValue(new Promise(() => undefined));
+		vi.useFakeTimers();
+		try {
+			const button = screen.getByRole("button", { name: HOLD_METAL });
+			button.focus();
+			fireEvent.keyDown(button, { code: "Enter", key: "Enter" });
+			await act(async () => {
+				await vi.advanceTimersByTimeAsync(850);
+			});
+			expect(reserve).toHaveBeenCalledExactlyOnceWith("lab", inventory[0]);
+			fireEvent.keyUp(button, { code: "Enter", key: "Enter" });
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+	it.each([false, true])(
+		"does not substitute another class when the selected class is unavailable (removed: %s)",
+		(removed) => {
+			const chosen = { ...OFFER, metal: true };
+			const other = {
+				...OFFER,
+				metal: true,
+				Specs: { ...OFFER.Specs, cpu_cores: 104 },
+			};
+			open({
+				offers: removed ? [other] : [{ ...chosen, Quantity: 0 }, other],
+				order: {
+					count: 1,
+					customURL: "",
+					image: "standard",
+					offer: offerKey(chosen),
+				},
+			});
+			expect(
+				screen
+					.getAllByRole("radio")
+					.filter((radio) => (radio as HTMLInputElement).checked)
+			).toHaveLength(removed ? 0 : 1);
+			expect(screen.getByRole("radio", { name: CORES_104 })).not.toBeChecked();
+			expect(screen.getByRole("button", { name: HOLD_ANY })).toBeDisabled();
+		}
+	);
 	it("settles the automatic size fallback when offers are freshly derived during navigation", async () => {
 		const router = openRouted("/teams/lab/launch?gpus=1");
 		await screen.findByRole("button", { name: HOLD_TWO });

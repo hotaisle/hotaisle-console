@@ -19,7 +19,13 @@ import type { Signal } from "../../lib/signal";
 import { sound } from "../../lib/sound";
 import { MachineOptions } from "./machine-options";
 import { OfferStatus } from "./offer-status";
-import { availabilityBlocker, sizesOf } from "./offers";
+import {
+	availabilityBlocker,
+	fallbackGPUCount,
+	offerKey,
+	selectedOffer,
+	sizesOf,
+} from "./offers";
 import { RentalCredits } from "./rental-credits";
 import { RentalEstimate } from "./rental-estimate";
 import { RentalImage } from "./rental-image";
@@ -61,19 +67,11 @@ export function OrderView({
 	const toast = useToast();
 	const sizes = useMemo(() => sizesOf(offers), [offers]);
 	const [busy, setBusy] = useState(false);
-	const { count, image, customURL } = order;
+	const { image, customURL } = order;
 
-	// Fall back to the nearest size in stock when the preferred one is gone.
-	const currentSize = sizes.find((o) => o.Specs.gpus?.[0]?.count === count);
-	const fallbackCount = currentSize?.Quantity
-		? undefined
-		: sizes
-				.filter((o) => o.Quantity > 0)
-				.sort(
-					(a, b) =>
-						Math.abs((a.Specs.gpus?.[0]?.count ?? 0) - count) -
-						Math.abs((b.Specs.gpus?.[0]?.count ?? 0) - count)
-				)[0]?.Specs.gpus?.[0]?.count;
+	// Legacy count-only links may choose an available size; explicit classes never switch silently.
+	const currentSize = selectedOffer(sizes, order);
+	const fallbackCount = fallbackGPUCount(sizes, order, currentSize);
 	const requestedCount = useRef<number>(undefined);
 	useEffect(() => {
 		if (!fallbackCount) {
@@ -89,11 +87,21 @@ export function OrderView({
 
 	useShortcuts(
 		sizes
-			.filter((size) => size.Quantity > 0)
+			.filter(
+				(size) =>
+					size.Quantity > 0 &&
+					sizes.filter(
+						(candidate) =>
+							candidate.Specs.gpus?.[0]?.count === size.Specs.gpus?.[0]?.count
+					).length === 1
+			)
 			.map((size) => ({
 				callback: () => {
 					sound.tick();
-					setOrder({ count: size.Specs.gpus?.[0]?.count });
+					setOrder({
+						count: size.Specs.gpus?.[0]?.count,
+						offer: offerKey(size),
+					});
 				},
 				hotkey: String(size.Specs.gpus?.[0]?.count) as HotkeyChord,
 				options: {
@@ -224,9 +232,9 @@ export function OrderView({
 			/>
 			{!inventoryEmpty && (
 				<MachineOptions
-					count={count}
 					loading={availabilityLoading}
 					onChange={setOrder}
+					selectedOffer={offer}
 					sizes={sizes}
 				/>
 			)}

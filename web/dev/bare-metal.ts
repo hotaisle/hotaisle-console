@@ -34,6 +34,11 @@ export class BareMetalPreview {
 						? "installing_os"
 						: "installed",
 			},
+			reservation: {
+				hourly_rate_cents: 2392,
+				minimum_reservation_minutes: 480,
+				started_at: new Date(this.assignedAt).toISOString(),
+			},
 			ssh_access: {
 				dns_name: `${this.name}.invalid`,
 				ip_address: "192.0.2.80",

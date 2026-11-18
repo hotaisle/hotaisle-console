@@ -36,6 +36,7 @@ export function useOrder() {
 		count: search.gpus ?? 1,
 		customURL: cloudInit.value,
 		image: search.image ?? prefs.image,
+		offer: search.offer,
 	};
 	const setOrder = useCallback(
 		(patch: Partial<Order>) =>
@@ -47,6 +48,9 @@ export function useOrder() {
 						...clean,
 						gpus: patch.count ?? clean.gpus,
 						image: patch.image ?? clean.image,
+						offer:
+							patch.offer ??
+							(patch.count === undefined ? clean.offer : undefined),
 					};
 				},
 				to: location.pathname,

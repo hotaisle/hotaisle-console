@@ -44,12 +44,10 @@ mockNativeDialogs();
 function props(): TripProps {
 	return {
 		expanded: true,
-		minimumMin: 30,
 		morph: false,
 		onChanged: vi.fn(),
 		onEnded: vi.fn(),
 		onFocus: vi.fn(),
-		price: 300,
 		record: {
 			launched_at: new Date(Date.now() - 60_000).toISOString(),
 			name: MACHINE.name,
@@ -57,9 +55,143 @@ function props(): TripProps {
 		},
 		state: { host: "server-fixture", state: "running" },
 		team: TEAM,
-		vm: MACHINE,
+		vm: {
+			...MACHINE,
+			reservation: {
+				hourly_rate_cents: 300,
+				minimum_reservation_minutes: 30,
+				started_at: new Date(Date.now() - 60_000).toISOString(),
+			},
+		},
 	};
 }
+describe("API reservation counters", () => {
+	it.each([false, true])(
+		"shows reservation duration and minimum-inclusive cost without browser history (metal=%s)",
+		async (metal) => {
+			vi.useFakeTimers();
+			const input = props();
+			const resource = {
+				...MACHINE,
+				reservation: {
+					hourly_rate_cents: 2712,
+					minimum_reservation_minutes: metal ? 480 : 30,
+					started_at: new Date(Date.now() - 3_600_000).toISOString(),
+				},
+			};
+			vi.stubGlobal(
+				"fetch",
+				vi
+					.fn()
+					.mockResolvedValueOnce(Response.json(metal ? [] : [resource]))
+					.mockResolvedValueOnce(Response.json(metal ? [resource] : []))
+			);
+			try {
+				[input.vm] = await api.vms("lab");
+			} finally {
+				vi.unstubAllGlobals();
+			}
+			input.record = undefined;
+			const view = renderWithQuery(
+				<ToastHost>
+					<Trip {...input} />
+				</ToastHost>
+			);
+			expect(
+				screen.getByRole("img", { name: "reserved for 1 hour" })
+			).toBeInTheDocument();
+			expect(
+				screen.getByRole("img", {
+					name: `estimated cost ${metal ? "$216.96" : "$27.12"}, including the minimum reservation`,
+				})
+			).toBeInTheDocument();
+			view.rerender(
+				<ToastHost>
+					<Trip {...input} state={{ host: "server-fixture", state: "off" }} />
+				</ToastHost>
+			);
+			act(() => vi.advanceTimersByTime(60_000));
+			expect(
+				screen.getByRole("img", { name: "reserved for 1 hour 1 minute" })
+			).toBeInTheDocument();
+			expect(
+				screen.getByRole("img", {
+					name: `estimated cost ${metal ? "$216.96" : "$27.57"}, including the minimum reservation`,
+				})
+			).toBeInTheDocument();
+		}
+	);
+	it("does not substitute saved history when API timing and pricing are unknown", () => {
+		const input = props();
+		input.vm = { ...MACHINE };
+		input.record = {
+			...input.record,
+			name: MACHINE.name,
+			price_cents: 999,
+			team: TEAM.handle,
+		};
+		renderWithQuery(
+			<ToastHost>
+				<Trip {...input} />
+			</ToastHost>
+		);
+		expect(
+			screen.getByRole("img", {
+				name: "Reservation start unavailable from the API",
+			})
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("img", { name: "cost unknown" })
+		).toBeInTheDocument();
+	});
+	it("uses refreshed API facts, preserves a zero price, and clamps a future start", () => {
+		const input = props();
+		input.vm = {
+			...MACHINE,
+			reservation: {
+				hourly_rate_cents: 0,
+				minimum_reservation_minutes: 480,
+				started_at: new Date(Date.now() + 60_000).toISOString(),
+			},
+		};
+		const view = renderWithQuery(
+			<ToastHost>
+				<Trip {...input} />
+			</ToastHost>
+		);
+		expect(
+			screen.getByRole("img", { name: "reserved for no time" })
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("img", {
+				name: "estimated cost $0.00, including the minimum reservation",
+			})
+		).toBeInTheDocument();
+		view.rerender(
+			<ToastHost>
+				<Trip
+					{...input}
+					vm={{
+						...input.vm,
+						reservation: {
+							hourly_rate_cents: 300,
+							minimum_reservation_minutes: 30,
+							started_at: new Date(Date.now() - 60_000).toISOString(),
+						},
+					}}
+				/>
+			</ToastHost>
+		);
+		expect(
+			screen.getByRole("img", { name: "reserved for 1 minute" })
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("img", {
+				name: "estimated cost $1.50, including the minimum reservation",
+			})
+		).toBeInTheDocument();
+	});
+});
 afterEach(() => {
 	vi.useRealTimers();
 });
@@ -170,7 +302,7 @@ describe("machine startup status", () => {
 			);
 			expect(screen.queryByRole("list")).not.toBeInTheDocument();
 			expect(screen.queryByText("Booting")).not.toBeInTheDocument();
-			expect(screen.getByText("Elapsed")).toBeInTheDocument();
+			expect(screen.getByText("Reserved")).toBeInTheDocument();
 			expect(
 				screen.queryByRole("button", { name: "Copy" })
 			).not.toBeInTheDocument();
@@ -199,11 +331,13 @@ describe("machine startup status", () => {
 describe("machine release", () => {
 	it("shows usage billing after a 1-GPU VM's one-minute minimum", () => {
 		const input = props();
-		input.minimumMin = 1;
-		input.record = {
-			launched_at: new Date(Date.now() - 120_000).toISOString(),
-			name: input.vm.name,
-			team: input.team.handle,
+		input.vm = {
+			...input.vm,
+			reservation: {
+				hourly_rate_cents: 300,
+				minimum_reservation_minutes: 1,
+				started_at: new Date(Date.now() - 120_000).toISOString(),
+			},
 		};
 		renderWithQuery(
 			<ToastHost>
@@ -287,6 +421,12 @@ describe("machine release", () => {
 		const power = vi.spyOn(api, "power");
 		const input = props();
 		input.vm = { ...input.vm, description: "Existing upstream description" };
+		input.record = {
+			launched_at: new Date(Date.now() - 9 * 3_600_000).toISOString(),
+			name: MACHINE.name,
+			price_cents: 999,
+			team: TEAM.handle,
+		};
 		renderWithQuery(
 			<ToastHost>
 				<Trip {...input} />
@@ -312,6 +452,7 @@ describe("machine release", () => {
 				cents: 150,
 				minimum_applied: true,
 				name: "vm-fixture",
+				started_at: input.vm.reservation?.started_at,
 			})
 		);
 		expect(input.onEnded).not.toHaveBeenCalledWith(

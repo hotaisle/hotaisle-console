@@ -13,6 +13,7 @@ export type View =
 export interface ConsoleSearch {
 	gpus?: number;
 	image?: Image;
+	offer?: string;
 	page?: number;
 	pageSize?: number;
 	returnTo?: string;
@@ -46,6 +47,10 @@ export function validateSearch(search: Record<string, unknown>): ConsoleSearch {
 		image:
 			image === "standard" || image === "vllm" || image === "custom"
 				? image
+				: undefined,
+		offer:
+			typeof search.offer === "string" && search.offer.length <= 8192
+				? search.offer || undefined
 				: undefined,
 		page:
 			Number.isSafeInteger(Number(search.page)) && Number(search.page) > 0

@@ -2,8 +2,10 @@ import { machineKey } from "../../../../shared/machine-identity";
 import { isPresent } from "../../../../shared/present";
 import type { Ended, MachineRecord, Offer, VM, VMState } from "../../lib/api";
 import { duration, money, specRows } from "../../lib/format";
+import { selectedOffer, sizesOf } from "../launch/offers";
 import type { Order } from "../launch/types";
 import { runTitle } from "../machines/formatting";
+import { reservationStart } from "../machines/reservation";
 import { phaseOf, stageModeOf, usesCloudInit } from "../machines/state";
 import type { StageMachine, StageState } from "../stage/model";
 
@@ -11,12 +13,10 @@ export interface StageInput {
 	focused?: VM;
 	focusedReceipt?: Ended;
 	list: VM[];
-	offerFor: (count?: number, model?: string) => Offer | undefined;
 	offers?: Offer[];
 	offersError?: Error;
 	order: Order;
 	orderContext: boolean;
-	priceOf: (vm: VM) => number | undefined;
 	receipts: Ended[];
 	records: Record<string, MachineRecord | undefined>;
 	serverOf: (name: string) => string | undefined;
@@ -26,7 +26,6 @@ export interface StageInput {
 function machines(input: StageInput): StageMachine[] {
 	return [
 		...input.list.map((vm) => {
-			const launched = input.records[machineKey(input.team, vm)]?.launched_at;
 			const phase = phaseOf(vm, input.states[machineKey(input.team, vm)]);
 			return {
 				gpus: vm.gpus?.[0]?.count ?? 1,
@@ -38,7 +37,7 @@ function machines(input: StageInput): StageMachine[] {
 						usesCloudInit(phase, input.records[machineKey(input.team, vm)])
 				),
 				name: vm.name,
-				since: launched ? Date.parse(launched) : undefined,
+				since: reservationStart(vm),
 			};
 		}),
 		...input.receipts.map((receipt) => ({
@@ -52,7 +51,7 @@ function machines(input: StageInput): StageMachine[] {
 }
 function preview(input: StageInput): Omit<StageState, "machines"> {
 	const { count } = input.order;
-	const offer = input.offerFor(count);
+	const offer = selectedOffer(sizesOf(input.offers), input.order);
 	const spec: [string, string][] = [];
 	if (offer) {
 		spec.push(...specRows(offer.Specs));
@@ -117,7 +116,7 @@ function activeMachine(
 	if (address) {
 		spec.push(["Address", address]);
 	}
-	const price = input.priceOf(vm);
+	const price = vm.reservation?.hourly_rate_cents;
 	if (isPresent(price)) {
 		spec.push(["Price", `${money(price)} an hour`]);
 	}

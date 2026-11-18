@@ -90,6 +90,14 @@ spaces as required by its syntax.
 
 Pages use URLs for bookmarks and browser navigation. History URLs reopen after signing in to the same account
 in the same browser. Encrypted history does not sync across devices or browser profiles.
+
+Launch choices retain a hardware-class identity in the validated `offer` search parameter.
+GPU count alone does not identify a class: two whole-server configurations may both have eight GPUs.
+Selection, estimates, stage specifications, and reservation requests use the same class. Identity excludes
+stock and prices, so polling and catalog reordering preserve the selection. If an explicitly selected class
+disappears or sells out, launch is blocked rather than silently choosing another. Count-only legacy links
+retain their available-size fallback; numeric shortcuts apply only to unambiguous GPU counts.
+
 The team chooser refreshes memberships and invitations every 30 seconds while active, and on returning to
 the tab. Failed background updates keep the current list visible and offer a retry in a dismissible notice.
 
@@ -257,6 +265,21 @@ warm/cold reboot, AC reset, reinstall, and release. Shutdown does not stop billi
 Minimum reservations come from the API: currently one minute
 for 1-GPU VMs, 30 minutes per GPU for larger VMs, and eight hours for bare metal. The confirmation and estimated receipt account for the minimum. A failed release
 must never be displayed as a successful end.
+
+Active VM and bare-metal counters use the API's `reservation.started_at`,
+`reservation.hourly_rate_cents`, and `reservation.minimum_reservation_minutes`.
+The browser advances elapsed time locally between resource refreshes and estimates cost as
+`max(elapsed_seconds, minimum_reservation_minutes * 60) * hourly_rate_cents / 3600`.
+The hourly rate is the total for the reservation, not per GPU; fractional cents are retained until display.
+Powered-off machines continue accumulating reservation time. Cost is labeled as an estimate, not a final
+invoice, and includes the minimum reservation. Client clock skew, price changes and billing adjustments
+can affect its accuracy.
+
+Saved launch records and current offers never supply active timing or pricing. These three API inputs
+are sufficient; Console does not require server-calculated counters or a new HotManager endpoint.
+Missing API fields remain unknown; a known zero price remains zero.
+Successful release receipts capture the API-derived estimate and timing at release, then remain saved past
+history rather than an authority for a later active reservation.
 
 There is no automatic shutdown timer: the upstream API cannot schedule an end, and a browser timer could fail
 while the machine continues billing. Add-credit checkout uses Hot Aisle's Stripe checkout link; this app does
