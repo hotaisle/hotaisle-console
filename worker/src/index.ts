@@ -144,12 +144,13 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 function isAuthenticatedSession(
 	session: Session | undefined
 ): session is Session & { pair: TokenPair } {
+	const now = Date.now();
 	return Boolean(
 		session?.pair &&
 			!session.ended &&
-			session.exp > Date.now() &&
-			session.pair.refreshExpiresAt > Date.now() &&
-			session.pair.sessionExpiresAt > Date.now()
+			session.exp > now &&
+			session.pair.refreshExpiresAt > now &&
+			session.pair.sessionExpiresAt > now
 	);
 }
 
@@ -338,11 +339,12 @@ async function historyKeyResponse(
 	}
 }
 async function authGetAuthStatus(env: Env, session: Session | undefined) {
+	const signedIn = isAuthenticatedSession(session);
 	return json({
 		email_login: true,
-		kind: isAuthenticatedSession(session) ? session.kind : undefined,
+		kind: signedIn ? session.kind : undefined,
 		passkeys: false,
-		signed_in: isAuthenticatedSession(session),
+		signed_in: signedIn,
 		version: env.VERSION ?? "dev",
 		waiting_for_email: session?.pending
 			? {

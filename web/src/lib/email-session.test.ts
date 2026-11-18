@@ -102,6 +102,46 @@ describe("email-session transport", () => {
 		expect(fetcher).toHaveBeenCalledTimes(4);
 	});
 
+	it("still revokes the cookie when another tab logs out between the epoch check and phase write", async () => {
+		const fetcher = vi.fn((path: string) => {
+			if (path === "/auth/signout") {
+				return Promise.resolve(Response.json({ ok: true }));
+			}
+			if (path === "/auth/status") {
+				return Promise.resolve(Response.json({ signed_in: true }));
+			}
+			return Promise.resolve(Response.json(ACCOUNT));
+		});
+		vi.stubGlobal("fetch", fetcher);
+		const { setItem } = Storage.prototype;
+		let logout: Promise<{ ok: boolean }> | undefined;
+		vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (
+			this: Storage,
+			key: string,
+			value: string
+		) {
+			if (
+				key === STATE_KEY &&
+				JSON.parse(value).phase === "active" &&
+				!logout
+			) {
+				// Model another tab running after the epoch check, before this write.
+				logout = api.signOut();
+			}
+			setItem.call(this, key, value);
+		});
+		await api.user();
+		expect(logout).toBeDefined();
+		await expect(logout).resolves.toEqual({ ok: true });
+		expect(fetcher.mock.calls.map(([path]) => path)).toEqual([
+			"/api/user/",
+			"/auth/signout",
+		]);
+		await expect(api.status()).resolves.toMatchObject({ signed_in: false });
+		await expect(api.user()).rejects.toMatchObject({ status: 401 });
+		expect(fetcher).toHaveBeenCalledTimes(3);
+	});
+
 	it("keeps logout terminal when a refresh response and queued resource request race it", async () => {
 		let release: () => void = () => undefined;
 		const gate = new Promise<void>((resolve) => {
@@ -167,22 +207,50 @@ describe("email-session transport", () => {
 		]);
 	});
 
-	it("does not replay a rejected mutation or recover from an upstream refresh failure", async () => {
-		const fetcher = vi.fn().mockResolvedValue(
-			new Response("Sign in again", {
-				headers: { "X-Session-Ended": "true" },
-				status: 401,
-			})
-		);
-		vi.stubGlobal("fetch", fetcher);
-		await expect(
-			api.createTeam({ handle: "fixture", name: "Fixture" })
-		).rejects.toMatchObject({ status: 401 });
-		await expect(
-			api.createTeam({ handle: "fixture", name: "Fixture" })
-		).rejects.toMatchObject({ status: 401 });
-		expect(fetcher).toHaveBeenCalledOnce();
-	});
+	it.each([
+		["/api/user/", 500],
+		["/auth/history-key", 502],
+		["/auth/history-key", 503],
+	] as const)(
+		"preserves sign-in after a fully received %s HTTP %s",
+		async (path, status) => {
+			const fetcher = vi
+				.fn()
+				.mockResolvedValueOnce(new Response("Unavailable", { status }))
+				.mockResolvedValueOnce(Response.json(ACCOUNT))
+				.mockResolvedValueOnce(Response.json({ signed_in: true }));
+			vi.stubGlobal("fetch", fetcher);
+			const request = path === "/auth/history-key" ? api.historyKey : api.user;
+			await expect(request()).rejects.toMatchObject({ status });
+			await expect(api.user()).resolves.toEqual(ACCOUNT);
+			await expect(api.status()).resolves.toMatchObject({ signed_in: true });
+			expect(fetcher.mock.calls.map(([requested]) => requested)).toEqual([
+				path,
+				"/api/user/",
+				"/auth/status",
+			]);
+		}
+	);
+
+	it.each([401, 503])(
+		"does not replay a mutation after an explicit HTTP %s session failure",
+		async (status) => {
+			const fetcher = vi.fn().mockResolvedValue(
+				new Response("Sign in again", {
+					headers: { "X-Session-Ended": "true" },
+					status,
+				})
+			);
+			vi.stubGlobal("fetch", fetcher);
+			await expect(
+				api.createTeam({ handle: "fixture", name: "Fixture" })
+			).rejects.toMatchObject({ status });
+			await expect(
+				api.createTeam({ handle: "fixture", name: "Fixture" })
+			).rejects.toMatchObject({ status: 401 });
+			expect(fetcher).toHaveBeenCalledOnce();
+		}
+	);
 
 	it("fails closed without browser locking while API keys remain usable", async () => {
 		Object.defineProperty(navigator, "locks", {

@@ -173,11 +173,14 @@ Renewal is single-use: failed, malformed, rejected, or lost exchanges are termin
 retried with a potentially spent token. The Worker marks refresh failures `X-Session-Ended: true` and
 retains the old verifier only in an encrypted ended cookie for explicit logout. It cannot authorize or
 renew an ended cookie. The browser serializes complete cookie-authenticated exchanges, including response
-bodies, email polling, and sign-out, across tabs with same-origin Web Locks. It persists only a nonsecret
-epoch/phase coordination marker before an exchange; a lost response, crashed tab, uncertain protected
-request, or 5xx requires explicit fresh sign-in, rather than risking replay of a spent verifier. Encrypted
-API keys and history are preserved. Browsers without Web Locks fail email paths closed with guidance to
-use a current browser or an API key; sign-out still attempts remote revocation. API-key traffic remains
+bodies, email polling, and sign-out, across tabs with same-origin Web Locks. It persists only nonsecret
+coordination state before an exchange. Cancellation epochs are stored separately from exchange phases,
+so completing an older request cannot restore a canceled sign-in. A lost response, crashed tab, or uncertain
+credential exchange requires explicit fresh sign-in rather than risking replay of a spent verifier.
+Fully received resource errors, including 5xx responses, preserve sign-in unless authentication is rejected
+or the Worker explicitly marks the session ended. Encrypted API keys and history are preserved. Browsers
+without Web Locks fail email paths closed with guidance to use a current browser or an API key; sign-out
+still attempts remote revocation. API-key traffic remains
 stateless and concurrent. No per-isolate lock, Durable Object, KV, D1, or server-side session store is used.
 
 Sign-out always clears the local cookie and posts its current or spent refresh verifier as JSON to

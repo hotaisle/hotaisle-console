@@ -1,6 +1,7 @@
 // Only nonsecret coordination state is stored here. Credentials stay in the
 // Worker's encrypted HttpOnly cookie; Web Locks serialize its use across tabs.
 const STATE_KEY = "hotaisle-console:email-session:v2";
+const EPOCH_KEY = "hotaisle-console:email-session:epoch";
 const LOCK_NAME = "hotaisle-console:email-session";
 type Phase = "active" | "pending" | "login" | "pending-login" | "ended";
 interface State {
@@ -15,9 +16,13 @@ export interface EmailSessionReply {
 export class EmailSessionError extends Error {}
 
 function state(): State {
+	const epoch = localStorage.getItem(EPOCH_KEY);
 	const stored = localStorage.getItem(STATE_KEY);
 	if (stored === null) {
-		return { epoch: "initial", phase: "active" };
+		return {
+			epoch: epoch ?? "initial",
+			phase: epoch === null ? "active" : "ended",
+		};
 	}
 	try {
 		const value: unknown = JSON.parse(stored);
@@ -32,12 +37,15 @@ function state(): State {
 				value.phase
 			)
 		) {
+			if (epoch !== null && value.epoch !== epoch) {
+				return { epoch, phase: "ended" };
+			}
 			return value as State;
 		}
 	} catch {
 		// Damaged coordination state cannot authorize a retry of a refresh token.
 	}
-	return { epoch: "invalid", phase: "ended" };
+	return { epoch: epoch ?? "invalid", phase: "ended" };
 }
 
 function store(value: State) {
@@ -45,7 +53,8 @@ function store(value: State) {
 }
 
 export function endEmailSession() {
-	store({ epoch: crypto.randomUUID(), phase: "ended" });
+	// Exchange phase writes must never overwrite a newer cancellation epoch.
+	localStorage.setItem(EPOCH_KEY, crypto.randomUUID());
 }
 
 export function emailSessionEnded() {
@@ -67,9 +76,9 @@ function phaseAfterReply(
 ): Phase {
 	if (
 		mode === "logout" ||
-		response.status >= 500 ||
 		response.status === 401 ||
-		(mode === "complete" && response.status === 410) ||
+		(mode === "complete" &&
+			(response.status === 410 || response.status >= 500)) ||
 		response.headers.get("X-Session-Ended") === "true"
 	) {
 		return "ended";
@@ -127,7 +136,9 @@ export async function emailSessionRequest(
 	if (mode === "logout") {
 		endEmailSession();
 	} else if (mode === "start") {
-		store({ epoch: crypto.randomUUID(), phase: "login" });
+		const epoch = crypto.randomUUID();
+		localStorage.setItem(EPOCH_KEY, epoch);
+		store({ epoch, phase: "login" });
 	}
 	const { epoch } = state();
 	if (!navigator.locks?.request) {

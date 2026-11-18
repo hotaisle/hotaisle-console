@@ -262,22 +262,34 @@ export function isTokenPair(value: unknown): value is TokenPair {
 	if (!value || typeof value !== "object") {
 		return false;
 	}
-	const p = value as TokenPair;
-	return (
-		typeof p.accessToken === "string" &&
-		p.accessToken.length <= 4096 &&
-		ACCESS_TOKEN.test(p.accessToken) &&
-		typeof p.refreshToken === "string" &&
-		p.refreshToken.length <= 4096 &&
-		REFRESH_TOKEN.test(p.refreshToken) &&
-		typeof p.sessionHandle === "string" &&
-		HANDLE.test(p.sessionHandle) &&
-		Number.isFinite(p.accessExpiresAt) &&
-		Number.isFinite(p.refreshExpiresAt) &&
-		Number.isFinite(p.sessionExpiresAt) &&
-		p.accessExpiresAt <= p.refreshExpiresAt &&
-		p.refreshExpiresAt <= p.sessionExpiresAt
-	);
+	const p = value as Record<string, unknown>;
+	if (
+		typeof p.accessToken !== "string" ||
+		!ACCESS_TOKEN.test(p.accessToken) ||
+		typeof p.refreshToken !== "string" ||
+		!REFRESH_TOKEN.test(p.refreshToken) ||
+		typeof p.sessionHandle !== "string" ||
+		!HANDLE.test(p.sessionHandle)
+	) {
+		return false;
+	}
+	if (
+		typeof p.accessExpiresAt !== "number" ||
+		!Number.isFinite(p.accessExpiresAt) ||
+		typeof p.refreshExpiresAt !== "number" ||
+		!Number.isFinite(p.refreshExpiresAt) ||
+		typeof p.sessionExpiresAt !== "number" ||
+		!Number.isFinite(p.sessionExpiresAt)
+	) {
+		return false;
+	}
+	if (
+		p.accessExpiresAt > p.refreshExpiresAt ||
+		p.refreshExpiresAt > p.sessionExpiresAt
+	) {
+		return false;
+	}
+	return true;
 }
 
 function parseTokenPair(
@@ -301,15 +313,19 @@ function parseTokenPair(
 		sessionExpiresAt: deadline(wire.session_expires_at),
 		sessionHandle: wire.session_handle,
 	};
+	if (!isTokenPair(pair)) {
+		return undefined;
+	}
+	const now = Date.now();
+	if (pair.accessExpiresAt <= now || pair.refreshExpiresAt <= now) {
+		return undefined;
+	}
 	if (
-		!isTokenPair(pair) ||
-		pair.accessExpiresAt <= Date.now() ||
-		pair.refreshExpiresAt <= Date.now() ||
-		(previous &&
-			(pair.sessionHandle !== previous.sessionHandle ||
-				pair.sessionExpiresAt !== previous.sessionExpiresAt ||
-				pair.accessToken === previous.accessToken ||
-				pair.refreshToken === previous.refreshToken))
+		previous &&
+		(pair.sessionHandle !== previous.sessionHandle ||
+			pair.sessionExpiresAt !== previous.sessionExpiresAt ||
+			pair.accessToken === previous.accessToken ||
+			pair.refreshToken === previous.refreshToken)
 	) {
 		return undefined;
 	}
