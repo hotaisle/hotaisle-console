@@ -22,7 +22,7 @@ beforeEach(() => {
 	);
 });
 afterEach(() => vi.useRealTimers());
-const VM_UNSUPPORTED = /console|shutdown|get VM state/iu;
+const VM_UNSUPPORTED = /console|shutdown|get VM state|support access/iu;
 const CONSOLE_LINK = /Console ↗/u;
 function props(metal = false): TripProps {
 	return {
@@ -68,6 +68,90 @@ function open(input = props()) {
 	});
 }
 describe("machine operations", () => {
+	it.each([false, true])(
+		"changes bare-metal support access from %s only after API success",
+		async (enabled) => {
+			vi.useFakeTimers();
+			const input = props(true);
+			input.vm.support_access_enabled = enabled;
+			let resolve: () => void = () => undefined;
+			const promise = new Promise<void>((release) => {
+				resolve = release;
+			});
+			const request = vi
+				.spyOn(api, "setSupportAccess")
+				.mockReturnValue(promise);
+			const label = enabled
+				? "Disable support access"
+				: "Enable support access";
+			const dialog = within(open(input));
+			await act(async () => {
+				fireEvent.click(dialog.getByRole("button", { name: label }));
+				await vi.advanceTimersByTimeAsync(0);
+			});
+			expect(request).toHaveBeenCalledWith("lab", input.vm, !enabled);
+			expect(input.onChanged).not.toHaveBeenCalled();
+			fireEvent.click(screen.getByRole("button", { name: "More" }));
+			expect(screen.getByRole("button", { name: label })).toBeDisabled();
+			await act(async () => {
+				resolve();
+				await vi.advanceTimersByTimeAsync(0);
+			});
+			expect(input.onChanged).toHaveBeenCalledOnce();
+		}
+	);
+	it.each([false, true])(
+		"preserves support access %s when the request fails",
+		async (enabled) => {
+			const input = props(true);
+			input.vm.support_access_enabled = enabled;
+			vi.spyOn(api, "setSupportAccess").mockRejectedValue(
+				new Error("Access denied")
+			);
+			const label = enabled
+				? "Disable support access"
+				: "Enable support access";
+			fireEvent.click(within(open(input)).getByRole("button", { name: label }));
+			expect(await screen.findByRole("alert")).toHaveTextContent(
+				"Access denied"
+			);
+			expect(input.onChanged).not.toHaveBeenCalled();
+			fireEvent.click(screen.getByRole("button", { name: "More" }));
+			expect(screen.getByRole("button", { name: label })).toBeEnabled();
+		}
+	);
+	it("does not treat missing support access state as disabled", () => {
+		const request = vi.spyOn(api, "setSupportAccess");
+		const dialog = within(open(props(true)));
+		const button = dialog.getByRole("button", {
+			name: "Support access unavailable",
+		});
+		expect(button).toBeDisabled();
+		fireEvent.click(button);
+		expect(request).not.toHaveBeenCalled();
+	});
+	it("updates support access actions when polling changes the server", () => {
+		const input = props(true);
+		input.team.effective_roles = ["owner"];
+		input.vm.support_access_enabled = false;
+		const view = renderWithQuery(
+			<ToastHost>
+				<Trip {...input} />
+			</ToastHost>
+		);
+		fireEvent.click(screen.getByRole("button", { name: "More" }));
+		expect(
+			screen.getByRole("button", { name: "Enable support access" })
+		).toBeEnabled();
+		view.rerender(
+			<ToastHost>
+				<Trip {...input} vm={{ ...input.vm, support_access_enabled: true }} />
+			</ToastHost>
+		);
+		expect(
+			screen.getByRole("button", { name: "Disable support access" })
+		).toBeEnabled();
+	});
 	it("updates visible actions as polling changes a VM's state", () => {
 		const input = props();
 		const view = renderWithQuery(

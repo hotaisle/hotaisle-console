@@ -1,3 +1,4 @@
+import { FormError } from "../../components/forms/form-error";
 import { TripActions } from "./trip-actions";
 import { TripConfirmation } from "./trip-confirmation";
 import { TripDetails } from "./trip-details";
@@ -19,6 +20,10 @@ export function Trip(props: TripProps) {
 			style={style}
 		>
 			<TripHeading context={context} />
+			<FormError
+				message={context.supportAccess.error?.message}
+				onDismiss={context.supportAccess.reset}
+			/>
 
 			{panel ? (
 				<TripConfirmation context={context} />

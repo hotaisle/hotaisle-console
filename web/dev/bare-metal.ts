@@ -10,6 +10,7 @@ export class BareMetalPreview {
 	readonly name = "preview-bare-metal";
 	private releasedAt?: number;
 	private power = "On";
+	private supportAccess = false;
 	private installingSince?: number;
 	private readonly now: () => number;
 	private readonly assignedAt: number;
@@ -44,6 +45,7 @@ export class BareMetalPreview {
 				ip_address: "192.0.2.80",
 				port: 22,
 			},
+			support_access_enabled: this.supportAccess,
 		};
 	}
 	request(request: Request, url: URL, parts: string[]) {
@@ -65,6 +67,13 @@ export class BareMetalPreview {
 				);
 			}
 			this.releasedAt = this.now();
+			return new Response(null, { status: 204 });
+		}
+		if (
+			area === "support_access_enable" &&
+			(request.method === "PUT" || request.method === "DELETE")
+		) {
+			this.supportAccess = request.method === "PUT";
 			return new Response(null, { status: 204 });
 		}
 		if (request.method !== "POST") {
