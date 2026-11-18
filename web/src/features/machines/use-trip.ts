@@ -1,3 +1,4 @@
+import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { machineKey } from "../../../../shared/machine-identity";
 import { isPresent } from "../../../../shared/present";
@@ -53,6 +54,14 @@ export function useTrip(props: TripProps) {
 	);
 	const [force, setForce] = useState(false);
 	const [busy, setBusy] = useState("");
+	const supportAccess = useMutation({
+		mutationFn: (enabled: boolean) =>
+			api.setSupportAccess(team.handle, vm, enabled),
+		onSuccess: (_, enabled) => {
+			toast(`Support access ${enabled ? "enabled" : "disabled"}.`);
+			onChanged();
+		},
+	});
 	const phase = phaseOf(vm, state, ending);
 	const prev = useRef<Phase>(phase);
 	const now = useNow(1000);
@@ -218,7 +227,7 @@ export function useTrip(props: TripProps) {
 
 	return {
 		act,
-		busy,
+		busy: supportAccess.isPending ? "Updating support access" : busy,
 		copy,
 		cost,
 		current,
@@ -253,6 +262,7 @@ export function useTrip(props: TripProps) {
 		steps,
 		style,
 		sub,
+		supportAccess,
 		team,
 		toast,
 		underMin,

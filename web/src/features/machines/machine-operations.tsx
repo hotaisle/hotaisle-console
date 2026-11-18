@@ -89,6 +89,17 @@ export function MachineOperations({
 		},
 		[onClose, setPanel]
 	);
+	const supportKnown = typeof vm.support_access_enabled === "boolean";
+	const supportLabel = vm.support_access_enabled
+		? "Disable support access"
+		: "Enable support access";
+	const changeSupportAccess = useCallback(() => {
+		if (!(canOperate && vm.metal && supportKnown) || context.busy) {
+			return;
+		}
+		onClose();
+		context.supportAccess.mutate(!vm.support_access_enabled);
+	}, [canOperate, context, onClose, supportKnown, vm]);
 	const operations = (
 		vm.metal ? METAL_POWER_OPERATIONS : VM_POWER_OPERATIONS
 	).filter((operation) =>
@@ -112,6 +123,22 @@ export function MachineOperations({
 								onOpen={onClose}
 								server={machineAddress(vm)}
 								team={team.handle}
+							/>
+						) : null}
+						{vm.metal ? (
+							<Operation
+								description={
+									supportKnown
+										? "Allow or revoke Hot Aisle support staff SSH access for troubleshooting."
+										: "The API has not reported the current support access setting."
+								}
+								disabled={
+									!supportKnown || !!context.busy || phase === "releasing"
+								}
+								label={
+									supportKnown ? supportLabel : "Support access unavailable"
+								}
+								onClick={changeSupportAccess}
 							/>
 						) : null}
 						{operations.map((operation) => (

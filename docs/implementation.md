@@ -35,7 +35,7 @@ ending a machine to see the minimum-charge confirmation and receipt. Reload or R
 scenario; simulated changes are held only in memory.
 
 Open [the bare-metal example](http://preview.localhost:8787/__preview/?scenario=bare-metal) for an assigned
-8× MI300X server. Its More popup provides simulated bare-metal power operations and reinstall; End exercises
+8× MI300X server. Its More popup provides simulated bare-metal power operations, support access, and reinstall; End exercises
 the eight-hour minimum and release receipt. Console opens a local, read-only mock console in a new tab;
 its simulated API response never contains a real session URL.
 
@@ -261,7 +261,11 @@ Do not re-export or bind the retired classes, or restore their data.
 Ending a virtual machine releases it with `DELETE` and deletes its data. VM actions follow HotManager's TUI:
 state, start, graceful reboot, hard reset, rebuild, and delete. VM serial console access remains in the TUI.
 Bare-metal actions include power state, a one-time console link, power on, graceful/forced shutdown,
-warm/cold reboot, AC reset, reinstall, and release. Shutdown does not stop billing.
+warm/cold reboot, AC reset, reinstall, support access, and release. Shutdown does not stop billing.
+Owners and operators can enable or disable support staff SSH access through More. The action follows the
+API's `support_access_enabled` state; missing state disables the control rather than assuming access is off.
+Failed changes show an error notice without changing the reported setting. Support access controls are
+bare-metal only; the VM API does not expose an equivalent operation.
 Minimum reservations come from the API: currently one minute
 for 1-GPU VMs, 30 minutes per GPU for larger VMs, and eight hours for bare metal. The confirmation and estimated receipt account for the minimum. A failed release
 must never be displayed as a successful end.

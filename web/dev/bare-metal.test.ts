@@ -20,6 +20,31 @@ function setup(scenario: "bare-metal" | "same-name" = "bare-metal") {
 }
 
 describe("bare-metal preview through the console API", () => {
+	it("enables and disables support access without affecting a same-name VM", async () => {
+		setup("same-name");
+		const machines = await api.vms("preview");
+		const server = machines.find((machine) => machine.metal);
+		const vm = machines.find((machine) => !machine.metal);
+		if (!(server && vm)) {
+			throw new Error("Expected both resource kinds");
+		}
+		expect(server.support_access_enabled).toBe(false);
+		await api.setSupportAccess("preview", server, true);
+		const enabled = await api.vms("preview");
+		expect(
+			enabled.find((machine) => machine.metal)?.support_access_enabled
+		).toBe(true);
+		expect(enabled.find((machine) => !machine.metal)).toEqual(vm);
+		await api.setSupportAccess("preview", server, false);
+		const disabled = await api.vms("preview");
+		expect(
+			disabled.find((machine) => machine.metal)?.support_access_enabled
+		).toBe(false);
+		expect(disabled.find((machine) => !machine.metal)).toEqual(vm);
+		await expect(api.setSupportAccess("preview", vm, true)).rejects.toThrow(
+			"only available for bare metal"
+		);
+	});
 	it("keeps same-name VM and bare-metal operations independent", async () => {
 		const { preview } = setup("same-name");
 		const machines = await api.vms("preview");

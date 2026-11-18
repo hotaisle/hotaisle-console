@@ -3,6 +3,28 @@ import { api, type PowerAction } from "./api";
 
 afterEach(() => vi.unstubAllGlobals());
 describe("bare-metal power API", () => {
+	it.each([true, false])(
+		"sets support access %s by deployment ID",
+		async (enabled) => {
+			const fetcher = vi
+				.fn()
+				.mockResolvedValue(new Response(null, { status: 204 }));
+			vi.stubGlobal("fetch", fetcher);
+			await api.setSupportAccess(
+				"lab",
+				{
+					deployment_id: "rental-id",
+					metal: true,
+					name: "display-name",
+				},
+				enabled
+			);
+			expect(fetcher).toHaveBeenCalledWith(
+				"/api/teams/lab/bare_metal/rental-id/support_access_enable/",
+				expect.objectContaining({ method: enabled ? "PUT" : "DELETE" })
+			);
+		}
+	);
 	it.each([false, true])(
 		"uses the deployment ID for state, power, rebuild and release for metal=%s",
 		async (metal) => {

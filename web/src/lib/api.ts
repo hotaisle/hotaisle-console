@@ -65,6 +65,7 @@ export type VM = Specs & {
 	status: VMStatus;
 	ssh_access?: SSHAccess;
 	reservation?: Reservation;
+	support_access_enabled?: boolean;
 	/** A bare-metal server: the whole machine, eight GPUs. */
 	metal?: boolean;
 };
@@ -244,6 +245,7 @@ type Metal = MetalSpecs & {
 	ip_address?: string;
 	ssh_access?: SSHAccess;
 	reservation?: Reservation;
+	support_access_enabled?: boolean;
 	specs?: MetalSpecs;
 	os_status?: { os_install_status?: InstallStage };
 };
@@ -260,6 +262,7 @@ function metalVM(b: Metal): VM {
 		reservation: b.reservation,
 		ssh_access: b.ssh_access,
 		status: "ready",
+		support_access_enabled: b.support_access_enabled,
 	};
 }
 export type PowerAction =
@@ -395,6 +398,17 @@ export const api = {
 		),
 	revokeAPIToken: (prefix: string) =>
 		call<void>("DELETE", `/api/user/api_keys/${encodeURIComponent(prefix)}/`),
+	setSupportAccess: async (team: string, vm: MachineRef, enabled: boolean) => {
+		if (!vm.metal) {
+			throw new Error(
+				"Support access controls are only available for bare metal."
+			);
+		}
+		await call<void>(
+			enabled ? "PUT" : "DELETE",
+			`${m(team, machineAddress(vm))}/support_access_enable/`
+		);
+	},
 	setupAutoRebill: (team: string, settings: AutoRebillSettings) =>
 		call<{ checkout_url: string; expires_at: string }>(
 			"POST",
