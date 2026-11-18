@@ -116,16 +116,19 @@ so an email change requires migration too. The Worker can derive the key but sto
 Keep the preview's fixtures memory-only. Failed unlock or storage writes must show a visible warning and
 preserve ciphertext; new entries may remain memory-only while storage is unavailable.
 
-Email sign-in uses an encrypted HttpOnly, Secure, SameSite=Strict cookie. Its claim ticket and email-session
-token never enter frontend response bodies. Old API-key session cookies are rejected. Never log credentials,
-passphrases, claim tickets, or emails. Login sessions live in encrypted browser cookies; there is no account database.
+Email sign-in uses an encrypted HttpOnly, Secure, SameSite=Strict cookie. Claim tickets and access/refresh
+credentials never enter frontend response bodies or browser-readable storage. Old session cookies require
+fresh sign-in. Never log credentials, passphrases, claim tickets, or emails. There is no account database.
 
 Keep the same-origin guard, custom request header, CSP, fixed upstream destination, and manual redirect handling.
 Do not add endpoints that store API keys or return session secrets to the page.
 
 The upstream email flow uses `/user/email/login/`, `/user/email/wait/`, and `/user/email/complete/`. Approval uses
-202 while waiting and 204 when approved; completion returns its token through response headers. Renewal keeps
-the later expiry so an older response cannot replace a newer session.
+202 while waiting and 204 when approved; completion returns an explicit JSON access/refresh token pair.
+Refresh is on demand and single-use. Serialize cookie-authenticated exchanges across tabs with Web Locks,
+including complete response receipt; never replay a resource request after an authentication failure. Persist
+only nonsecret coordination state to prevent uncertain or interrupted exchanges from retrying a potentially
+spent refresh token. Logout is terminal locally before network cleanup and attempts upstream session revocation.
 Email-login issuance must use the `hotaisle-console` RFC 9421 Ed25519 client identity. Keep its dedicated
 `EMAIL_LOGIN_SIGNING_KEY` private to the Worker and register only the public key in hotManager's
 `EMAIL_AUTH_CLIENTS`. Sign the exact JSON bytes, canonical HTTPS upstream URL, and POST method with a

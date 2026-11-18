@@ -23,6 +23,7 @@ import { useNavigation } from "../features/console/use-navigation";
 import { useOrder } from "../features/launch/use-order";
 import { ACCOUNT_KEY, STATUS_KEY } from "../hooks/use-session";
 import { APIError, type APIToken, api, type Team } from "../lib/api";
+import { keyVault } from "../lib/key-vault";
 import { createAppRouter } from "./router";
 
 function ConsoleProbe({ team }: { team: Team }) {
@@ -386,6 +387,38 @@ describe("console URLs", () => {
 		await open("/account/api-tokens/other-prefix?tokenTeam=lab");
 		expect(await screen.findByRole("alert")).toHaveTextContent("not found");
 		expect(screen.queryByLabelText("Label")).not.toBeInTheDocument();
+	});
+	it("allows an owner signed in with a typed key to create and edit API tokens", async () => {
+		const prefix = "0123456789abcdef01234567";
+		vi.spyOn(keyVault, "token").mockReturnValue(
+			`ha_ak_${prefix}.${"a".repeat(64)}`
+		);
+		vi.mocked(api.status).mockResolvedValue({
+			email_login: true,
+			key_stored: true,
+			kind: "key",
+			passkeys: false,
+			signed_in: true,
+			version: "test",
+		});
+		vi.spyOn(api, "apiTokens").mockResolvedValue([
+			{
+				label: "Typed owner",
+				prefix,
+				teams: [],
+				user_role: "owner",
+			},
+		]);
+		await open("/account/api-tokens");
+		expect(
+			await screen.findByRole("link", { name: "Create API token" })
+		).toBeVisible();
+		const user = userEvent.setup();
+		await user.click(screen.getByRole("link", { name: "Edit" }));
+		const label = await screen.findByLabelText("Label");
+		expect(label).toHaveValue("Typed owner");
+		await user.type(label, " edited");
+		expect(screen.getByRole("button", { name: "Save token" })).toBeEnabled();
 	});
 	it("signs out after explicitly revoking the token used for the current sign-in", async () => {
 		vi.mocked(api.status).mockResolvedValue({

@@ -24,7 +24,7 @@ describe("API-key transport", () => {
 		await api.signInWithKey(TOKEN, PASSPHRASE);
 		expect(fetcher.mock.calls[0][0]).toBe("/auth/key");
 		expect(fetcher.mock.calls[0][1].headers.Authorization).toBe(
-			`Token ${TOKEN}`
+			`Bearer ${TOKEN}`
 		);
 		expect(fetcher.mock.calls[0][1].body).toBeUndefined();
 		for (const [, options] of fetcher.mock.calls) {
@@ -39,4 +39,37 @@ describe("API-key transport", () => {
 		const [, lastOptions] = fetcher.mock.calls.at(-1) ?? [];
 		expect(lastOptions.headers.Authorization).toBeUndefined();
 	});
+	it.each([
+		[
+			"0123456789abcdef01234567.fixture-secret",
+			"0123456789abcdef01234567.fixture-secret",
+		],
+		[
+			"ha_ak_0123456789abcdef01234567.fixture-secret",
+			"ha_ak_0123456789abcdef01234567.fixture-secret",
+		],
+		[
+			"Token 0123456789abcdef01234567.fixture-secret",
+			"0123456789abcdef01234567.fixture-secret",
+		],
+		[
+			"bEaReR ha_ak_0123456789abcdef01234567.fixture-secret",
+			"ha_ak_0123456789abcdef01234567.fixture-secret",
+		],
+	])(
+		"uses saved credential %s without changing its public metadata identifier",
+		async (saved, credential) => {
+			vi.spyOn(keyVault, "token").mockReturnValue(saved);
+			const fetcher = vi
+				.fn()
+				.mockResolvedValue(
+					Response.json({ teams: [], user: { email: "fixture@example.test" } })
+				);
+			vi.stubGlobal("fetch", fetcher);
+			await api.user();
+			const [, options] = fetcher.mock.calls[0];
+			expect(options.headers.Authorization).toBe(`Bearer ${credential}`);
+			expect(api.activeTokenPrefix()).toBe("0123456789abcdef01234567");
+		}
+	);
 });

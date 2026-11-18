@@ -80,7 +80,7 @@ export function useSessionActions() {
 			historyVault.lock();
 			lockOtherTabs();
 		},
-		onSuccess: () => {
+		onSettled: () => {
 			client.setQueryData<Status>(STATUS_KEY, (previous) => ({
 				email_login: previous?.email_login ?? true,
 				key_stored: previous?.key_stored ?? false,

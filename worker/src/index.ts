@@ -29,15 +29,18 @@ import {
 	type Credential,
 	completeEmailLogin,
 	type Env,
+	logoutEmailSession,
+	refreshEmailSession,
 	send,
 	startEmailLogin,
+	type TokenPair,
 	waitEmailLogin,
 	whoIs,
 } from "./hotaisle";
 import { allowRate, requestIp } from "./rate-limit";
 import { readSession, type Session, sessionCookie } from "./session";
 
-const TOKEN_SCHEME_PATTERN = /^Token\s+/iu;
+const TOKEN_SCHEME_PATTERN = /^(?:Bearer|Token)\s+/iu;
 const WHITESPACE_PATTERN = /\s/u;
 const MAX_EMAIL_START_BYTES = 1024;
 const MAX_API_BODY_BYTES = 1024 * 1024;
@@ -138,17 +141,53 @@ async function readBody(
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 
-interface TokenSession extends Session {
-	token: string;
-}
-interface AuthenticatedSession extends TokenSession {
-	token: string;
-}
-
 function isAuthenticatedSession(
 	session: Session | undefined
-): session is AuthenticatedSession {
-	return Boolean(session?.token);
+): session is Session & { pair: TokenPair } {
+	if (!session?.pair || session.ended) {
+		return false;
+	}
+	const now = Date.now();
+	return (
+		session.exp > now &&
+		session.pair.refreshExpiresAt > now &&
+		session.pair.sessionExpiresAt > now
+	);
+}
+
+/** Browser Web Locks serialize cookie exchanges; no per-isolate mutex can do so. */
+async function withEmailSession(
+	env: Env,
+	session: Session | undefined,
+	request: (credential: Credential) => Promise<Response>
+): Promise<Response> {
+	if (!isAuthenticatedSession(session)) {
+		return fail(401, "Sign in again.", { "X-Session-Ended": "true" });
+	}
+	let { pair } = session;
+	let cookie: string | undefined;
+	if (pair.accessExpiresAt - Date.now() <= 60_000) {
+		const refreshed = await refreshEmailSession(env, pair);
+		if (!refreshed) {
+			return fail(401, "This sign-in ended. Sign in again.", {
+				"Set-Cookie": await sessionCookie(env.SESSION_SECRET, {
+					ended: true,
+					kind: "email",
+					pair,
+				}),
+				"X-Session-Ended": "true",
+			});
+		}
+		pair = refreshed;
+		cookie = await sessionCookie(env.SESSION_SECRET, { kind: "email", pair });
+	}
+	let response: Response;
+	try {
+		response = await request({ kind: "email", token: pair.accessToken });
+	} catch {
+		response = fail(502, "Could not complete the authenticated request.");
+	}
+	return cookie ? withHeaders(response, { "Set-Cookie": cookie }) : response;
 }
 
 export default {
@@ -201,28 +240,21 @@ export default {
 			);
 		}
 		const authorization = req.headers.get("Authorization");
-		if (authorization && area !== "auth") {
+		if (authorization !== null && area !== "auth") {
 			return stateless(req, env, url, authorization);
 		}
 		const session = await readSession(req, env.SESSION_SECRET);
 		if (area === "auth") {
 			return auth(req, env, url, session);
 		}
-		if (!isAuthenticatedSession(session)) {
-			return fail(401, "not signed in");
-		}
 		if (area === "api") {
-			return proxy(req, env, url, session);
+			return withEmailSession(env, session, (credential) =>
+				proxy(req, env, url, credential)
+			);
 		}
 		return fail(404, "not found");
 	},
 } satisfies ExportedHandler<Env>;
-
-/** What this session's calls go out with: an API key, or a session from email sign-in (each has its own header). */
-const credentialOf = (s: TokenSession): Credential => ({
-	kind: s.kind === "email" ? "email" : "key",
-	token: s.token,
-});
 
 // ---------------------------------------------------------------- sign-in
 
@@ -240,11 +272,11 @@ async function auth(
 		case "POST /auth/history-key":
 			return await authPostHistoryKey(req, env, url, session);
 		case "POST /auth/email/start":
-			return await authPostAuthEmailStart(req, env);
+			return await authPostAuthEmailStart(req, env, session);
 		case "POST /auth/email/wait":
 			return await authPostAuthEmailWait(req, env, session);
 		case "POST /auth/signout":
-			return await authPostAuthSignout(env);
+			return await authPostAuthSignout(env, session);
 		default:
 			return fail(404, "not found");
 	}
@@ -257,15 +289,24 @@ async function authPostHistoryKey(
 	session: Session | undefined
 ) {
 	const header = req.headers.get("Authorization");
-	let credential: Credential | undefined;
-	if (header) {
-		credential = keyFromHeader(header);
-	} else if (isAuthenticatedSession(session)) {
-		credential = credentialOf(session);
+	if (header === null) {
+		return await withEmailSession(env, session, (sessionCredential) =>
+			historyKeyResponse(req, env, url, sessionCredential)
+		);
 	}
+	const credential = keyFromHeader(header);
 	if (!credential) {
 		return fail(401, "Sign in to unlock browser history.");
 	}
+	return await historyKeyResponse(req, env, url, credential);
+}
+
+async function historyKeyResponse(
+	req: Request,
+	env: Env,
+	url: URL,
+	credential: Credential
+) {
 	const limited = await rateLimitResponse(
 		env.AUTH_RATE_LIMITER,
 		env.SESSION_SECRET,
@@ -299,20 +340,20 @@ async function authPostHistoryKey(
 	}
 }
 async function authGetAuthStatus(env: Env, session: Session | undefined) {
+	const signedIn = isAuthenticatedSession(session);
 	return json({
 		email_login: true,
-		kind: session?.token ? session.kind : undefined,
+		kind: signedIn ? session.kind : undefined,
 		passkeys: false,
-		signed_in: !!session?.token,
+		signed_in: signedIn,
 		version: env.VERSION ?? "dev",
-		waiting_for_email:
-			session?.pending && !session.token
-				? {
-						email: session.pending.email,
-						expires_at: session.pending.expires_at,
-						request_code: await emailLoginFingerprint(session.pending.ticket),
-					}
-				: undefined,
+		waiting_for_email: session?.pending
+			? {
+					email: session.pending.email,
+					expires_at: session.pending.expires_at,
+					request_code: await emailLoginFingerprint(session.pending.ticket),
+				}
+			: undefined,
 	});
 }
 
@@ -337,7 +378,11 @@ async function authGetAuthKey(req: Request, env: Env) {
 	return json(JSON.parse(who.body));
 }
 
-async function authPostAuthEmailStart(req: Request, env: Env) {
+async function authPostAuthEmailStart(
+	req: Request,
+	env: Env,
+	session: Session | undefined
+) {
 	const ipLimit = await rateLimitResponse(
 		env.EMAIL_LOGIN_IP_RATE_LIMITER,
 		env.SESSION_SECRET,
@@ -374,9 +419,39 @@ async function authPostAuthEmailStart(req: Request, env: Env) {
 	if (emailLimit) {
 		return emailLimit;
 	}
+	if (
+		session?.pair &&
+		!(await logoutEmailSession(env, session.pair.refreshToken))
+	) {
+		return fail(
+			502,
+			"Could not revoke the previous sign-in. Sign out and try again.",
+			{
+				"Set-Cookie": await sessionCookie(env.SESSION_SECRET, {
+					ended: true,
+					kind: "email",
+					pair: session.pair,
+				}),
+				"X-Session-Ended": "true",
+			}
+		);
+	}
 	const r = await startEmailLogin(env, email);
 	if (!r.ok) {
-		return fail(r.status, r.message);
+		return fail(
+			r.status,
+			r.message,
+			session?.pair
+				? {
+						"Set-Cookie": await sessionCookie(env.SESSION_SECRET, {
+							ended: true,
+							kind: "email",
+							pair: session.pair,
+						}),
+						"X-Session-Ended": "true",
+					}
+				: {}
+		);
 	}
 	const pending = {
 		email: r.start.email || email,
@@ -431,30 +506,47 @@ async function authPostAuthEmailWait(
 	}
 	const c = await completeEmailLogin(env, p.ticket);
 	if ("failed" in c) {
-		return fail(410, c.failed);
+		return fail(410, c.failed, {
+			"Set-Cookie": await sessionCookie(env.SESSION_SECRET, undefined),
+			"X-Session-Ended": "true",
+		});
 	}
-	const cred: Credential = { kind: "email", token: c.token };
+	const cred: Credential = { kind: "email", token: c.accessToken };
 	const who = await whoIs(env, cred);
 	if (!who.ok) {
-		return fail(who.status, who.message);
+		const revoked = await logoutEmailSession(env, c.refreshToken);
+		return fail(who.status, "Could not verify this sign-in. Sign in again.", {
+			"Set-Cookie": await sessionCookie(
+				env.SESSION_SECRET,
+				revoked ? undefined : { ended: true, kind: "email", pair: c }
+			),
+			"X-Session-Ended": "true",
+		});
 	}
-	// the cookie lasts as long as Hot Aisle's session (it's renewed as the app is used), and at most 30 days
-	const days = c.expires
-		? Math.max(1 / 1440, (c.expires - Date.now()) / 86_400_000)
-		: 30;
-	return json({ done: true, ...JSON.parse(who.body) }, 200, {
-		"Set-Cookie": await sessionCookie(
-			env.SESSION_SECRET,
-			{ kind: "email", token: c.token, tokenExp: c.expires },
-			Math.min(days, 30)
-		),
+	return json({ done: true, teams: who.who.teams, user: who.who.user }, 200, {
+		"Set-Cookie": await sessionCookie(env.SESSION_SECRET, {
+			kind: "email",
+			pair: c,
+		}),
 	});
 }
 
-async function authPostAuthSignout(env: Env) {
-	return json({ ok: true }, 200, {
+async function authPostAuthSignout(env: Env, session: Session | undefined) {
+	const headers = {
 		"Set-Cookie": await sessionCookie(env.SESSION_SECRET, undefined),
-	});
+		"X-Session-Ended": "true",
+	};
+	if (
+		session?.pair &&
+		!(await logoutEmailSession(env, session.pair.refreshToken))
+	) {
+		return fail(
+			502,
+			"Signed out in this browser, but remote revocation could not be confirmed.",
+			headers
+		);
+	}
+	return json({ ok: true }, 200, headers);
 }
 
 // ---------------------------------------------------------------- the Hot Aisle API
@@ -465,9 +557,8 @@ async function proxy(
 	req: Request,
 	env: Env,
 	url: URL,
-	session: TokenSession
+	cred: Credential
 ): Promise<Response> {
-	const cred = credentialOf(session);
 	const path = url.pathname.slice("/api".length) + url.search;
 	const read = req.method === "GET" || req.method === "HEAD";
 	const limited = await rateLimitResponse(
@@ -504,11 +595,11 @@ async function proxy(
 			method: req.method,
 			redirect: "manual",
 		});
-	} catch (e) {
-		return fail(
-			502,
-			`Could not reach the Hot Aisle API: ${(e as Error).message}`
-		);
+	} catch {
+		return fail(502, "Could not reach the Hot Aisle API.");
+	}
+	if (r.status >= 300 && r.status < 400) {
+		return fail(502, "Unexpected upstream redirect.");
 	}
 	const out = new Response(r.body, {
 		headers: {
@@ -517,36 +608,6 @@ async function proxy(
 		},
 		status: r.status,
 	});
-	// Renewal: when an email session has under a minute left, Hot Aisle answers any call with a new key and its
-	// expiry. The old key keeps working until its own expiry, so requests already in flight finish; the session
-	// switches to the new key only if it lasts at least as long as the one it has (expiries come in whole seconds),
-	// so a slow, older answer can't undo it.
-	const fresh = r.headers.get("X-New-Session-Key");
-	const until = Date.parse(r.headers.get("X-Session-Key-Expires") ?? "");
-	if (
-		cred.kind === "email" &&
-		fresh &&
-		Number.isFinite(until) &&
-		until >= (session.tokenExp ?? 0) &&
-		fresh !== session.token
-	) {
-		const days = Math.min(
-			30,
-			Math.max(1 / 1440, (until - Date.now()) / 86_400_000)
-		);
-		out.headers.set(
-			"Set-Cookie",
-			await sessionCookie(
-				env.SESSION_SECRET,
-				{
-					kind: "email",
-					token: fresh,
-					tokenExp: until,
-				},
-				days
-			)
-		);
-	}
 	return withHeaders(out);
 }
 
@@ -555,7 +616,13 @@ function keyFromHeader(header: string | null): Credential | undefined {
 		return undefined;
 	}
 	const token = header.replace(TOKEN_SCHEME_PATTERN, "");
-	if (!token || token.length > 4096 || WHITESPACE_PATTERN.test(token)) {
+	if (
+		!token ||
+		token.length > 4096 ||
+		WHITESPACE_PATTERN.test(token) ||
+		token.startsWith("ha_at_") ||
+		token.startsWith("ha_rt_")
+	) {
 		return undefined;
 	}
 	return { kind: "key", token };
@@ -570,11 +637,5 @@ async function stateless(
 	if (!credential) {
 		return fail(401, "Invalid API-key authorization header.");
 	}
-	const identity: TokenSession = {
-		exp: Date.now(),
-		kind: "key",
-		token: credential.token,
-		v: 1,
-	};
-	return await proxy(req, env, url, identity);
+	return await proxy(req, env, url, credential);
 }

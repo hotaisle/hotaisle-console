@@ -144,16 +144,51 @@ IV, and a format version are saved in local storage. The passphrase is never sen
 requires unlocking again; signing out clears the unlocked key from memory. Forgetting the saved key deletes
 its encrypted local copy. Lost passphrases cannot be recovered.
 
-After unlocking, each API request carries the key over HTTPS in its authorization header. The Worker forwards
-it to Hot Aisle for that request. It does not create an API-key session cookie or persist API keys in a database
-or application logs.
+After unlocking, each API request carries the key over HTTPS in its authorization header. The Worker accepts
+`Bearer` and legacy `Token` API-key headers and forwards exactly one `Authorization: Bearer <credential>`
+header. Raw and typed `ha_ak_` API keys need no migration. An explicit authorization header never falls back
+to a cookie. The Worker does not create API-key cookies or persist keys in a database or application logs.
 This stateless proxy avoids requiring CORS changes on the upstream API.
 
 **Email sign-in:** The approval screen shows a comparison code derived from the private claim ticket.
 The code must match the email approval page before approving; it is not an authentication credential.
-The Worker handles Hot Aisle's email approval flow. Its claim ticket and resulting email-session
-token stay in an AES-GCM encrypted, HttpOnly, Secure, SameSite=Strict cookie. Email sessions renew using the
-upstream API's response headers. Legacy API-key session cookies are no longer accepted.
+The Worker handles Hot Aisle's email approval flow. Completion exchanges the private claim ticket at
+`POST /user/email/complete/` for an HTTP 200 JSON TokenPair: `access_token`, `refresh_token`,
+`token_type: Bearer`, `access_token_expires_at`, `refresh_token_expires_at`, `session_expires_at`, and
+`session_handle`. The private claim and resulting pair stay in an AES-GCM encrypted, HttpOnly, Secure,
+SameSite=Strict cookie. Frontend completion remains `{done: true, user, teams}`; status and completion
+never expose tokens, session handles, or token-expiry metadata. Legacy v1 session cookies, including old
+email and API-key cookies, require a new sign-in. Browser API-key and history ciphertext formats are unchanged.
+
+V2 email cookies live until the fixed logical-session deadline, not the shorter access-token deadline.
+Before an authenticated resource or history-key request, the Worker refreshes access with at most one
+`POST /auth/token/` exchange when access is expired or within a minute of expiry. Its URL-encoded body is
+`grant_type=refresh_token&refresh_token=...`, with no authorization header. The Worker validates token
+types, deadlines, rotated credentials, the unchanged session handle, and the unchanged absolute deadline
+before replacing both tokens atomically. Resources receive only `Authorization: Bearer <access_token>`;
+refresh tokens are body-only. Resource requests, including mutations, are sent once and never replayed on
+401. Every response after successful renewal retains the replacement cookie, including resource errors.
+
+Renewal is single-use: failed, malformed, rejected, or lost exchanges are terminal, never automatically
+retried with a potentially spent token. The Worker marks refresh failures `X-Session-Ended: true` and
+retains the old verifier only in an encrypted ended cookie for explicit logout. It cannot authorize or
+renew an ended cookie. The browser serializes complete cookie-authenticated exchanges, including response
+bodies, email polling, and sign-out, across tabs with same-origin Web Locks. It persists only nonsecret
+coordination state before an exchange. Cancellation epochs are stored separately from exchange phases,
+so completing an older request cannot restore a canceled sign-in. A lost response, crashed tab, or uncertain
+credential exchange requires explicit fresh sign-in rather than risking replay of a spent verifier.
+Fully received resource errors, including 5xx responses, preserve sign-in unless authentication is rejected
+or the Worker explicitly marks the session ended. Encrypted API keys and history are preserved. Browsers
+without Web Locks fail email paths closed with guidance to use a current browser or an API key; sign-out
+still attempts remote revocation. API-key traffic remains
+stateless and concurrent. No per-isolate lock, Durable Object, KV, D1, or server-side session store is used.
+
+Sign-out always clears the local cookie and posts its current or spent refresh verifier as JSON to
+`POST /auth/logout/`, without authorization. Authentic spent verifiers can revoke a family after a lost
+renewal response. Remote failure is reported visibly; local sign-out never falsely claims confirmed
+revocation. API keys themselves are never revoked by sign-out. Starting a replacement email login revokes
+the previous cookie session before discarding its only verifier; failed revocation retains an ended cookie
+instead of orphaning that session.
 
 **Browser history:** Launch details and receipts are saved as append-only AES-256-GCM encrypted entries in
 local storage, with a fresh random IV for each write. Entry IDs and account scope are authenticated with the

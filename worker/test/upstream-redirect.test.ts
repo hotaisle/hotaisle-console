@@ -19,7 +19,7 @@ describe("internal upstream requests", () => {
 			"https://upstream.invalid/api/user/",
 			expect.objectContaining({
 				headers: expect.objectContaining({
-					Authorization: "Token dummy-token",
+					Authorization: "Bearer dummy-token",
 				}),
 				redirect: "manual",
 			})

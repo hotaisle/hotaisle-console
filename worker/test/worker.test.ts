@@ -8,7 +8,7 @@ const HTTP_ONLY_PATTERN = /HttpOnly/u;
 const SECURE_COOKIE_PATTERN = /Secure/u;
 const SAME_SITE_PATTERN = /SameSite=Strict/u;
 const CLEARED_COOKIE_PATTERN = /Max-Age=0/u;
-const SESSION_AUTH_PATTERN = / session:sess-/u;
+const SESSION_AUTH_PATTERN = / session:ha_at_/u;
 const REQUEST_CODE_PATTERN = /^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/u;
 
 const ORIGIN = "https://ui.test";
@@ -448,44 +448,40 @@ describe("sign-in with an email link", () => {
 		expect(
 			JSON.parse((await b.call("GET", "/api/teams/lab/whoami/")).text).who
 		).toBe("carol@example.com");
-		// a session from email sign-in goes out as X-Session-Key, never as an API key
+		// Email access tokens use bearer auth, never the removed session header.
 		const calls = await upstreamCalls();
 		expect(
-			calls.filter((c) => c.startsWith("GET /teams/lab/whoami/ session:sess-"))
+			calls.filter((c) => c.startsWith("GET /teams/lab/whoami/ session:ha_at_"))
 				.length
 		).toBeGreaterThan(0);
 		expect(
-			calls.some((c) => c.startsWith("GET /teams/lab/whoami/ key:sess-"))
+			calls.some((c) => c.startsWith("GET /teams/lab/whoami/ key:ha_at_"))
 		).toBe(false);
 		expect(calls).toContain("POST /user/email/complete/ -");
 	});
-
 	it("renews the session as it is used, and switches to the new key", async () => {
 		const b = browser();
 		await b.call("POST", "/auth/email/start", { email: "dave@example.com" });
 		await env.UPSTREAM.fetch(
 			"https://api.test/api/__open?email=dave%40example.com"
 		);
+		await env.UPSTREAM.fetch(
+			"https://api.test/api/__configure?email=dave%40example.com&access_in=30"
+		);
 		expect(
 			JSON.parse((await b.call("POST", "/auth/email/wait")).text).done
 		).toBe(true);
-		const keyIn = async () => {
-			await b.call("GET", "/api/teams/lab/whoami/");
-			return (await upstreamCalls())
-				.filter((c) => c.startsWith("GET /teams/lab/whoami/"))
-				.pop();
-		};
-		const first = await keyIn();
-		// the session gets near its end: Hot Aisle answers the next call with a new key
-		await env.UPSTREAM.fetch(
-			"https://api.test/api/__expire?email=dave%40example.com&in=30"
-		);
+		const first = b.cookie();
 		const renewing = await b.call("GET", "/api/teams/lab/whoami/");
 		expect(renewing.setCookie).toMatch(HTTP_ONLY_PATTERN);
-		expect(renewing.text).not.toContain("sess-");
-		const after = await keyIn();
-		expect(after).toMatch(SESSION_AUTH_PATTERN);
-		expect(after).not.toBe(first);
+		expect(renewing.text).not.toContain("ha_at_");
+		await b.call("GET", "/api/teams/lab/whoami/");
+		expect(
+			(await upstreamCalls())
+				.filter((call) => call.startsWith("GET /teams/lab/whoami/"))
+				.pop()
+		).toMatch(SESSION_AUTH_PATTERN);
+		expect(b.cookie()).not.toBe(first);
 	});
 
 	it("never signs in from an unapproved link", async () => {
