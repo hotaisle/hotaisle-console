@@ -4,6 +4,7 @@ export interface Order {
 	count: number;
 	customURL: string;
 	image: Image;
+	offer?: string;
 }
 
 export interface LaunchMeta {

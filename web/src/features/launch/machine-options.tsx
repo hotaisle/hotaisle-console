@@ -3,6 +3,7 @@ import { isPresent } from "../../../../shared/present";
 import type { Offer } from "../../lib/api";
 import { gb, hbm, money } from "../../lib/format";
 import { sound } from "../../lib/sound";
+import { offerKey } from "./offers";
 import type { Order } from "./types";
 
 const PLACEHOLDER: Offer[] = [1, 2, 4, 8].map((count) => ({
@@ -38,12 +39,12 @@ function availability(quantity: number) {
 }
 export function MachineOptions({
 	sizes,
-	count,
+	selectedOffer,
 	onChange,
 	loading = false,
 }: {
 	sizes: Offer[];
-	count: number;
+	selectedOffer?: Offer;
 	onChange: (order: Partial<Order>) => void;
 	loading?: boolean;
 }) {
@@ -51,9 +52,17 @@ export function MachineOptions({
 	const change = useCallback(
 		(event: ChangeEvent<HTMLInputElement>) => {
 			sound.tick();
-			onChange({ count: Number(event.currentTarget.value) });
+			const offer = sizes.find(
+				(size) => offerKey(size) === event.currentTarget.value
+			);
+			if (offer) {
+				onChange({
+					count: offer.Specs.gpus?.[0]?.count,
+					offer: offerKey(offer),
+				});
+			}
 		},
-		[onChange]
+		[onChange, sizes]
 	);
 	if (!loading && sizes.length === 0) {
 		return null;
@@ -66,19 +75,29 @@ export function MachineOptions({
 				if (!gpu) {
 					return null;
 				}
-				const selected = gpu.count === count && offer.Quantity >= 0;
+				const key = offerKey(offer);
+				const selected =
+					selectedOffer !== undefined &&
+					key === offerKey(selectedOffer) &&
+					offer.Quantity >= 0;
 				const unavailable = offer.Quantity <= 0;
-				const id = `${group}-${gpu.count}`;
+				const id = `${group}-${encodeURIComponent(key)}`;
 				const availabilityClass =
 					offer.Quantity > 0 && offer.Quantity <= 2 ? "low" : "";
 				return (
 					<label
 						className={`opt ${selected ? "on" : ""} ${unavailable ? "out" : ""}`}
 						htmlFor={id}
-						key={gpu.count}
+						key={key}
 					>
 						<input
-							aria-keyshortcuts={String(gpu.count)}
+							aria-keyshortcuts={
+								sizes.filter(
+									(size) => size.Specs.gpus?.[0]?.count === gpu.count
+								).length === 1
+									? String(gpu.count)
+									: undefined
+							}
 							checked={selected}
 							className="visually-hidden"
 							disabled={unavailable}
@@ -86,7 +105,7 @@ export function MachineOptions({
 							name={group}
 							onChange={change}
 							type="radio"
-							value={gpu.count}
+							value={key}
 						/>
 						<span aria-hidden="true" className="opt-radio" />
 						<span className="opt-main">

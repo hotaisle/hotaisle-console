@@ -2,6 +2,7 @@ import { machineKey } from "../../../../shared/machine-identity";
 import { isPresent } from "../../../../shared/present";
 import type { Ended, MachineRecord, Offer, VM, VMState } from "../../lib/api";
 import { duration, money, specRows } from "../../lib/format";
+import { selectedOffer, sizesOf } from "../launch/offers";
 import type { Order } from "../launch/types";
 import { runTitle } from "../machines/formatting";
 import { phaseOf, stageModeOf, usesCloudInit } from "../machines/state";
@@ -52,7 +53,7 @@ function machines(input: StageInput): StageMachine[] {
 }
 function preview(input: StageInput): Omit<StageState, "machines"> {
 	const { count } = input.order;
-	const offer = input.offerFor(count);
+	const offer = selectedOffer(sizesOf(input.offers), input.order);
 	const spec: [string, string][] = [];
 	if (offer) {
 		spec.push(...specRows(offer.Specs));

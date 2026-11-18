@@ -90,6 +90,14 @@ spaces as required by its syntax.
 
 Pages use URLs for bookmarks and browser navigation. History URLs reopen after signing in to the same account
 in the same browser. Encrypted history does not sync across devices or browser profiles.
+
+Launch choices retain a hardware-class identity in the validated `offer` search parameter.
+GPU count alone does not identify a class: two whole-server configurations may both have eight GPUs.
+Selection, estimates, stage specifications, and reservation requests use the same class. Identity excludes
+stock and prices, so polling and catalog reordering preserve the selection. If an explicitly selected class
+disappears or sells out, launch is blocked rather than silently choosing another. Count-only legacy links
+retain their available-size fallback; numeric shortcuts apply only to unambiguous GPU counts.
+
 The team chooser refreshes memberships and invitations every 30 seconds while active, and on returning to
 the tab. Failed background updates keep the current list visible and offer a retry in a dismissible notice.
 
