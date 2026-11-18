@@ -141,6 +141,8 @@ async function readBody(
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 
+const ACCESS_RENEWAL_WINDOW_MS = 60_000;
+
 function isAuthenticatedSession(
 	session: Session | undefined
 ): session is Session & { pair: TokenPair } {
@@ -166,7 +168,7 @@ async function withEmailSession(
 	}
 	let { pair } = session;
 	let cookie: string | undefined;
-	if (pair.accessExpiresAt - Date.now() <= 60_000) {
+	if (pair.accessExpiresAt - Date.now() <= ACCESS_RENEWAL_WINDOW_MS) {
 		const refreshed = await refreshEmailSession(env, pair);
 		if (!refreshed) {
 			return fail(401, "This sign-in ended. Sign in again.", {
@@ -342,6 +344,9 @@ async function historyKeyResponse(
 async function authGetAuthStatus(env: Env, session: Session | undefined) {
 	const signedIn = isAuthenticatedSession(session);
 	return json({
+		can_resume:
+			signedIn &&
+			session.pair.accessExpiresAt - Date.now() > ACCESS_RENEWAL_WINDOW_MS,
 		email_login: true,
 		kind: signedIn ? session.kind : undefined,
 		passkeys: false,

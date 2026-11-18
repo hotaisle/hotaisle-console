@@ -121,9 +121,34 @@ async function exchange(
 		return reply;
 	} catch (error) {
 		if (state().epoch === epoch) {
-			store({ epoch, phase: "ended" });
+			store({ epoch, phase: mode === "protected" ? "pending" : "ended" });
 		}
 		throw error;
+	}
+}
+
+function reconcileStatus(current: State, reply: EmailSessionReply) {
+	const { epoch } = current;
+	if (state().epoch !== epoch) {
+		throw new EmailSessionError("That sign-in ended. Sign in again.");
+	}
+	if (current.phase === "pending") {
+		// Only the Worker can tell whether the cookie avoids an uncertain renewal.
+		const status = reply.response.ok
+			? (JSON.parse(reply.text) as {
+					can_resume?: boolean;
+					signed_in?: boolean;
+				})
+			: undefined;
+		store({
+			epoch,
+			phase:
+				status?.signed_in === true && status.can_resume === true
+					? "active"
+					: "ended",
+		});
+	} else if (current.phase === "pending-login") {
+		store({ epoch, phase: "ended" });
 	}
 }
 
@@ -158,10 +183,9 @@ export async function emailSessionRequest(
 			);
 		}
 		if (mode === "status") {
-			if (current.phase === "pending" || current.phase === "pending-login") {
-				store({ epoch, phase: "ended" });
-			}
-			return await operation();
+			const reply = await operation();
+			reconcileStatus(current, reply);
+			return reply;
 		}
 		if (
 			mode !== "start" &&
