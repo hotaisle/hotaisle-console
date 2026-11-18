@@ -111,6 +111,52 @@ describe("email token-pair cookie protocol", () => {
 		).toHaveLength(0);
 	});
 
+	it.each([
+		[60_001, true],
+		[60_000, false],
+		[0, false],
+	] as const)(
+		"allows interrupted-request recovery only outside renewal with %s ms remaining",
+		async (remaining, canResume) => {
+			const b = fixtureBrowser();
+			expect(await (await b.call("GET", "/auth/status")).json()).toMatchObject({
+				can_resume: false,
+				signed_in: false,
+			});
+			await b.login();
+			const pair = (await b.session())?.pair;
+			if (!pair) {
+				throw new Error("Missing fixture pair");
+			}
+			b.replaceCookie(
+				await sessionCookie(env.SESSION_SECRET, {
+					kind: "email",
+					pair: { ...pair, accessExpiresAt: Date.now() + remaining },
+				})
+			);
+			const status = await b.call("GET", "/auth/status");
+			expect(await status.json()).toMatchObject({
+				can_resume: canResume,
+				signed_in: true,
+			});
+			expect(status.headers.get("Set-Cookie")).toBeNull();
+			expect(
+				b.fake.calls.filter((call) => call.startsWith("POST /auth/token/"))
+			).toEqual([]);
+			b.replaceCookie(
+				await sessionCookie(env.SESSION_SECRET, {
+					ended: true,
+					kind: "email",
+					pair,
+				})
+			);
+			expect(await (await b.call("GET", "/auth/status")).json()).toMatchObject({
+				can_resume: false,
+				signed_in: false,
+			});
+		}
+	);
+
 	it("renews expired access before sending a mutation exactly once, without extending its family", async () => {
 		const b = fixtureBrowser();
 		await b.login();

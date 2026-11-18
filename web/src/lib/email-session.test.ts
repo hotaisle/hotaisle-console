@@ -74,6 +74,97 @@ describe("email-session transport", () => {
 		expect(fetcher).toHaveBeenCalledOnce();
 	});
 
+	it.each([
+		["pending", true, true],
+		["pending", false, false],
+		["ended", true, false],
+		["pending-login", true, false],
+		["active", false, true],
+	] as const)(
+		"restores reload state %s with reusable cookie %s as signed in %s",
+		async (phase, canResume, signedIn) => {
+			localStorage.setItem(
+				STATE_KEY,
+				JSON.stringify({ epoch: "reload", phase })
+			);
+			const fetcher = vi
+				.fn()
+				.mockResolvedValueOnce(
+					Response.json({ can_resume: canResume, signed_in: true })
+				)
+				.mockResolvedValueOnce(Response.json(ACCOUNT));
+			vi.stubGlobal("fetch", fetcher);
+			await expect(api.status()).resolves.toMatchObject({
+				signed_in: signedIn,
+			});
+			expect(await Promise.allSettled([api.user()])).toEqual([
+				signedIn
+					? { status: "fulfilled", value: ACCOUNT }
+					: {
+							reason: expect.objectContaining({ status: 401 }),
+							status: "rejected",
+						},
+			]);
+			expect(fetcher.mock.calls.map(([path]) => path)).toEqual(
+				signedIn ? ["/auth/status", "/api/user/"] : ["/auth/status"]
+			);
+		}
+	);
+
+	it("recovers an interrupted resource only after status confirms a usable cookie", async () => {
+		const fetcher = vi
+			.fn()
+			.mockRejectedValueOnce(new Error("Navigation interrupted receipt"))
+			.mockResolvedValueOnce(
+				Response.json({ can_resume: true, signed_in: true })
+			)
+			.mockResolvedValueOnce(Response.json(ACCOUNT));
+		vi.stubGlobal("fetch", fetcher);
+		await expect(api.user()).rejects.toThrow("Navigation interrupted receipt");
+		await expect(api.user()).rejects.toMatchObject({ status: 401 });
+		await expect(api.status()).resolves.toMatchObject({ signed_in: true });
+		await expect(api.user()).resolves.toEqual(ACCOUNT);
+		expect(fetcher.mock.calls.map(([path]) => path)).toEqual([
+			"/api/user/",
+			"/auth/status",
+			"/api/user/",
+		]);
+	});
+
+	it("does not restore an interrupted session when logout races its status reply", async () => {
+		localStorage.setItem(
+			STATE_KEY,
+			JSON.stringify({ epoch: "reload", phase: "pending" })
+		);
+		let release: () => void = () => undefined;
+		const gate = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		let entered: () => void = () => undefined;
+		const started = new Promise<void>((resolve) => {
+			entered = resolve;
+		});
+		const fetcher = vi.fn(async (path: string) => {
+			if (path === "/auth/status") {
+				entered();
+				await gate;
+				return Response.json({ can_resume: true, signed_in: true });
+			}
+			return Response.json({ ok: true });
+		});
+		vi.stubGlobal("fetch", fetcher);
+		const status = expect(api.status()).rejects.toMatchObject({ status: 401 });
+		await started;
+		const logout = api.signOut();
+		release();
+		await Promise.all([status, logout]);
+		await expect(api.user()).rejects.toMatchObject({ status: 401 });
+		expect(fetcher.mock.calls.map(([path]) => path)).toEqual([
+			"/auth/status",
+			"/auth/signout",
+		]);
+	});
+
 	it("requires a fresh completed login after interrupted work survives a tab restart", async () => {
 		localStorage.setItem(
 			STATE_KEY,
