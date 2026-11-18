@@ -144,13 +144,14 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 function isAuthenticatedSession(
 	session: Session | undefined
 ): session is Session & { pair: TokenPair } {
+	if (!session?.pair || session.ended) {
+		return false;
+	}
 	const now = Date.now();
-	return Boolean(
-		session?.pair &&
-			!session.ended &&
-			session.exp > now &&
-			session.pair.refreshExpiresAt > now &&
-			session.pair.sessionExpiresAt > now
+	return (
+		session.exp > now &&
+		session.pair.refreshExpiresAt > now &&
+		session.pair.sessionExpiresAt > now
 	);
 }
 

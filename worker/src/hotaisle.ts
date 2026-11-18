@@ -258,38 +258,41 @@ const ACCESS_TOKEN = /^ha_at_[0-9a-f]{24}\.[0-9a-f]{64}$/u;
 const REFRESH_TOKEN = /^ha_rt_[0-9a-f]{24}\.[0-9a-f]{64}$/u;
 const HANDLE = /^[0-9a-f]{24}$/u;
 
+function matchesString(value: unknown, pattern: RegExp): value is string {
+	return typeof value === "string" && pattern.test(value);
+}
+
+function isFiniteNumber(value: unknown): value is number {
+	return typeof value === "number" && Number.isFinite(value);
+}
+
 export function isTokenPair(value: unknown): value is TokenPair {
 	if (!value || typeof value !== "object") {
 		return false;
 	}
 	const p = value as Record<string, unknown>;
 	if (
-		typeof p.accessToken !== "string" ||
-		!ACCESS_TOKEN.test(p.accessToken) ||
-		typeof p.refreshToken !== "string" ||
-		!REFRESH_TOKEN.test(p.refreshToken) ||
-		typeof p.sessionHandle !== "string" ||
-		!HANDLE.test(p.sessionHandle)
+		!(
+			matchesString(p.accessToken, ACCESS_TOKEN) &&
+			matchesString(p.refreshToken, REFRESH_TOKEN) &&
+			matchesString(p.sessionHandle, HANDLE)
+		)
 	) {
 		return false;
 	}
 	if (
-		typeof p.accessExpiresAt !== "number" ||
-		!Number.isFinite(p.accessExpiresAt) ||
-		typeof p.refreshExpiresAt !== "number" ||
-		!Number.isFinite(p.refreshExpiresAt) ||
-		typeof p.sessionExpiresAt !== "number" ||
-		!Number.isFinite(p.sessionExpiresAt)
+		!(
+			isFiniteNumber(p.accessExpiresAt) &&
+			isFiniteNumber(p.refreshExpiresAt) &&
+			isFiniteNumber(p.sessionExpiresAt)
+		)
 	) {
 		return false;
 	}
-	if (
-		p.accessExpiresAt > p.refreshExpiresAt ||
-		p.refreshExpiresAt > p.sessionExpiresAt
-	) {
-		return false;
-	}
-	return true;
+	return (
+		p.accessExpiresAt <= p.refreshExpiresAt &&
+		p.refreshExpiresAt <= p.sessionExpiresAt
+	);
 }
 
 function parseTokenPair(
