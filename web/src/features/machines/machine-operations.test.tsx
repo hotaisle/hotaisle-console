@@ -27,7 +27,6 @@ const CONSOLE_LINK = /Console ↗/u;
 function props(metal = false): TripProps {
 	return {
 		expanded: true,
-		minimumMin: metal ? 480 : 1,
 		morph: false,
 		onChanged: vi.fn(),
 		onEnded: vi.fn(),
@@ -48,6 +47,11 @@ function props(metal = false): TripProps {
 			metal,
 			name: "fixture",
 			ram_capacity: 64,
+			reservation: {
+				hourly_rate_cents: metal ? 2712 : 299,
+				minimum_reservation_minutes: metal ? 480 : 1,
+				started_at: new Date(TEST_NOW).toISOString(),
+			},
 			status: "ready",
 		},
 	};

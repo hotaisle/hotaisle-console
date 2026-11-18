@@ -7,7 +7,7 @@ import type { TripContext } from "./use-trip";
 export function TripSummary({ context }: { context: TripContext }) {
 	const {
 		vm,
-		price,
+		cost,
 		server,
 		onFocus,
 		g,
@@ -20,8 +20,8 @@ export function TripSummary({ context }: { context: TripContext }) {
 	} = context;
 	const serverName = server || vm.name;
 	const _displayLabel =
-		ready && isPresent(ranMs) && isPresent(price)
-			? `${clock(ranMs)}, ${money((price * ranMs) / 3_600_000)}`
+		ready && isPresent(ranMs) && isPresent(cost)
+			? `${clock(ranMs)}, est. ${money(cost)}`
 			: head;
 	return (
 		<button

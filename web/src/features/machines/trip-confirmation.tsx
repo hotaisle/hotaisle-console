@@ -59,10 +59,17 @@ function EndOrRebuildConfirmation({ context }: { context: TripContext }) {
 		meta: { name: panel === "end" ? "Keep it running" : "Cancel rebuild" },
 	});
 	function resolveValue() {
-		if (force || underMin) {
-			return `This deletes the ${vm.metal ? "server" : "machine"} and everything on its ${vm.metal ? "disks" : "disk"}. ${vm.metal ? "A server is" : "Machines are"} billed for at least ${hoursOr(minimumMin)}, so ending now costs ${minCost ? `${minCost} in total` : `the full ${hoursOr(minimumMin)}`}.`;
+		const deletion = `This deletes the ${vm.metal ? "server" : "machine"} and everything on its ${vm.metal ? "disks" : "disk"}.`;
+		if (minimumMin !== undefined && (force || underMin)) {
+			const estimate = minCost
+				? `Estimated total: ${minCost}.`
+				: "The full minimum reservation applies.";
+			return `${deletion} The minimum reservation is ${hoursOr(minimumMin)}. ${estimate}`;
 		}
-		return `This deletes the ${vm.metal ? "server" : "machine"} and everything on its ${vm.metal ? "disks" : "disk"}, and billing stops.`;
+		if (minimumMin === undefined || context.ranMs === undefined || force) {
+			return `${deletion} Billing stops, but a minimum reservation may still apply. The API has not provided enough information to estimate the charge.`;
+		}
+		return `${deletion} After release, billing stops.`;
 	}
 	return (
 		<>

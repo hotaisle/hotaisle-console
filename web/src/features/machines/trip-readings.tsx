@@ -5,34 +5,27 @@ import { dollars, meter } from "./formatting";
 
 import type { TripContext } from "./use-trip";
 export function TripReadings({ context }: { context: TripContext }) {
-	const { price, ready, steps, current, ranMs, mode, phase } = context;
+	const { cost, steps, current, ranMs, mode, phase } = context;
 	function resolveValue() {
-		if (ready) {
+		if (phase !== "building" && phase !== "starting") {
 			return (
 				<div className="meter-cell in">
-					<span className="meter-l">Cost</span>
+					<span className="meter-l">Est. cost</span>
 					<span className="meter-v">
 						<span className="cur">$</span>
 						<Lcd
 							className="md"
 							label={
-								isPresent(price) && isPresent(ranMs)
-									? `about ${money((price * ranMs) / 3_600_000)} so far`
+								isPresent(cost)
+									? `estimated cost ${money(cost)}, including the minimum reservation`
 									: "cost unknown"
 							}
 							still
-							value={dollars(
-								isPresent(price) && isPresent(ranMs)
-									? (price * ranMs) / 3_600_000
-									: undefined
-							)}
+							value={dollars(cost)}
 						/>
 					</span>
 				</div>
 			);
-		}
-		if (phase !== "building" && phase !== "starting") {
-			return null;
 		}
 		return (
 			<ol
@@ -58,14 +51,14 @@ export function TripReadings({ context }: { context: TripContext }) {
 	return (
 		<div className="inst">
 			<div className="meter-cell">
-				<span className="meter-l">{ready ? "Running" : "Elapsed"}</span>
+				<span className="meter-l">Reserved</span>
 				<span className="meter-v">
 					<Lcd
 						className="md"
 						label={
 							isPresent(ranMs)
-								? `${ready ? "running for" : "elapsed"} ${duration(ranMs)}`
-								: "Launch time unavailable in this browser session"
+								? `reserved for ${duration(ranMs)}`
+								: "Reservation start unavailable from the API"
 						}
 						still
 						value={isPresent(ranMs) ? meter(ranMs) : " -:--:--"}

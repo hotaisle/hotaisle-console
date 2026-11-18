@@ -52,6 +52,11 @@ export type VMStatus =
 	| "rebuild_queued"
 	| "rebuilding"
 	| "unavailable";
+export interface Reservation {
+	hourly_rate_cents: number | null;
+	minimum_reservation_minutes: number | null;
+	started_at: string | null;
+}
 export type VM = Specs & {
 	name: string;
 	deployment_id: string;
@@ -59,6 +64,7 @@ export type VM = Specs & {
 	ip_address: string;
 	status: VMStatus;
 	ssh_access?: SSHAccess;
+	reservation?: Reservation;
 	/** A bare-metal server: the whole machine, eight GPUs. */
 	metal?: boolean;
 };
@@ -237,6 +243,7 @@ type Metal = MetalSpecs & {
 	description?: string;
 	ip_address?: string;
 	ssh_access?: SSHAccess;
+	reservation?: Reservation;
 	specs?: MetalSpecs;
 	os_status?: { os_install_status?: InstallStage };
 };
@@ -250,6 +257,7 @@ function metalVM(b: Metal): VM {
 		ip_address: b.ip_address ?? "",
 		metal: true,
 		name: b.name,
+		reservation: b.reservation,
 		ssh_access: b.ssh_access,
 		status: "ready",
 	};

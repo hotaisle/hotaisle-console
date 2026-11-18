@@ -1,14 +1,6 @@
 import { useCallback } from "react";
-import { minimumReservationMinutes } from "../../../../shared/availability";
 import { machineKey } from "../../../../shared/machine-identity";
-import type {
-	Ended,
-	MachineRecord,
-	Offer,
-	Team,
-	VM,
-	VMState,
-} from "../../lib/api";
+import type { Ended, MachineRecord, Team, VM, VMState } from "../../lib/api";
 import { ReceiptCard } from "../machines/receipt-card";
 import { Trip } from "../machines/trip";
 
@@ -19,16 +11,10 @@ interface MachineListProps {
 	focused?: string;
 	launchedNow?: string;
 	list: VM[];
-	offerFor: (
-		count?: number,
-		model?: string,
-		metal?: boolean
-	) => Offer | undefined;
 	onChanged: () => void;
 	onDismiss: (name: string) => void;
 	onEnded: (ended: Ended) => void;
 	onFocus: (name: string) => void;
-	priceOf: (vm: VM) => number | undefined;
 	receipts: PlacedReceipt[];
 	records: Record<string, MachineRecord | undefined>;
 	serverOf: (name: string) => string | undefined;
@@ -40,24 +26,14 @@ function MachineItem({ vm, context }: { vm: VM; context: MachineListProps }) {
 		() => context.onFocus(machineKey(context.team.handle, vm)),
 		[context.onFocus, context.team.handle, vm]
 	);
-	const offer = context.offerFor(
-		vm.gpus?.[0]?.count,
-		vm.gpus?.[0]?.model,
-		!!vm.metal
-	);
 	return (
 		<Trip
 			expanded={context.focused === machineKey(context.team.handle, vm)}
 			host={context.serverOf(machineKey(context.team.handle, vm))}
-			minimumMin={
-				offer?.MinimumReservationMinutes ??
-				minimumReservationMinutes(vm, vm.metal)
-			}
 			morph={context.launchedNow === machineKey(context.team.handle, vm)}
 			onChanged={context.onChanged}
 			onEnded={context.onEnded}
 			onFocus={focus}
-			price={context.priceOf(vm)}
 			record={context.records[machineKey(context.team.handle, vm)]}
 			state={context.states[machineKey(context.team.handle, vm)]}
 			team={context.team}

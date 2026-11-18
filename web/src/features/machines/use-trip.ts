@@ -15,18 +15,17 @@ import { money, sshHost } from "../../lib/format";
 import { vtName } from "../../lib/motion";
 import { sound } from "../../lib/sound";
 import type { PowerOperation } from "./power-actions";
+import { reservationReadings } from "./reservation";
 import { HEAD, type Phase, phaseOf, stageModeOf, usesCloudInit } from "./state";
 import { useNow } from "./use-now";
 
 export interface TripProps {
 	expanded: boolean;
 	host?: string;
-	minimumMin: number;
 	morph: boolean;
 	onChanged: () => void;
 	onEnded: (e: Ended) => void;
 	onFocus: () => void;
-	price?: number;
 	record?: MachineRecord;
 	state?: VMState;
 	team: Team;
@@ -40,8 +39,6 @@ export function useTrip(props: TripProps) {
 		vm,
 		state,
 		record,
-		price,
-		minimumMin,
 		host: server,
 		expanded,
 		morph,
@@ -59,13 +56,14 @@ export function useTrip(props: TripProps) {
 	const phase = phaseOf(vm, state, ending);
 	const prev = useRef<Phase>(phase);
 	const now = useNow(1000);
-	const launched = record?.launched_at
-		? new Date(record.launched_at).getTime()
-		: undefined;
+	const { launched, ranMs, price, minimumMin, cost, underMin } =
+		reservationReadings(vm, now);
 	const g = vm.gpus?.[0];
 	const gpus = g ? `${g.count}× ${g.model ?? "GPU"}` : "";
-	const underMin = isPresent(launched) && now - launched < minimumMin * 60_000;
-	const minCost = price ? money((price * minimumMin) / 60) : "";
+	const minCost =
+		isPresent(price) && isPresent(minimumMin)
+			? money((price * minimumMin) / 60)
+			: "";
 
 	useEffect(() => {
 		if (
@@ -101,17 +99,11 @@ export function useTrip(props: TripProps) {
 		try {
 			await api.release(team.handle, vm, forced);
 			setEnding(true);
-			const ran = launched ? Date.now() - launched : undefined;
-			const billedMs = isPresent(ran)
-				? Math.max(ran, minimumMin * 60_000)
-				: undefined;
+			const ended = reservationReadings(vm, Date.now());
 			window.setTimeout(
 				() =>
 					onEnded({
-						cents:
-							isPresent(billedMs) && price
-								? (price * billedMs) / 3_600_000
-								: undefined,
+						cents: ended.cost,
 						cpu_cores: vm.cpu_cores,
 						deployment_id: vm.deployment_id,
 						disk_capacity: vm.disk_capacity,
@@ -120,13 +112,13 @@ export function useTrip(props: TripProps) {
 						gpus,
 						image: record?.image,
 						metal: vm.metal,
-						minimum_applied: isPresent(ran) && ran < minimumMin * 60_000,
+						minimum_applied: ended.underMin,
 						name: vm.name,
 						price_cents: price,
 						ram_capacity: vm.ram_capacity,
-						ran_ms: ran,
+						ran_ms: ended.ranMs,
 						server: vm.metal ? vm.name : server,
-						started_at: record?.launched_at,
+						started_at: vm.reservation?.started_at ?? undefined,
 						team: team.handle,
 					}),
 				250
@@ -217,7 +209,6 @@ export function useTrip(props: TripProps) {
 		return HEAD[phase];
 	}
 	const [head, sub] = resolveHeading();
-	const ranMs = launched ? now - launched : undefined;
 	const mode = stageModeOf(phase, vm.metal || cloudInit);
 	const style = {
 		["--vt" as string]: morph
@@ -229,6 +220,7 @@ export function useTrip(props: TripProps) {
 		act,
 		busy,
 		copy,
+		cost,
 		current,
 		end,
 		ending,

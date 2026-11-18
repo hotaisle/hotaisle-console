@@ -85,6 +85,11 @@ export function newMachine(
 			description: "",
 			ip_address: "192.0.2.42",
 			name,
+			reservation: {
+				hourly_rate_cents: count * 299,
+				minimum_reservation_minutes: minimumReservationMinutes(specs(count)),
+				started_at: new Date(startedAt).toISOString(),
+			},
 			status: "ready",
 		},
 	};

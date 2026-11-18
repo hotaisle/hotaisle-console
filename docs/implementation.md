@@ -266,6 +266,21 @@ Minimum reservations come from the API: currently one minute
 for 1-GPU VMs, 30 minutes per GPU for larger VMs, and eight hours for bare metal. The confirmation and estimated receipt account for the minimum. A failed release
 must never be displayed as a successful end.
 
+Active VM and bare-metal counters use the API's `reservation.started_at`,
+`reservation.hourly_rate_cents`, and `reservation.minimum_reservation_minutes`.
+The browser advances elapsed time locally between resource refreshes and estimates cost as
+`max(elapsed_seconds, minimum_reservation_minutes * 60) * hourly_rate_cents / 3600`.
+The hourly rate is the total for the reservation, not per GPU; fractional cents are retained until display.
+Powered-off machines continue accumulating reservation time. Cost is labeled as an estimate, not a final
+invoice, and includes the minimum reservation. Client clock skew, price changes and billing adjustments
+can affect its accuracy.
+
+Saved launch records and current offers never supply active timing or pricing. These three API inputs
+are sufficient; Console does not require server-calculated counters or a new HotManager endpoint.
+Missing API fields remain unknown; a known zero price remains zero.
+Successful release receipts capture the API-derived estimate and timing at release, then remain saved past
+history rather than an authority for a later active reservation.
+
 There is no automatic shutdown timer: the upstream API cannot schedule an end, and a browser timer could fail
 while the machine continues billing. Add-credit checkout uses Hot Aisle's Stripe checkout link; this app does
 not handle card details or claim a payment succeeded before confirmation.

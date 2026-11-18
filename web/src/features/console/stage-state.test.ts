@@ -8,11 +8,9 @@ import { buildStage, type StageInput } from "./stage-state";
 function input(): StageInput {
 	return {
 		list: [],
-		offerFor: vi.fn(),
 		offers: [],
 		order: { count: 1, customURL: "", image: "standard" },
 		orderContext: true,
-		priceOf: vi.fn(),
 		receipts: [],
 		records: {},
 		serverOf: vi.fn(),
@@ -115,10 +113,8 @@ describe("history drawing", () => {
 		const historical: StageInput = {
 			focusedReceipt: receipt,
 			list: [],
-			offerFor: () => undefined,
 			order: { count: 1, customURL: "", image: "standard" },
 			orderContext: false,
-			priceOf: () => undefined,
 			receipts: [receipt],
 			records: {},
 			serverOf: () => "newly-assigned-server",
