@@ -2,13 +2,13 @@
 
 `flavour-trip-brunch-excerpt.m4a` preserves the music used by the Console walkthrough:
 
-- **Credit:** Flavour Trip — *Easy Morning Brunch House Music Mix - Chill Jazzy & Latin DJ Set In Barcelona | Cooking Playlist*.
+- **Credit:** Flavour Trip — _Easy Morning Brunch House Music Mix - Chill Jazzy & Latin DJ Set In Barcelona | Cooking Playlist_.
 - **Excerpt:** 00:33.040–02:33.040 of the supplied recording; 120 seconds at 118 BPM.
 - **Encoding:** stereo AAC, 48 kHz, 192 kb/s target bitrate; about 3 MB.
 
 The file already starts at the edit's music cue. Pass it directly to
 `bun run showcase:compose` without trimming another 33.04 seconds. It covers the
-current approximately 83-second walkthrough plus roughly 37 seconds for extensions.
+current approximately 97-second walkthrough plus roughly 23 seconds for extensions.
 The opening audio matches the previously used local excerpt sample for sample.
 
 This third-party recording retains its original rights; the repository's MIT

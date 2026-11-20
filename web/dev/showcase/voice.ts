@@ -1,4 +1,5 @@
-import { type Clip, narrationClip } from "./narration";
+import type { Clip } from "./narration";
+import { narrationClip } from "./narration";
 
 // Optional local generation keeps neural speech tooling and media out of production.
 const modules = import.meta.glob<{ default: Record<string, Clip> }>(

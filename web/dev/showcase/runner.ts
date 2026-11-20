@@ -1,12 +1,9 @@
-import { type BeatGrid, beatDelay } from "./beats";
+import type { BeatGrid } from "./beats";
+import { beatDelay } from "./beats";
 import { revealVertically } from "./camera";
 import { THEME_BLEND_SECONDS } from "./presentation";
-import {
-	type Action,
-	type Scene,
-	SHOWCASE_SECONDS,
-	type Target,
-} from "./storyboard";
+import type { Action, Scene, Target } from "./storyboard";
+import { SHOWCASE_SECONDS } from "./storyboard";
 
 export interface Cue {
 	end: number;

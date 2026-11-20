@@ -16,6 +16,16 @@ describe("showcase caption presentation", () => {
 			expect((layout.x + layout.width) * 1920).toBeLessThan(1800);
 		}
 	);
+	it.each(["members", "api-tokens"])(
+		"keeps %s captions in the gutter outside the management area",
+		(id) => {
+			const layout = captionLayout(id);
+			const managementRight = (1920 + 1120) / 2;
+			expect(layout.x * 1920).toBeGreaterThan(managementRight + 16);
+			expect((layout.x + layout.width) * 1920).toBeLessThan(1920 - 24);
+			expect(captionHeading(id)).toBeDefined();
+		}
+	);
 	it.each([
 		"funds",
 		"auto-rebill",

@@ -5,18 +5,22 @@ pre-PR synchronization decision, follow [Console media synchronization](media-sy
 This guide covers the local recording studio and composition tools. Building the
 showcase alone does not refresh README or website media.
 
-The local showcase uses the real sign-in, team, rental, machine, history, credits,
-and settings components with a browser-only simulated API. It starts signed out,
-approves a fixture email, creates a team with a simulated balance, previews Add credits and
-opens automatic rebill to show its balance trigger, top-up amount, and monthly cap,
-backs out without submitting either payment flow, launches two GPUs with vLLM cloud-init, releases the
-machine, reviews its history, and changes appearance and the default image.
-The browser walkthrough is about 71 seconds, beginning with sign-in and team creation.
-The finished composition is about 85 seconds with the current music: it adds a logo card and URL typing before sign-in,
-two extra seconds on Add credits, and a closing card with a reading pause.
+The local showcase uses the real sign-in, team, API token, credits, rental,
+machine, history, and settings components with a browser-only simulated API.
+It approves a fixture email and creates a funded fixture team in the focused
+first-team setup screen, then opens compute directly. It previews Add credits and
+automatic rebill without submitting payment, launches two GPUs with vLLM cloud-init,
+releases the machine, and reviews its history. Only then does it return to teams,
+grant a simulated teammate SSH access in Members, and create an API token limited
+to that team's SSH permission, before changing appearance and the default image.
+The browser walkthrough is about 82 seconds. The finished composition is about
+97 seconds at 118 BPM, including the logo card, URL typing, extra hold on
+Add credits, and the closing card with a reading pause.
 Cloud-init startup is compressed to three seconds in this isolated showcase fixture.
 No real email, payment, credential, or machine operation is used. Unknown requests
 fail locally; there is no real API fallback. Simulated history remains in memory.
+The team's creator has all four team roles, matching live team creation. The
+simulated teammate starts with Operator only and gains User in the walkthrough.
 
 ## Build and open
 
@@ -32,6 +36,9 @@ builds preview assets. It uses the fixed voice at its original pitch and speed.
 The first run downloads the public 82M model into ignored `tools/showcase/.cache/`.
 Speech runs on the CPU; narration is not sent to a speech service. Native media tools
 have a separate dependency lockfile and are not installed for application builds.
+Keep `@huggingface/transformers` on Kokoro's supported 3.x line: narration configures
+the same module's model cache before loading Kokoro. Upgrading the direct dependency
+to 4.x alone would configure a separate instance, not Kokoro's runtime.
 It does **not** start or restart a development server. On systems without those
 tools, `bun run preview` builds a caption-only version when no generated clips exist.
 Open Chrome's Hot Aisle profile at:
@@ -72,6 +79,8 @@ Release playback selects the visible “End” label rather than its styling cla
 so shared button styling changes do not break the walkthrough.
 Email approval waits until its narration and scene have finished, keeping the
 “Check your email” screen visible before transitioning to team creation.
+The Members and API token captions stay in the right gutter beside the
+wide management screens, including the one-time simulated token display.
 Settings navigation finishes before its theme caption and narration begin.
 
 Convert a recording to a broadly playable 1080p MP4:
@@ -153,7 +162,7 @@ capture timing as composition input, so the added pauses are applied only once.
 The current music excerpt is tracked at
 [`tools/showcase/assets/flavour-trip-brunch-excerpt.m4a`](../tools/showcase/assets/flavour-trip-brunch-excerpt.m4a).
 It contains two minutes starting at 33.04 seconds of the supplied recording, at
-118 BPM. The current walkthrough uses about 85 seconds, leaving roughly 35 seconds
+118 BPM. The current walkthrough uses about 97 seconds, leaving roughly 23 seconds
 for future extensions. See the [source credit and edit details](../tools/showcase/assets/README.md).
 
 Analyze the excerpt before building the preview:

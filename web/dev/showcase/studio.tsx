@@ -1,16 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-	applyStatusMotion,
-	applyTheme,
-	type Prefs,
-	setPrefs,
-} from "../../src/lib/prefs";
+import type { Prefs } from "../../src/lib/prefs";
+import { applyStatusMotion, applyTheme, setPrefs } from "../../src/lib/prefs";
 import type { PreviewAPI } from "../api";
 import { createCamera } from "./camera";
 import { music } from "./music";
 import { captionHeading, captionLayout } from "./presentation";
 import { capture, download } from "./recording";
-import { type Cue, find, pause, play, subtitles } from "./runner";
+import type { Cue } from "./runner";
+import { find, pause, play, subtitles } from "./runner";
 import { SHOWCASE_GRID, STORYBOARD } from "./storyboard";
 import { clips, createVoice } from "./voice";
 

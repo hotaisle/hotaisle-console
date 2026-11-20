@@ -212,13 +212,9 @@ describe("showcase playback", () => {
 			subtitles([{ end: 65.789, id: "one", start: 1.234, text: "Caption" }])
 		).toBe("1\n00:00:01,234 --> 00:01:05,789\nCaption\n");
 	});
-	it("keeps the timed edit bounded and begins with sign-in and team creation", async () => {
+	it("keeps the timed edit bounded", async () => {
 		vi.useFakeTimers();
-		expect(STORYBOARD.slice(0, 3).map((scene) => scene.id)).toEqual([
-			"sign-in",
-			"approve",
-			"create-team",
-		]);
+		expect(SHOWCASE_SECONDS).toBeLessThanOrEqual(85);
 		const result = play(
 			[
 				{ at: 0, id: "sign-in", narration: "Sign in" },

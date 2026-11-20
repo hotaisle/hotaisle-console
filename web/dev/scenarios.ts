@@ -13,6 +13,7 @@ export const SCENARIOS = [
 	{ id: "auto-rebill", label: "Automatic rebill" },
 	{ id: "api-tokens", label: "API tokens" },
 	{ id: "launch-error", label: "Launch failure" },
+	{ id: "session-ended", label: "Session ended" },
 ] as const;
 
 export type Scenario = (typeof SCENARIOS)[number]["id"] | "sign-in";

@@ -5,27 +5,16 @@ import {
 	removeMachine,
 	updateMachine,
 } from "../../shared/records";
-import type { Team } from "../src/lib/api";
+import type { Team, TeamRole } from "../src/lib/api";
 import { PreviewAPITokens } from "./api-tokens";
 import { PreviewAutoRebill } from "./auto-rebill";
 import { BareMetalPreview } from "./bare-metal";
-import {
-	available,
-	machineView,
-	newMachine,
-	type PreviewMachine,
-	powerView,
-} from "./machines";
+import type { PreviewMachine } from "./machines";
+import { available, machineView, newMachine, powerView } from "./machines";
 import type { Scenario } from "./scenarios";
 import { PreviewTeamMembers } from "./team-members";
 
 const TEAM_HANDLE = /^[a-z0-9](?:[a-z0-9_-]{0,98}[a-z0-9])?$/u;
-const TEAM = {
-	effective_roles: ["owner"],
-	handle: "preview",
-	name: "Development preview",
-	roles: ["owner"],
-};
 const json = (value: unknown, status = 200) =>
 	Response.json(value, { headers: { "Cache-Control": "no-store" }, status });
 const fail = (status: number, message: string) => json({ message }, status);
@@ -35,8 +24,8 @@ function object(value: unknown): value is Record<string, unknown> {
 
 /** Browser-only simulator. Unknown endpoints fail; there is no upstream fallback. */
 export class PreviewAPI {
-	private readonly team = { ...TEAM, description: "" };
-	private readonly members = new PreviewTeamMembers();
+	private readonly team: Team;
+	private readonly members: PreviewTeamMembers;
 	private readonly tokens: PreviewAPITokens;
 	private readonly otherTeams: Team[] = [];
 	private readonly machines = new Map<string, PreviewMachine>();
@@ -44,6 +33,7 @@ export class PreviewAPI {
 	private readonly now: () => number;
 	private readonly scenario: Scenario;
 	private serial = 0;
+	private expireSession: boolean;
 	private readonly auth: {
 		signedIn: boolean;
 		pendingEmail: string;
@@ -54,9 +44,11 @@ export class PreviewAPI {
 	private readonly rebill: PreviewAutoRebill;
 
 	constructor(scenario: Scenario, now = Date.now) {
+		const roles: TeamRole[] = ["owner"];
+		if (scenario === "sign-in" || scenario === "api-tokens") {
+			roles.push("purchaser", "operator", "user");
+		}
 		if (scenario === "api-tokens") {
-			this.team.roles = ["owner", "purchaser", "operator", "user"];
-			this.team.effective_roles = [...this.team.roles];
 			this.otherTeams.push(
 				{
 					effective_roles: ["operator", "user"],
@@ -72,9 +64,21 @@ export class PreviewAPI {
 				}
 			);
 		}
-		this.tokens = new PreviewAPITokens([this.team, ...this.otherTeams]);
+		this.team = {
+			description: "",
+			effective_roles: [...roles],
+			handle: "preview",
+			name: "Development preview",
+			roles,
+		};
+		this.members = new PreviewTeamMembers(roles, scenario === "sign-in");
+		this.tokens = new PreviewAPITokens(
+			[this.team, ...this.otherTeams],
+			scenario !== "sign-in"
+		);
 		this.rebill = new PreviewAutoRebill(scenario === "auto-rebill");
 		this.scenario = scenario;
+		this.expireSession = scenario === "session-ended";
 		this.auth = {
 			approvedEmail: false,
 			pendingEmail: "",
@@ -203,6 +207,11 @@ export class PreviewAPI {
 			return fail(401, "Sign in to the simulated account first.");
 		}
 		if (method === "GET" && path === "/api/user/") {
+			if (this.expireSession) {
+				this.expireSession = false;
+				this.auth.signedIn = false;
+				return fail(401, "The simulated session has ended.");
+			}
 			return json({
 				teams: this.auth.teamCreated ? [this.team, ...this.otherTeams] : [],
 				user: {
@@ -242,6 +251,22 @@ export class PreviewAPI {
 		const parts = path.slice(prefix.length).split("/").filter(Boolean);
 		return await this.teamResource(request, url, parts);
 	}
+	private async updateMember(request: Request, email: string) {
+		if (!this.team.effective_roles.includes("owner")) {
+			return fail(403, "A team owner can edit permissions.");
+		}
+		const response = await this.members.update(request, email);
+		if (response.ok) {
+			const current = this.members
+				.all()
+				.find((member) => member.email === "preview@example.invalid");
+			if (current) {
+				this.team.roles = [...current.roles];
+				this.team.effective_roles = [...current.roles];
+			}
+		}
+		return response;
+	}
 	private async teamResource(request: Request, url: URL, parts: string[]) {
 		const { method } = request;
 		if (parts.length === 1 && parts[0] === "auto-rebill") {
@@ -249,6 +274,9 @@ export class PreviewAPI {
 		}
 		if (parts.join("/") === "members/invitations") {
 			return await this.members.invitations(request, this.now());
+		}
+		if (parts.length === 2 && parts[0] === "members") {
+			return this.updateMember(request, decodeURIComponent(parts[1]));
 		}
 		if (parts.length === 0) {
 			return this.teamRequest(request);
