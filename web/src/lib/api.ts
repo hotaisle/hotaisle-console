@@ -18,6 +18,13 @@ import {
 import type { HistoryKey } from "./history-vault";
 import { historyVault } from "./history-vault";
 import { keyVault } from "./key-vault";
+import {
+	beginBrowserSession,
+	browserSessionExpired,
+	endBrowserSession,
+	resumeBrowserSession,
+	SESSION_EXPIRED_EVENT,
+} from "./session-lifetime";
 
 export type { GPU, Offer, Specs } from "../../../shared/availability";
 
@@ -167,12 +174,26 @@ export class APIError extends Error {
 	}
 }
 
+function checkSession(path: string) {
+	if (
+		(path.startsWith("/api/") || path === "/auth/history-key") &&
+		browserSessionExpired()
+	) {
+		window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+		throw new APIError(
+			401,
+			"Your session has ended. Sign in again to continue."
+		);
+	}
+}
+
 async function call<T>(
 	method: string,
 	path: string,
 	body?: unknown,
 	requestKey = keyVault.token()
 ): Promise<T> {
+	checkSession(path);
 	const options: RequestInit = {
 		body: body === undefined ? undefined : JSON.stringify(body),
 		credentials: "same-origin",
@@ -187,6 +208,7 @@ async function call<T>(
 		method,
 	};
 	const request = async () => {
+		checkSession(path);
 		const response = await fetch(path, options);
 		return { response, text: await response.text() };
 	};
@@ -215,6 +237,7 @@ async function call<T>(
 		throw error;
 	}
 	const { response: res, text } = reply;
+	checkSession(path);
 	if (!res.ok) {
 		if (res.status === 401) {
 			historyVault.lock();
@@ -319,11 +342,16 @@ export const api = {
 			email,
 		}),
 	/** Whether the emailed link has been opened yet; once it has, the session is signed in. */
-	emailWait: () =>
-		call<{ done: boolean; user?: User; teams?: Team[] }>(
+	emailWait: async () => {
+		const result = await call<{ done: boolean; user?: User; teams?: Team[] }>(
 			"POST",
 			"/auth/email/wait"
-		),
+		);
+		if (result.done) {
+			beginBrowserSession();
+		}
+		return result;
+	},
 	forgetKey: () => keyVault.forget(),
 	historyKey: () => call<HistoryKey>("POST", "/auth/history-key"),
 	inviteTeamMember: (team: string, invitation: TeamMemberInvitation) =>
@@ -425,9 +453,11 @@ export const api = {
 		);
 		await call<{ ok: boolean }>("POST", "/auth/signout");
 		await keyVault.save(token, passphrase);
+		beginBrowserSession();
 		return account;
 	},
 	signOut: async () => {
+		endBrowserSession();
 		historyVault.lock();
 		const localKey = keyVault.token() !== undefined;
 		keyVault.lock();
@@ -440,18 +470,21 @@ export const api = {
 	status: async () => {
 		const status = await call<Status>("GET", "/auth/status");
 		const stored = keyVault.isSaved();
-		if (keyVault.token()) {
-			return {
-				...status,
-				key_stored: stored,
-				kind: "key" as const,
-				signed_in: true,
-			};
+		const localKey = keyVault.token() !== undefined;
+		const signedIn = localKey || (status.signed_in && !emailSessionEnded());
+		if (signedIn) {
+			resumeBrowserSession();
+		}
+		const expired = browserSessionExpired();
+		if (expired && signedIn) {
+			// Local logout is synchronous; revocation must not delay the sign-in screen.
+			void api.signOut().catch(() => undefined);
 		}
 		return {
 			...status,
 			key_stored: stored,
-			signed_in: status.signed_in && !emailSessionEnded(),
+			...(localKey ? { kind: "key" as const } : {}),
+			signed_in: signedIn && !expired,
 		};
 	},
 	team: (handle: string) => call<Team>("GET", `${t(handle)}/`),
@@ -459,7 +492,12 @@ export const api = {
 	unlockKey: async (passphrase: string) => {
 		await keyVault.unlock(passphrase);
 		try {
-			return await call<{ user: User; teams: Team[] }>("GET", "/auth/key");
+			const account = await call<{ user: User; teams: Team[] }>(
+				"GET",
+				"/auth/key"
+			);
+			beginBrowserSession();
+			return account;
 		} catch (error) {
 			keyVault.lock();
 			throw error;

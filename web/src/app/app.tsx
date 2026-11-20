@@ -22,9 +22,11 @@ import {
 	useSessionActions,
 	useSessionSync,
 } from "../hooks/use-session";
+import { useSessionLifetime } from "../hooks/use-session-lifetime";
 import type { Status, Team, UserAccount } from "../lib/api";
 import { APIError, api } from "../lib/api";
 import { applyStatusMotion, applyTheme, usePrefs } from "../lib/prefs";
+import { browserSessionExpired } from "../lib/session-lifetime";
 import { NotFound } from "./not-found";
 import { Redirect } from "./redirect";
 import { safeReturnTo, viewPath } from "./route-state";
@@ -307,13 +309,14 @@ export function App() {
 		retry: false,
 	});
 	const { connected, logout } = useSessionActions();
-	const [sessionEnded, setSessionEnded] = useState(false);
+	const [sessionEnded, setSessionEnded] = useState(browserSessionExpired);
 	const sessionExpired = useCallback(() => {
 		setSessionEnded(true);
 		logout.mutate();
 	}, [logout.mutate]);
+	useSessionLifetime(session.data?.signed_in === true, sessionExpired);
 	useEffect(() => {
-		if (session.data?.signed_in) {
+		if (session.data?.signed_in && !browserSessionExpired()) {
 			setSessionEnded(false);
 		}
 	}, [session.data?.signed_in]);

@@ -10,6 +10,7 @@ beforeEach(() => {
 	installWebLocks();
 	localStorage.removeItem("hotaisle-console:email-session:v2");
 	localStorage.removeItem("hotaisle-console:email-session:epoch");
+	localStorage.removeItem("hotaisle-console:session-lifetime");
 	vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
 	// jsdom does not implement media queries; individual tests can change matches.
 	vi.stubGlobal(
