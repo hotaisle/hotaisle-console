@@ -221,7 +221,7 @@ describe("email-session transport", () => {
 			}
 			setItem.call(this, key, value);
 		});
-		await api.user();
+		await expect(api.user()).rejects.toMatchObject({ status: 401 });
 		expect(logout).toBeDefined();
 		await expect(logout).resolves.toEqual({ ok: true });
 		expect(fetcher.mock.calls.map(([path]) => path)).toEqual([

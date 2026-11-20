@@ -8,6 +8,7 @@ export interface Prefs {
 	image: Image;
 	motionVersion: 1;
 	notify: boolean; // desktop notification when a machine is ready
+	sessionMinutes: 60 | 240 | 720 | 1440 | null;
 	shortcuts: boolean;
 	sound: boolean; // soft key clicks and a chime when a machine is ready
 	statusMotion: StatusMotion;
@@ -19,11 +20,25 @@ const DEFAULTS: Prefs = {
 	image: "standard",
 	motionVersion: 1,
 	notify: false,
+	sessionMinutes: 60,
 	shortcuts: true,
 	sound: true,
 	statusMotion: "on",
 	theme: "system",
 };
+
+function normalizeSessionMinutes(value: unknown): Prefs["sessionMinutes"] {
+	switch (value) {
+		case 60:
+		case 240:
+		case 720:
+		case 1440:
+		case null:
+			return value;
+		default:
+			return DEFAULTS.sessionMinutes;
+	}
+}
 
 function read(): Prefs {
 	try {
@@ -31,11 +46,13 @@ function read(): Prefs {
 		const saved = {
 			...DEFAULTS,
 			...stored,
-		} as Omit<Prefs, "statusMotion"> & {
+		} as Omit<Prefs, "sessionMinutes" | "statusMotion"> & {
 			customURL?: string;
+			sessionMinutes: unknown;
 			statusMotion: StatusMotion | boolean;
 		};
 		saved.customURL = undefined;
+		saved.sessionMinutes = normalizeSessionMinutes(saved.sessionMinutes);
 		saved.shortcuts = saved.shortcuts !== false;
 		if (saved.theme !== "light" && saved.theme !== "dark") {
 			saved.theme = "system";
@@ -77,6 +94,7 @@ export const getPrefs = () => current;
 
 export function setPrefs(patch: Partial<Prefs>) {
 	current = { ...current, ...patch };
+	current.sessionMinutes = normalizeSessionMinutes(current.sessionMinutes);
 	applyStatusMotion(current.statusMotion);
 	try {
 		const previous = JSON.parse(localStorage.getItem(KEY) || "{}");
