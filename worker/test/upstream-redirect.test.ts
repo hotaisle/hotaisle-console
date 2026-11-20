@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { type Env, upstream } from "../src/hotaisle";
+import type { Env } from "../src/hotaisle";
+import { upstream } from "../src/hotaisle";
 
 describe("internal upstream requests", () => {
 	it("rejects redirects without following credential-bearing requests", async () => {

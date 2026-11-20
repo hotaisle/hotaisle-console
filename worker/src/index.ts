@@ -23,22 +23,21 @@
 
 import { emailLoginFingerprint } from "./email-login-fingerprint";
 import { historyKey } from "./history-key";
+import type { Credential, Env, TokenPair } from "./hotaisle";
 import {
 	apiBase,
 	authHeaders,
-	type Credential,
 	completeEmailLogin,
-	type Env,
 	logoutEmailSession,
 	refreshEmailSession,
 	send,
 	startEmailLogin,
-	type TokenPair,
 	waitEmailLogin,
 	whoIs,
 } from "./hotaisle";
 import { allowRate, requestIp } from "./rate-limit";
-import { readSession, type Session, sessionCookie } from "./session";
+import type { Session } from "./session";
+import { readSession, sessionCookie } from "./session";
 
 const TOKEN_SCHEME_PATTERN = /^(?:Bearer|Token)\s+/iu;
 const WHITESPACE_PATTERN = /\s/u;

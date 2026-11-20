@@ -1,12 +1,12 @@
+import type { HotkeyRegistrationView } from "@tanstack/react-hotkeys";
 import {
 	formatForDisplay,
-	type HotkeyRegistrationView,
 	HotkeysProvider,
 	useHotkeyRegistrations,
 } from "@tanstack/react-hotkeys";
+import type { ReactNode } from "react";
 import {
 	createContext,
-	type ReactNode,
 	useCallback,
 	useContext,
 	useEffect,

@@ -10,15 +10,10 @@ import { requireValue } from "../../../../shared/require-value";
 import type { Signal } from "../../lib/signal";
 import { buildChip } from "./iso/chip";
 import type { FanLayer } from "./iso/fan-gl";
-import { buildHall, SLOT_ORDER, type Slot } from "./iso/hall";
-import {
-	framing,
-	type Glide,
-	layout,
-	NEW,
-	PARTS,
-	type StageState,
-} from "./model";
+import type { Slot } from "./iso/hall";
+import { buildHall, SLOT_ORDER } from "./iso/hall";
+import type { Glide, StageState } from "./model";
+import { framing, layout, NEW, PARTS } from "./model";
 import { ServerTag } from "./server-tag";
 import { startStageAnimation } from "./stage-animation";
 import { StageCaption } from "./stage-caption";

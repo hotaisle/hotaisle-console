@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { layout, type StageState } from "./model";
+import type { StageState } from "./model";
+import { layout } from "./model";
 import { tagAnchor } from "./tag-anchor";
 
 const scene = {

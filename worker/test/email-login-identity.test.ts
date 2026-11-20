@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { emailLoginIdentityHeaders } from "../src/email-login-identity";
-import { type Env, startEmailLogin, upstream } from "../src/hotaisle";
+import type { Env } from "../src/hotaisle";
+import { startEmailLogin, upstream } from "../src/hotaisle";
 import {
 	TEST_EMAIL_LOGIN_KEY,
 	verifyTestEmailLogin,

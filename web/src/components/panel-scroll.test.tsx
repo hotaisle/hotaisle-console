@@ -40,13 +40,14 @@ describe("panel scroll hints", () => {
 		let notify: IntersectionObserverCallback = () => undefined;
 		const observe = vi.fn();
 		const disconnect = vi.fn();
-		class Observer {
-			observe = observe;
-			disconnect = disconnect;
-			constructor(callback: IntersectionObserverCallback) {
-				notify = callback;
-			}
-		}
+		const Observer = vi.fn(function (
+			this: Pick<IntersectionObserver, "disconnect" | "observe">,
+			callback: IntersectionObserverCallback
+		) {
+			notify = callback;
+			this.disconnect = disconnect;
+			this.observe = observe;
+		});
 		vi.stubGlobal("IntersectionObserver", Observer);
 		const { container, unmount } = render(
 			<PanelScroll>

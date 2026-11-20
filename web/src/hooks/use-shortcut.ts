@@ -1,10 +1,9 @@
-import {
-	type HotkeyChord,
-	type UseHotkeyChordOptions,
-	type UseHotkeyDefinition,
-	useHotkey,
-	useHotkeys,
+import type {
+	HotkeyChord,
+	UseHotkeyChordOptions,
+	UseHotkeyDefinition,
 } from "@tanstack/react-hotkeys";
+import { useHotkey, useHotkeys } from "@tanstack/react-hotkeys";
 import { usePrefs } from "../lib/prefs";
 
 /** Also guards ARIA editors and descendants of contenteditable regions. */

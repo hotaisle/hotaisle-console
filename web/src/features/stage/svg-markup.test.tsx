@@ -1,5 +1,6 @@
 import { render } from "@testing-library/react";
-import { createRef, type RefObject, StrictMode, useLayoutEffect } from "react";
+import type { RefObject } from "react";
+import { createRef, StrictMode, useLayoutEffect } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { SvgMarkup } from "./svg-markup";
 

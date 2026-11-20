@@ -20,9 +20,9 @@ The baseline's strongest source controls were encrypted HttpOnly email sessions,
 
 ## Confirmed findings
 
-| Severity | Finding | Affected boundary | Observed result |
-| --- | --- | --- | --- |
-| — | None | — | No cross-boundary security result was independently demonstrated. |
+| Severity | Finding | Affected boundary | Observed result                                                   |
+| -------- | ------- | ----------------- | ----------------------------------------------------------------- |
+| —        | None    | —                 | No cross-boundary security result was independently demonstrated. |
 
 ## Needs validation
 

@@ -33,29 +33,29 @@ spaces. Generated `web/dist`, Worker output, and dependency directories are igno
 
 ## Source layout
 
-| Path | Responsibility |
-| --- | --- |
-| `web/src/app/` | App entry, Router route tree, URL validation, Query client |
-| `web/src/features/auth/` | Email approval, API-key encryption and unlock forms, sign-in layout |
-| `web/src/features/console/` | Console orchestration, data hooks, panel views, credits |
-| `web/src/features/launch/` | Size selection, launch guards and images |
-| `web/src/features/machines/` | Machine readings, actions, confirmations, receipts and history |
-| `web/src/features/settings/` | Account, browser preferences and SSH key management |
-| `web/src/features/stage/` | Server layout, animation controller, SVG rendering and geometry |
-| `web/src/components/` | Shared controls and readouts |
-| `web/src/hooks/` | Query-backed resources and session cache lifecycle |
-| `web/src/lib/` | Typed API, encrypted key vault, formatting and browser utilities |
-| `web/src/styles/`, `web/src/assets/` | Stylesheets and licensed static assets |
-| `web/test/` | Component test setup and providers |
-| `web/dev/`, `web/__preview/` | Local-only machine preview, simulated transport and scenario entry |
-| `worker/src/index.ts` | Request guard, email sign-in, stateless key proxy |
-| `worker/src/session.ts` | Encrypted email-session cookies |
-| `worker/src/history-key.ts` | Stateless, authenticated browser-history key derivation |
-| `worker/src/hotaisle.ts` | Upstream API and email protocol adapter |
-| `worker/test/fixtures/upstream.ts` | Isolated upstream fixture; never imported by production code |
-| `worker/cloudflare.config.ts` | Worker assets, secrets and retired namespace deletion exports |
-| `worker/vite.config.ts` | Worker build and local development configuration |
-| `shared/records.ts` | Pure machine-record and recent-history logic |
+| Path                                 | Responsibility                                                      |
+| ------------------------------------ | ------------------------------------------------------------------- |
+| `web/src/app/`                       | App entry, Router route tree, URL validation, Query client          |
+| `web/src/features/auth/`             | Email approval, API-key encryption and unlock forms, sign-in layout |
+| `web/src/features/console/`          | Console orchestration, data hooks, panel views, credits             |
+| `web/src/features/launch/`           | Size selection, launch guards and images                            |
+| `web/src/features/machines/`         | Machine readings, actions, confirmations, receipts and history      |
+| `web/src/features/settings/`         | Account, browser preferences and SSH key management                 |
+| `web/src/features/stage/`            | Server layout, animation controller, SVG rendering and geometry     |
+| `web/src/components/`                | Shared controls and readouts                                        |
+| `web/src/hooks/`                     | Query-backed resources and session cache lifecycle                  |
+| `web/src/lib/`                       | Typed API, encrypted key vault, formatting and browser utilities    |
+| `web/src/styles/`, `web/src/assets/` | Stylesheets and licensed static assets                              |
+| `web/test/`                          | Component test setup and providers                                  |
+| `web/dev/`, `web/__preview/`         | Local-only machine preview, simulated transport and scenario entry  |
+| `worker/src/index.ts`                | Request guard, email sign-in, stateless key proxy                   |
+| `worker/src/session.ts`              | Encrypted email-session cookies                                     |
+| `worker/src/history-key.ts`          | Stateless, authenticated browser-history key derivation             |
+| `worker/src/hotaisle.ts`             | Upstream API and email protocol adapter                             |
+| `worker/test/fixtures/upstream.ts`   | Isolated upstream fixture; never imported by production code        |
+| `worker/cloudflare.config.ts`        | Worker assets, secrets and retired namespace deletion exports       |
+| `worker/vite.config.ts`              | Worker build and local development configuration                    |
+| `shared/records.ts`                  | Pure machine-record and recent-history logic                        |
 
 ## Navigation and state
 

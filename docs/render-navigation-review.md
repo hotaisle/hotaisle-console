@@ -13,9 +13,9 @@ state, which then recreates those same dependencies before the original change s
 
 Two repeat-navigation cases were reproduced with isolated component tests:
 
-| Flow | Cause | Change |
-| --- | --- | --- |
-| History pagination | A new derived history array restarted the measurement effect while its URL correction was pending. | Memoize derived lists per vault snapshot/team, depend on a primitive loaded flag, and request each measured capacity once until it settles. |
+| Flow                 | Cause                                                                                                   | Change                                                                                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| History pagination   | A new derived history array restarted the measurement effect while its URL correction was pending.      | Memoize derived lists per vault snapshot/team, depend on a primitive loaded flag, and request each measured capacity once until it settles.            |
 | Launch-size fallback | Newly derived offers could repeatedly request the same fallback GPU count while navigation was pending. | Derive a primitive fallback count and suppress duplicate pending requests; allow a later invalid choice or inventory change to trigger a new fallback. |
 
 The regression harnesses stop after 20 navigation calls instead of allowing a test-runner freeze.

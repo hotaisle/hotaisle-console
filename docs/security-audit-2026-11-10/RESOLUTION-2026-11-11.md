@@ -86,17 +86,17 @@ network debugger. Only non-secret configuration fields were retained here:
 
 ```json
 {
-  "enabled": true,
-  "head_sampling_rate": 1,
-  "redact_query_string": true,
-  "logs": {
-    "enabled": true,
-    "head_sampling_rate": 1,
-    "persist": true,
-    "invocation_logs": false
-  },
-  "traces": { "enabled": false },
-  "issues": { "enabled": true }
+	"enabled": true,
+	"head_sampling_rate": 1,
+	"redact_query_string": true,
+	"logs": {
+		"enabled": true,
+		"head_sampling_rate": 1,
+		"persist": true,
+		"invocation_logs": false
+	},
+	"traces": { "enabled": false },
+	"issues": { "enabled": true }
 }
 ```
 

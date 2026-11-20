@@ -1,12 +1,15 @@
 import type { RefObject } from "react";
 import { requireValue } from "../../../../shared/require-value";
-import { bezier, type View } from "../../lib/camera";
+import type { View } from "../../lib/camera";
+import { bezier } from "../../lib/camera";
 import { motionEnabled } from "../../lib/motion";
 import type { Signal } from "../../lib/signal";
 import { gpuAppearance } from "./gpu-appearance";
 import { FanLayer } from "./iso/fan-gl";
-import { type Hall, PULL } from "./iso/hall";
-import { framing, type Glide, type layout, type StageState } from "./model";
+import type { Hall } from "./iso/hall";
+import { PULL } from "./iso/hall";
+import type { Glide, layout, StageState } from "./model";
+import { framing } from "./model";
 import { tagAnchor } from "./tag-anchor";
 
 function avoidOverlaps(

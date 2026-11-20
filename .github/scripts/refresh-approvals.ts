@@ -1,5 +1,6 @@
 import type { PullRequest } from "./approval-policy";
-import { type PolicyRun, refreshApprovals } from "./approval-refresh";
+import type { PolicyRun } from "./approval-refresh";
+import { refreshApprovals } from "./approval-refresh";
 import {
 	POLICY_WORKFLOW,
 	pages,

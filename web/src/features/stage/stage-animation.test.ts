@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { type StatusMotion, setPrefs } from "../../lib/prefs";
+import type { StatusMotion } from "../../lib/prefs";
+import { setPrefs } from "../../lib/prefs";
 import { signal } from "../../lib/signal";
 import type { Hall } from "./iso/hall";
-import { layout, type StageState } from "./model";
+import type { StageState } from "./model";
+import { layout } from "./model";
 import { startStageAnimation } from "./stage-animation";
 
 const fans = vi.hoisted(() => ({
@@ -64,10 +66,12 @@ function animate(
 	vi.stubGlobal("cancelAnimationFrame", (id: number) => queue.delete(id));
 	vi.stubGlobal(
 		"IntersectionObserver",
-		class {
-			observe = vi.fn();
-			disconnect = vi.fn();
-		}
+		vi.fn(function (
+			this: Pick<IntersectionObserver, "disconnect" | "observe">
+		) {
+			this.disconnect = vi.fn();
+			this.observe = vi.fn();
+		})
 	);
 	vi.spyOn(document, "hidden", "get").mockReturnValue(false);
 	vi.spyOn(performance, "now").mockReturnValue(0);
