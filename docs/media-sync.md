@@ -38,27 +38,27 @@ Paths in this document are relative to the named repository. Keep public records
 free of personal paths, credentials, real account data, and raw control-plane logs;
 follow [the publication policy](SECURITY-PUBLICATION.md).
 
-| Source in Console | Responsibility |
-| --- | --- |
-| `web/src/`, `web/dev/` | Real components plus browser-only preview fixtures |
-| `web/dev/showcase/storyboard.ts` | Actions, exact spoken/subtitle text, scene durations |
-| `web/dev/showcase/presentation.ts` | Scene headings, caption motion, and contrast during the theme change |
-| `worker/scripts/prepare-showcase.ts` | Local Kokoro voice generation |
-| `worker/scripts/showcase-edit.ts` | Intro, URL typing, credits pause, closing, timeline retiming |
-| `worker/scripts/showcase-artwork.ts`, `web/public/favicon.svg` | Matching opening/closing branding |
-| `worker/scripts/compose-showcase.ts` | Timestamped frames, voice, music, captions, master MP4 |
-| `worker/scripts/showcase-captions.ts`, `worker/scripts/showcase-theme.ts` | Transparent caption track and whole-frame theme crossfade |
-| `artifacts/showcase/<take>/` | Ignored raw captures, timing, masters, delivery copies, QA, manifests |
+| Source in Console                                                         | Responsibility                                                        |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `web/src/`, `web/dev/`                                                    | Real components plus browser-only preview fixtures                    |
+| `web/dev/showcase/storyboard.ts`                                          | Actions, exact spoken/subtitle text, scene durations                  |
+| `web/dev/showcase/presentation.ts`                                        | Scene headings, caption motion, and contrast during the theme change  |
+| `worker/scripts/prepare-showcase.ts`                                      | Local Kokoro voice generation                                         |
+| `worker/scripts/showcase-edit.ts`                                         | Intro, URL typing, credits pause, closing, timeline retiming          |
+| `worker/scripts/showcase-artwork.ts`, `web/public/favicon.svg`            | Matching opening/closing branding                                     |
+| `worker/scripts/compose-showcase.ts`                                      | Timestamped frames, voice, music, captions, master MP4                |
+| `worker/scripts/showcase-captions.ts`, `worker/scripts/showcase-theme.ts` | Transparent caption track and whole-frame theme crossfade             |
+| `artifacts/showcase/<take>/`                                              | Ignored raw captures, timing, masters, delivery copies, QA, manifests |
 
 Capture four lossless PNG sources: `machine-light.png`, `machine-dark.png`,
 `order-light.png`, and `order-dark.png`. Use this mapping for the published JPEGs:
 
-| Capture | Console destinations | Website destinations |
-| --- | --- | --- |
-| `machine-light.png` | `docs/machine.jpg` | `public/assets/quickstart/hotaisle-console.jpg`; blog `header.jpg`, `machine-light.jpg` |
-| `machine-dark.png` | `docs/machine-dark.jpg` | `public/assets/quickstart/hotaisle-console-dark.jpg`; blog `header-dark.jpg`, `machine-dark.jpg` |
-| `order-light.png` | `docs/order.jpg` | Blog `order-light.jpg` |
-| `order-dark.png` | — | Blog `order-dark.jpg` |
+| Capture             | Console destinations    | Website destinations                                                                             |
+| ------------------- | ----------------------- | ------------------------------------------------------------------------------------------------ |
+| `machine-light.png` | `docs/machine.jpg`      | `public/assets/quickstart/hotaisle-console.jpg`; blog `header.jpg`, `machine-light.jpg`          |
+| `machine-dark.png`  | `docs/machine-dark.jpg` | `public/assets/quickstart/hotaisle-console-dark.jpg`; blog `header-dark.jpg`, `machine-dark.jpg` |
+| `order-light.png`   | `docs/order.jpg`        | Blog `order-light.jpg`                                                                           |
+| `order-dark.png`    | —                       | Blog `order-dark.jpg`                                                                            |
 
 Here, blog sources live in website
 `src/content/blog/assets/introducing-hotaisle-console/`. Every website JPEG also
@@ -136,16 +136,18 @@ must stay outside production assets.
    the README. Inspect all four PNGs before generating their derivatives.
 5. For the video, reset fixtures and keep studio camera motion **off**. Start in
    dark mode; light mode appears only when the story selects it in Settings. Use
-   the existing flow: welcome/URL typing, email approval, team creation, credits,
-   automatic rebill options, two GPUs/vLLM, launch/ready, release, history, settings,
-   closing card. Credits and rebill are demonstrations that back out of payment.
+   the existing flow: welcome/URL typing, email approval, focused team creation,
+   credits, automatic rebill options, two GPUs/vLLM, launch/ready, release, history,
+   Members permissions, scoped API token creation, settings, closing card.
+   Credits and rebill are demonstrations that back out of payment.
    The current presentation uses a white arrow with click feedback and large
    scene captions over the app. Keep the frame steady; avoid repeated zooms.
    Caption placement is shared between the studio and compositor: sign-in/team
-   captions sit in the blank area beside the form; Console captions stay on the
+   creation captions sit beside the form; Members and API token captions sit in
+   the right gutter outside the management layout; Console captions stay on the
    empty floor below the racks and to the left of the open drawer. Check each
-   scene through its navigation transition, not just its opening frame, so text
-   never covers form copy, account controls, specifications, or hardware.
+   scene through its navigation transition so text never covers controls, copy,
+   specifications, or hardware.
 6. Use the [recording guide](showcase.md#record) for tab recording or background CDP
    screencast capture. With CDP, save and promptly acknowledge each frame, retain
    its timestamp in `frames.json`, stop the screencast in cleanup, and save the
@@ -208,7 +210,7 @@ tracked excerpt and existing voice configuration. Current composition uses the
 provided Flavour Trip excerpt beginning at 33.04 seconds, 118 BPM, Bella's original
 voice pitch/speed, and at most 6 dB music ducking. Keep these choices unless the
 user changes them. The two-minute excerpt is retained in
-`tools/showcase/assets/flavour-trip-brunch-excerpt.m4a`, including roughly 35 seconds
+`tools/showcase/assets/flavour-trip-brunch-excerpt.m4a`, including roughly 23 seconds
 beyond the current edit; a clone includes it. The full recording stays untracked.
 Do not trim the excerpt again or silently substitute a different song or voice.
 
@@ -222,18 +224,19 @@ The composer creates the master, edited SRT/timing, and closing PNG/SVG. It uses
 the exact current narration and rejects stale clips. The source grid is 125 BPM;
 composition retimes footage, voice, and captions together to the music BPM. Do not
 feed the edited timing back into composition or add the intro/credits pause twice.
-The current finished story is about 85 seconds. The opening logo is frame one,
+The current finished story is about 97 seconds. The opening logo is frame one,
 the greeting accompanies URL typing after a short hold, and the final line appears
 with the matching closing card and website address.
 
-Create a separate small delivery MP4; retain the master. The last 1080p delivery
-used two-pass encoding at 2150 kbit/s video and was about 19.5 MiB. These commands
-run from the take directory, using a unique local pass-log prefix:
+Create a separate small delivery MP4; retain the master. The focused-onboarding
+1080p delivery uses two-pass encoding at 1750 kbit/s video. These commands convert
+the composer's full-range BT.601 master to limited-range BT.709 and run from the
+take directory, using a unique local pass-log prefix:
 
 ```sh
-ffmpeg -y -i master.mp4 -map 0:v:0 -c:v libx264 -preset slow -b:v 2150k -maxrate 2500k -bufsize 5000k -pix_fmt yuv420p -color_range tv -colorspace bt709 -color_primaries bt709 -color_trc bt709 -pass 1 -passlogfile encode-pass -an -f null /dev/null
-ffmpeg -y -i master.mp4 -map 0:v:0 -map 0:a:0 -c:v libx264 -preset slow -b:v 2150k -maxrate 2500k -bufsize 5000k -pix_fmt yuv420p -color_range tv -colorspace bt709 -color_primaries bt709 -color_trc bt709 -pass 2 -passlogfile encode-pass -c:a copy -movflags +faststart delivery.mp4
-ffmpeg -y -i master.mp4 -frames:v 1 first-frame.png
+ffmpeg -y -i master.mp4 -map 0:v:0 -vf 'scale=in_range=full:out_range=tv:in_color_matrix=bt601:out_color_matrix=bt709' -c:v libx264 -preset slow -b:v 1750k -pix_fmt yuv420p -color_range tv -colorspace bt709 -color_primaries bt709 -color_trc bt709 -pass 1 -passlogfile encode-pass -an -f null /dev/null
+ffmpeg -y -i master.mp4 -map 0:v:0 -map 0:a:0 -vf 'scale=in_range=full:out_range=tv:in_color_matrix=bt601:out_color_matrix=bt709' -c:v libx264 -preset slow -b:v 1750k -pix_fmt yuv420p -color_range tv -colorspace bt709 -color_primaries bt709 -color_trc bt709 -pass 2 -passlogfile encode-pass -c:a copy -movflags +faststart delivery.mp4
+ffmpeg -y -i delivery.mp4 -frames:v 1 first-frame.png
 ffmpeg -v error -i delivery.mp4 -f null /dev/null
 ffprobe -v error -show_entries format=duration,size:stream=codec_name,width,height,r_frame_rate -of json delivery.mp4
 ffmpeg -v error -i master.mp4 -map 0:a:0 -c copy -f hash -hash sha256 -
@@ -263,7 +266,8 @@ produce a Git diff, but must still be checked against the new composition.
 
 ## Verify, review, and release
 
-Watch the finished delivery copy, including sign-in, team-to-credits transition,
+Watch the finished delivery copy, including sign-in, member permission save,
+team-scoped API token creation and confirmation, the transition into Add credits,
 rebill opening/fields/cancel, size/image selection, launch, release, history,
 theme change, and both cards. Confirm captions/voice agree, actions land in their
 scenes, pauses are readable, the song remains audible, and text stays in place.
