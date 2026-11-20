@@ -1,0 +1,74 @@
+.auth-content:has(.access-management) {
+	max-inline-size: 1120px;
+	padding-block-start: 24px;
+}
+.access-management {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 12px;
+	min-inline-size: 0;
+	container-type: inline-size;
+}
+.auth-content .access-management h1 {
+	margin: 0;
+	font-size: clamp(28px, 4vw, 40px);
+	line-height: 1.2;
+}
+.auth-content .access-management form,
+.auth-content .access-management .hint,
+.auth-content .access-management .lede {
+	margin-block: 0;
+}
+.auth-content .access-management .lede {
+	font-size: 16px;
+}
+.access-tabs {
+	display: flex;
+	gap: 4px;
+	min-block-size: calc(var(--button-height) + 7px);
+	border-block-end: 1px solid var(--line-2);
+}
+.access-tabs a {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	min-block-size: 44px;
+	padding: 8px 16px;
+	margin-block-end: -1px;
+	font-weight: 600;
+	color: var(--ink-2);
+	text-decoration: none;
+	border: 1px solid transparent;
+	border-radius: 8px 8px 0 0;
+}
+.access-tabs a[aria-current="page"] {
+	color: var(--heat-ink);
+	background: var(--card);
+	border-color: var(--line-2);
+	border-block-end-color: var(--card);
+}
+.access-tabs a[aria-current="page"]::before {
+	position: absolute;
+	inset: 0 16px auto;
+	content: "";
+	border-block-start: 3px solid currentColor;
+}
+.access-tabs a:hover {
+	color: var(--ink);
+	background: var(--card);
+}
+.access-tabs a:focus-visible {
+	outline: 2px solid var(--heat-ink);
+	outline-offset: -4px;
+}
+.team-identity a,
+.token-identity a {
+	color: inherit;
+	text-decoration: underline;
+	text-decoration-color: var(--line-2);
+	text-underline-offset: 3px;
+}
+.team-identity a:hover,
+.token-identity a:hover {
+	text-decoration-color: currentColor;
+}

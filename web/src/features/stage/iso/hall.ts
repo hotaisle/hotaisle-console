@@ -1,40 +1,22 @@
 import { requireValue } from "../../../../../shared/require-value";
 import { heatsinkHardware } from "./heatsink-top";
-// The figure: a row of racks seen from the hot aisle, the side Hot Aisle is named after.
-// Each rack holds four Dell PowerEdge XE9680 servers (6U) and a top-of-rack switch, with blanking panels
-// in the empty units. The PSU/I/O face sits behind the GPU fan wall, with a service shelf between them.
-// Seen from the rear, an XE9680 has six power supplies and its I/O across the top 2U and ten GPU fan
-// modules across the bottom 4U (Dell XE9680 Technical Guide, figure 3). To service the GPUs, the fan
-// wall comes off and the GPU tray slides out of the rear (Dell XE9680 Installation and Service Manual).
-// That is the pose used for the servers your machines run on.
-//
-// The tray is drawn to the OAM spec: a 417 x 585 mm universal baseboard carrying eight 102 x 165 mm
-// OAM modules in two rows of four, each under a finned heatsink. Units are centimetres. x runs along
-// the row, y comes out of the racks toward you (into the hot aisle), z is up. Rack rears sit at y = 0.
-//
-// Live parts carry data attributes, so the page can move them without rebuilding:
-//   [data-tray="<host>"]   the GPU tray of a server, translated along +y to slide it out
-//   [data-cage="<host>"]   its fan wall, moved out and up out of the way before the tray comes out
-//   [data-gpu="<host>/<slot>"]  one OAM module and its heatsink
-//   [data-idled="<host>"]  the server's System ID light, lit for servers running your machines
-//   [data-part]            what the pointer is over
-// GPU and switch fans use one moving GPU layer over the static drawing. Recessed PSU rotors
-// stay in their SVG bodies, where nearer cabinets and shelves can occlude them correctly.
+import type {
+	Flat as kitFlat,
+	Plan as kitPlan,
+	Point3 as kitPoint3,
+	Projection as kitProjection,
+} from "./kit";
 import {
 	axisVector as kitAxisVector,
 	boxCorners as kitBoxCorners,
 	depthOf as kitDepthOf,
 	dotsSvg as kitDotsSvg,
-	type Flat as kitFlat,
 	iso as kitIso,
 	lineOnTop as kitLineOnTop,
 	lineSvg as kitLineSvg,
 	onTop as kitOnTop,
 	pathOf as kitPathOf,
-	type Plan as kitPlan,
-	type Point3 as kitPoint3,
 	pointsAt as kitPointsAt,
-	type Projection as kitProjection,
 	segment as kitSegment,
 	sideMatrix as kitSideMatrix,
 	slabOf as kitSlabOf,

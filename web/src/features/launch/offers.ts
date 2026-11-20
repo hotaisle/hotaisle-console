@@ -1,9 +1,12 @@
+import { sha256 } from "@noble/hashes/sha2.js";
 import type { Offer } from "../../lib/api";
 import type { Order } from "./types";
 
-/** Class identity excludes changing stock and prices; bare metal retains its full reservation spec. */
+const encoder = new TextEncoder();
+
+/** Stable, compact class identity; full specifications stay in the availability data. */
 export function offerKey(offer: Offer): string {
-	return JSON.stringify(
+	const identity = JSON.stringify(
 		[offer.metal ? "metal" : "vm", offer.rawSpecs ?? offer.Specs],
 		(_key, value: unknown) =>
 			value && typeof value === "object" && !Array.isArray(value)
@@ -12,6 +15,11 @@ export function offerKey(offer: Offer): string {
 					)
 				: value
 	);
+	const digest = btoa(String.fromCharCode(...sha256(encoder.encode(identity))))
+		.replaceAll("+", "-")
+		.replaceAll("/", "_")
+		.replaceAll("=", "");
+	return `${offer.metal ? "bm" : "vm"}-${digest}`;
 }
 
 export function selectedOffer(

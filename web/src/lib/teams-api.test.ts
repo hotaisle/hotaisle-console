@@ -1,8 +1,30 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { type APIError, api, type TeamMemberInvitation } from "./api";
+import type { APIError, TeamMemberInvitation } from "./api";
+import { api } from "./api";
 
 afterEach(() => vi.unstubAllGlobals());
 describe("team API contract", () => {
+	it("updates member roles through an encoded same-origin PATCH", async () => {
+		const member = {
+			created: "2026-01-01",
+			email: "dana/ops+gpu@example.com",
+			name: "Dana",
+			roles: ["user", "operator"] as const,
+		};
+		const request = vi.fn().mockResolvedValue(Response.json(member));
+		vi.stubGlobal("fetch", request);
+		expect(
+			await api.updateTeamMember("lab/team", member.email, ["user", "operator"])
+		).toEqual(member);
+		expect(request).toHaveBeenCalledWith(
+			"/api/teams/lab%2Fteam/members/dana%2Fops%2Bgpu%40example.com/",
+			expect.objectContaining({
+				body: JSON.stringify({ roles: ["user", "operator"] }),
+				credentials: "same-origin",
+				method: "PATCH",
+			})
+		);
+	});
 	it("encodes the team and sends invitation details as same-origin JSON with a 204 response", async () => {
 		const invitation: TeamMemberInvitation = {
 			email: "dana+gpu@example.com",

@@ -1,23 +1,22 @@
-import {
-	type GPU,
-	type MetalSpecs,
-	type Offer,
-	type Specs,
-	specsOf,
+import type {
+	GPU,
+	MetalSpecs,
+	Offer,
+	Specs,
 } from "../../../shared/availability";
-import {
-	type MachineRef,
-	machineAddress,
-} from "../../../shared/machine-identity";
+import { specsOf } from "../../../shared/availability";
+import type { MachineRef } from "../../../shared/machine-identity";
+import { machineAddress } from "../../../shared/machine-identity";
 import type { AutoRebillSettings, AutoRebillStatus } from "./auto-rebill";
+import type { EmailSessionReply } from "./email-session";
 import {
 	EmailSessionError,
-	type EmailSessionReply,
 	emailSessionEnded,
 	emailSessionRequest,
 	endEmailSession,
 } from "./email-session";
-import { type HistoryKey, historyVault } from "./history-vault";
+import type { HistoryKey } from "./history-vault";
+import { historyVault } from "./history-vault";
 import { keyVault } from "./key-vault";
 
 export type { GPU, Offer, Specs } from "../../../shared/availability";
@@ -478,6 +477,12 @@ export const api = {
 		handle: string,
 		details: { name?: string; description?: string }
 	) => call<Team>("PATCH", `${t(handle)}/`, details),
+	updateTeamMember: (team: string, email: string, roles: TeamRole[]) =>
+		call<TeamMember>(
+			"PATCH",
+			`${t(team)}/members/${encodeURIComponent(email)}/`,
+			{ roles }
+		),
 
 	user: () => call<UserAccount>("GET", "/api/user/"),
 	vmState: async (team: string, vm: MachineRef): Promise<VMState> => {

@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
-import { type CloudflareConfig, cloudflare } from "@cloudflare/vite-plugin";
+import type { CloudflareConfig } from "@cloudflare/vite-plugin";
+import { cloudflare } from "@cloudflare/vite-plugin";
 import { describe, expect, it, vi } from "vitest";
 import workerConfig from "./cloudflare.config";
 import config from "./vite.config";

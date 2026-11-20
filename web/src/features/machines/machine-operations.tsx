@@ -1,13 +1,11 @@
-import { type RefObject, useCallback, useId } from "react";
+import type { RefObject } from "react";
+import { useCallback, useId } from "react";
 import { machineAddress } from "../../../../shared/machine-identity";
 import { AnchoredPopover } from "../../components/ui/anchored-popover";
 import { ConnectionActions } from "./connection-actions";
 import { ConsoleLink } from "./console-link";
-import {
-	METAL_POWER_OPERATIONS,
-	type PowerOperation,
-	VM_POWER_OPERATIONS,
-} from "./power-actions";
+import type { PowerOperation } from "./power-actions";
+import { METAL_POWER_OPERATIONS, VM_POWER_OPERATIONS } from "./power-actions";
 import type { TripContext } from "./use-trip";
 
 function Operation({

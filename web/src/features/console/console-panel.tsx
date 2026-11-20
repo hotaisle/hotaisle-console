@@ -49,7 +49,6 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 		offers,
 		onEnded,
 		onLaunched,
-		onTeam,
 		order,
 		push,
 		receipts,
@@ -67,7 +66,6 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 		states,
 		status,
 		team,
-		teams,
 		view,
 	} = context;
 	// ---------------------------------------------------------------- panel views
@@ -160,11 +158,7 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 				/>
 				<History items={history} />
 				<div className="foot">
-					<button
-						className="btn primary big new"
-						onClick={showOrder}
-						type="button"
-					>
+					<button className="btn primary new" onClick={showOrder} type="button">
 						<span aria-hidden="true" className="plus" />
 						New machine
 					</button>
@@ -178,12 +172,9 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 		body = (
 			<SettingsView
 				keysError={keys.error}
-				onTeam={onTeam}
 				refreshKeys={keys.refresh}
 				sshKeys={keys.data}
 				status={status}
-				team={team}
-				teams={teams}
 			/>
 		);
 	} else if (view === "credits") {

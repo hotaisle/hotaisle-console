@@ -10,8 +10,11 @@ and credits, with live availability and encrypted browser-local run history.
 **[Open Hot Aisle Console](https://console.hotaisle.app)**
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/machine-dark.jpg">
-  <img alt="Hot Aisle Console with a running MI300X machine and server illustration; simulated data" src="docs/machine.jpg">
+	<source media="(prefers-color-scheme: dark)" srcset="docs/machine-dark.jpg">
+	<img
+		alt="Hot Aisle Console with a running MI300X machine and server illustration; simulated data"
+		src="docs/machine.jpg"
+	>
 </picture>
 
 - [Development, architecture, security, deployment, and asset credits](docs/implementation.md)

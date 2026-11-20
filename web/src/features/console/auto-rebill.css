@@ -88,3 +88,19 @@
 	min-block-size: 48px;
 	font-size: 1rem;
 }
+
+@media (max-width: 360px) {
+	.rebill-actions {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.rebill-actions .btn {
+		block-size: auto;
+		min-block-size: var(--button-height);
+		padding-block: 8px;
+		white-space: normal;
+	}
+	.rebill-actions .button-labels {
+		min-inline-size: 0;
+	}
+}

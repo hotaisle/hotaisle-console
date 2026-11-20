@@ -1,9 +1,9 @@
+import type { RouterHistory } from "@tanstack/react-router";
 import {
 	createRootRoute,
 	createRoute,
 	createRouter,
 	notFound,
-	type RouterHistory,
 	redirect,
 	useLocation,
 } from "@tanstack/react-router";
@@ -56,6 +56,8 @@ const routeTree = rootRoute.addChildren([
 	createRoute({ getParentRoute: parent, path: "/teams/$team/launch" }),
 	createRoute({ getParentRoute: parent, path: "/teams/$team/settings" }),
 	createRoute({ getParentRoute: parent, path: "/teams/$team/details" }),
+	createRoute({ getParentRoute: parent, path: "/teams/$team/members" }),
+	createRoute({ getParentRoute: parent, path: "/teams/$team/invite" }),
 	createRoute({ getParentRoute: parent, path: "/teams/$team/credits" }),
 	createRoute({
 		beforeLoad: ({ params, search }) => {

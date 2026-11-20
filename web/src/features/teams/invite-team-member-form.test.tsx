@@ -2,7 +2,8 @@ import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { renderWithQuery } from "../../../test/render";
-import { APIError, api, type Team } from "../../lib/api";
+import type { Team } from "../../lib/api";
+import { APIError, api } from "../../lib/api";
 import { InviteTeamMemberForm } from "./invite-team-member-form";
 
 const TEAM: Team = {

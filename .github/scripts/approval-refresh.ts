@@ -1,8 +1,5 @@
-import {
-	hasMaintainerApproval,
-	type PullRequest,
-	type Review,
-} from "./approval-policy";
+import type { PullRequest, Review } from "./approval-policy";
+import { hasMaintainerApproval } from "./approval-policy";
 
 export interface PolicyRun {
 	conclusion: string | null;

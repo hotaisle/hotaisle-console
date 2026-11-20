@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { machineKey } from "../../shared/machine-identity";
+import type { Ended } from "../../shared/records";
 import {
 	addEnded,
-	type Ended,
 	emptyRecords,
 	historyOf,
 	pruneMachines,

@@ -2,7 +2,8 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { renderWithQuery } from "../../../test/render";
-import { APIError, api, type Team } from "../../lib/api";
+import type { Team } from "../../lib/api";
+import { APIError, api } from "../../lib/api";
 import { EditTeamForm } from "./edit-team-form";
 
 const TEAM: Team = {
@@ -13,6 +14,25 @@ const TEAM: Team = {
 	roles: ["owner"],
 };
 describe("edit team details", () => {
+	it("disables unchanged saves, including reverted edits and name whitespace", async () => {
+		const save = vi.spyOn(api, "updateTeam");
+		const user = userEvent.setup();
+		renderWithQuery(<EditTeamForm onSaved={vi.fn()} team={TEAM} />);
+		const button = screen.getByRole("button", { name: "Save changes" });
+		expect(button).toBeDisabled();
+		await user.type(screen.getByLabelText("Team name"), " ");
+		expect(button).toBeDisabled();
+		await user.type(screen.getByLabelText("Description"), " changed");
+		expect(button).toBeEnabled();
+		await user.clear(screen.getByLabelText("Description"));
+		await user.type(
+			screen.getByLabelText("Description"),
+			"Original description"
+		);
+		expect(button).toBeDisabled();
+		await user.click(button);
+		expect(save).not.toHaveBeenCalled();
+	});
 	it("saves only changed fields and retains entered values after a rejected save", async () => {
 		const save = vi
 			.spyOn(api, "updateTeam")
@@ -35,6 +55,7 @@ describe("edit team details", () => {
 		);
 		expect(save).toHaveBeenLastCalledWith("lab", { name: "New Lab" });
 		expect(screen.getByRole("status")).toHaveTextContent("Team details saved.");
+		expect(screen.getByRole("button", { name: "Saved" })).toBeDisabled();
 	});
 	it("does not resend the unchanged name when only the description changes", async () => {
 		const save = vi

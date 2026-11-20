@@ -1,4 +1,5 @@
-import { type SyntheticEvent, useCallback, useState } from "react";
+import type { SyntheticEvent } from "react";
+import { useCallback, useState } from "react";
 import { FormError } from "../../components/forms/form-error";
 import type { AutoRebillStatus } from "../../lib/auto-rebill";
 import { money } from "../../lib/format";

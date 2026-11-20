@@ -1,4 +1,5 @@
-import { isTokenPair, type TokenPair } from "./hotaisle";
+import type { TokenPair } from "./hotaisle";
+import { isTokenPair } from "./hotaisle";
 
 const BASE64_PADDING_PATTERN = /[=]+$/u;
 // The session: who is signed in, and the Hot Aisle token their calls go out with.

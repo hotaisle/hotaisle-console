@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Form } from "../../components/forms/form";
 import { FormError } from "../../components/forms/form-error";
 import { useAppForm } from "../../components/forms/use-app-form";
-import { APIError, api, type Team } from "../../lib/api";
+import type { Team } from "../../lib/api";
+import { APIError, api } from "../../lib/api";
 import { errorMessage } from "../../lib/error-message";
 
 const encoder = new TextEncoder();

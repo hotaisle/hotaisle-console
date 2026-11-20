@@ -1,4 +1,5 @@
-import { onTop, type Plan, type Projection, slabOf, solidSvg } from "./kit";
+import type { Plan, Projection } from "./kit";
+import { onTop, slabOf, solidSvg } from "./kit";
 
 /** Top-plate hardware from the MI300X tray reference, without reproducing serial labels. */
 export function heatsinkHardware(

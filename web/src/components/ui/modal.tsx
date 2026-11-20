@@ -1,11 +1,5 @@
-import {
-	type ReactNode,
-	type RefObject,
-	useCallback,
-	useEffect,
-	useId,
-	useRef,
-} from "react";
+import type { ReactNode, RefObject } from "react";
+import { useCallback, useEffect, useId, useRef } from "react";
 import { ErrorNotices } from "./error-notices";
 import { KeyboardScope } from "./keyboard-scope";
 
@@ -72,7 +66,7 @@ export function Modal({
 								<form method="dialog">
 									<button
 										aria-label="Close"
-										className="btn ghost sm"
+										className="btn ghost"
 										disabled={busy}
 										type="submit"
 									>

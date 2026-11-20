@@ -14,7 +14,8 @@ import { machineKey } from "../../../../shared/machine-identity";
 import { TestProvider, testClient } from "../../../test/render";
 import { validateSearch } from "../../app/route-state";
 import { ToastHost } from "../../components/ui/toast";
-import { api, type Ended, type VM as Machine, type Team } from "../../lib/api";
+import type { Ended, VM as Machine, Team } from "../../lib/api";
+import { api } from "../../lib/api";
 import { historyVault } from "../../lib/history-vault";
 import { useConsole } from "./use-console";
 

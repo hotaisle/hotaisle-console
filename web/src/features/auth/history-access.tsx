@@ -1,9 +1,5 @@
-import {
-	type ReactNode,
-	useEffect,
-	useState,
-	useSyncExternalStore,
-} from "react";
+import type { ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { FormError } from "../../components/forms/form-error";
 import { api } from "../../lib/api";
 import { cloudInitVault } from "../../lib/cloud-init-vault";

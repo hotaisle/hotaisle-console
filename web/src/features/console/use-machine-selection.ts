@@ -1,9 +1,7 @@
 import { useRouter, useSearch } from "@tanstack/react-router";
 import { useEffect } from "react";
-import {
-	type MachineRef,
-	machineKey,
-} from "../../../../shared/machine-identity";
+import type { MachineRef } from "../../../../shared/machine-identity";
+import { machineKey } from "../../../../shared/machine-identity";
 import { viewPath } from "../../app/route-state";
 import type { Ended, VM } from "../../lib/api";
 import type { useNavigation } from "./use-navigation";

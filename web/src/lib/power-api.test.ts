@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { api, type PowerAction } from "./api";
+import type { PowerAction } from "./api";
+import { api } from "./api";
 
 afterEach(() => vi.unstubAllGlobals());
 describe("bare-metal power API", () => {

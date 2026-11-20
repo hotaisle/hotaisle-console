@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import type { ConsoleSearch } from "../../app/route-state";
 import { Picker } from "../../components/ui/picker";
-import { IMAGES, type Image } from "../../lib/prefs";
+import type { Image } from "../../lib/prefs";
+import { IMAGES } from "../../lib/prefs";
 import { ImageFooter } from "./image-footer";
 
 const preserveSearch = (previous: ConsoleSearch) => previous;

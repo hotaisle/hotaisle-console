@@ -1,4 +1,5 @@
-import { initialRoute, SCENARIOS, type Scenario } from "./scenarios";
+import type { Scenario } from "./scenarios";
+import { initialRoute, SCENARIOS } from "./scenarios";
 
 function scenarioURL(scenario: Scenario) {
 	const url = new URL(window.location.href);

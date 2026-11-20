@@ -120,8 +120,8 @@
 }
 .action-error > button {
 	flex: none;
-	min-inline-size: 24px;
-	min-block-size: 24px;
+	min-inline-size: var(--button-height);
+	min-block-size: var(--button-height);
 }
 
 .card-name {
@@ -296,8 +296,6 @@
 }
 .sheet-x {
 	align-self: center;
-	min-block-size: 36px;
-	font-size: 13.5px;
 }
 .menu-wrap {
 	position: relative;
@@ -427,9 +425,9 @@
 	font-weight: 600;
 }
 .menu button {
-	height: 36px;
-	padding: 0 12px;
-	font-size: 14px;
+	height: var(--button-height);
+	padding: 0 var(--button-padding-inline);
+	font-size: var(--button-font-size);
 	text-align: left;
 	appearance: none;
 	cursor: pointer;
@@ -579,6 +577,32 @@
 	.cluster .unit,
 	.cluster .meter-v .cur {
 		font-size: 0.8125rem;
+	}
+}
+@container console-panel (max-width: 340px) {
+	.trip .card-title h3 {
+		flex-wrap: wrap;
+		row-gap: 4px;
+	}
+	.trip .inst {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.trip .ssh {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.trip .ssh .btn {
+		justify-self: end;
+	}
+	.trip .sheet .hold {
+		block-size: auto;
+		min-block-size: var(--button-height);
+		padding-block: 8px;
+	}
+	.trip .sheet .hold-label {
+		min-inline-size: 0;
+	}
+	.trip .sheet .hold-label > span {
+		white-space: normal;
 	}
 }
 .track li.done .lbl {

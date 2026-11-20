@@ -1,4 +1,5 @@
 const HEADLINES: Record<string, string> = {
+	"api-tokens": "Scope tokens.",
 	approve: "Approve in your browser.",
 	"auto-rebill": "Keep your team funded.",
 	"create-team": "Create your team.",
@@ -8,6 +9,7 @@ const HEADLINES: Record<string, string> = {
 	history: "Every run, in one place.",
 	image: "Pick your compute.",
 	launch: "Hold to launch.",
+	members: "Member permissions.",
 	ready: "Ready to work.",
 	"sign-in": "Sign in.",
 	theme: "Light or dark.",
@@ -17,11 +19,14 @@ export function captionHeading(id: string) {
 	return HEADLINES[id];
 }
 
-// Keep auth captions beside the form and console captions on the empty floor
-// below the racks. Coordinates are fractions of the 16:9 capture viewport.
+// Keep captions clear of the widest view each scene visits.
+// Coordinates are fractions of the 16:9 capture viewport.
 export function captionLayout(id: string) {
 	if (["sign-in", "approve", "create-team"].includes(id)) {
 		return { width: 0.3, x: 0.6, y: 0.48 };
+	}
+	if (id === "members" || id === "api-tokens") {
+		return { width: 0.175, x: 0.805, y: 0.44 };
 	}
 	return { width: 0.245, x: 0.28, y: 0.74 };
 }

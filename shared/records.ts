@@ -7,7 +7,8 @@
 //
 // Persisted only as encrypted, append-only browser entries. No Cloudflare user-data storage.
 
-import { type MachineRef, machineKey, machineKind } from "./machine-identity";
+import type { MachineRef } from "./machine-identity";
+import { machineKey, machineKind } from "./machine-identity";
 
 export interface Machine {
 	deployment_id?: string;

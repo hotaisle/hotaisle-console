@@ -1,7 +1,8 @@
 import { webcrypto } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { machineKey } from "../../../shared/machine-identity";
-import { createHistoryVault, type HistoryKey } from "./history-vault";
+import type { HistoryKey } from "./history-vault";
+import { createHistoryVault } from "./history-vault";
 
 const receipt = {
 	ended_at: "2026-11-09T12:00:00Z",

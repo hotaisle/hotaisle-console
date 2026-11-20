@@ -19,6 +19,25 @@ function request(
 	);
 }
 describe("development preview machine lifecycle", () => {
+	it("updates member permissions in memory and reflects lost owner access", async () => {
+		const api = new PreviewAPI("running");
+		const path = "/api/teams/preview/members/preview%40example.invalid/";
+		const updated = await request(api, "PATCH", path, { roles: ["user"] });
+		expect(updated.status).toBe(200);
+		expect(await updated.json()).toMatchObject({ roles: ["user"] });
+		const team = await (
+			await request(api, "GET", "/api/teams/preview/")
+		).json();
+		expect(team.effective_roles).toEqual(["user"]);
+		expect(team.members[0].roles).toEqual(["user"]);
+		expect(
+			(await request(api, "PATCH", path, { roles: ["owner"] })).status
+		).toBe(403);
+		const reset = await (
+			await request(new PreviewAPI("running"), "GET", "/api/teams/preview/")
+		).json();
+		expect(reset.members[0].roles).toEqual(["owner"]);
+	});
 	it("previews token permissions across three memberships and rejects unavailable grants", async () => {
 		const api = new PreviewAPI("api-tokens");
 		const account = await (await request(api, "GET", "/api/user/")).json();
@@ -207,17 +226,64 @@ describe("development preview machine lifecycle", () => {
 			handle: "research",
 			name: "Research team",
 		});
+		const ownerRoles = ["owner", "purchaser", "operator", "user"];
 		expect(await created.json()).toMatchObject({
-			effective_roles: ["owner"],
+			effective_roles: ownerRoles,
 			handle: "research",
 			name: "Research team",
+			roles: ownerRoles,
 		});
 		expect(
 			await (await request(api, "GET", "/api/user/")).json()
 		).toMatchObject({ teams: [{ handle: "research" }] });
 		expect(
+			await (await request(api, "GET", "/api/teams/research/")).json()
+		).toMatchObject({
+			members: [
+				{ email: "preview@example.invalid", roles: ownerRoles },
+				{ email: "riley@example.invalid", roles: ["operator"] },
+			],
+		});
+		expect(
 			await (await request(api, "GET", "/api/teams/research/balance/")).json()
 		).toMatchObject({ available_balance: 50_000 });
+		const roles = ["operator", "user"];
+		const member = await request(
+			api,
+			"PATCH",
+			"/api/teams/research/members/riley%40example.invalid/",
+			{ roles }
+		);
+		expect(member.status).toBe(200);
+		expect(await member.json()).toMatchObject({
+			email: "riley@example.invalid",
+			roles,
+		});
+		expect(
+			await (await request(api, "GET", "/api/teams/research/")).json()
+		).toMatchObject({
+			members: [
+				{ email: "preview@example.invalid", roles: ownerRoles },
+				{ email: "riley@example.invalid", roles },
+			],
+		});
+		expect(
+			await (await request(api, "GET", "/api/user/")).json()
+		).toMatchObject({ teams: [{ effective_roles: ownerRoles }] });
+		const tokensPath = "/api/user/api_keys/";
+		expect(await (await request(api, "GET", tokensPath)).json()).toEqual([]);
+		const tokenRequest = {
+			label: "Research SSH",
+			teams: [{ roles: ["user"], team: "research" }],
+			user_role: "user",
+		};
+		const token = await request(api, "POST", tokensPath, tokenRequest);
+		expect(token.status).toBe(200);
+		expect(await token.json()).toMatchObject({
+			label: "Research SSH",
+			teams: [{ handle: "research", name: "Research team", roles: ["user"] }],
+			user_role: "user",
+		});
 		expect(
 			(
 				await request(api, "POST", "/api/teams/", {

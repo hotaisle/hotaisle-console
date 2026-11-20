@@ -84,6 +84,11 @@
 	.pv-title h1 {
 		font-size: 24px;
 	}
+	.pv-sub {
+		block-size: auto;
+		min-block-size: 22px;
+		white-space: normal;
+	}
 	.ssh code {
 		font-size: 13px;
 	}
@@ -108,9 +113,6 @@
 		margin: 0;
 	}
 
-	.card-foot .btn {
-		padding: 0 12px;
-	}
 	.row-item.hist {
 		grid-template-columns: minmax(0, 1.4fr) 52px 60px 54px;
 	}

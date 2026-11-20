@@ -1,4 +1,5 @@
-import { type Owned, WARM } from "./model";
+import type { Owned } from "./model";
+import { WARM } from "./model";
 export function gpuAppearance(owner?: Owned) {
 	if (!owner) {
 		return { led: "off", target: 0 };

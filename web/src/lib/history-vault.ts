@@ -1,11 +1,13 @@
+import type {
+	Ended,
+	MachineUpdate,
+	RecordsState,
+} from "../../../shared/records";
 import {
 	addEnded,
 	checkUpdate,
-	type Ended,
 	emptyRecords,
-	type MachineUpdate,
 	pruneMachines,
-	type RecordsState,
 	removeMachine,
 	updateMachine,
 } from "../../../shared/records";

@@ -1,12 +1,12 @@
 // A small drawing of one MI300X package, for the inspector: four I/O dies in a 2 x 2 grid, two compute
 // dies (XCDs) stacked on each, and eight HBM3 stacks, four down each side (AMD, Hot Chips 2024).
 // The page lights the XCDs as the machine boots and the HBM once it is ready.
+import type { Point3 as kitPoint3 } from "./kit";
 import {
 	boxCorners as kitBoxCorners,
 	depthOf as kitDepthOf,
 	dotsSvg as kitDotsSvg,
 	fitProjection as kitFitProjection,
-	type Point3 as kitPoint3,
 	pointsAt as kitPointsAt,
 	slabOf as kitSlabOf,
 	solidSvg as kitSolidSvg,

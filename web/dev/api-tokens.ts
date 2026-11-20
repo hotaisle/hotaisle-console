@@ -7,24 +7,31 @@ type TokenMembership = Pick<Team, "handle" | "name" | "roles">;
 
 export class PreviewAPITokens {
 	private readonly memberships: readonly TokenMembership[];
-	constructor(memberships: readonly TokenMembership[]) {
+	private serial = 0;
+	private readonly tokens: APIToken[] = [];
+	constructor(
+		memberships: readonly TokenMembership[],
+		includeDevelopmentToken: boolean
+	) {
 		this.memberships = memberships;
+		if (includeDevelopmentToken) {
+			this.serial = 1;
+			this.tokens.push({
+				created: "2026-11-01T12:00:00Z",
+				label: "Development",
+				prefix: "preview-token-1",
+				teams: [
+					{
+						handle: "preview",
+						name: "Development preview",
+						roles: ["operator", "user"],
+					},
+				],
+				updated: "2026-11-08T12:00:00Z",
+				user_role: "user",
+			});
+		}
 	}
-	private serial = 1;
-	private readonly tokens: APIToken[] = [
-		{
-			label: "Development",
-			prefix: "preview-token-1",
-			teams: [
-				{
-					handle: "preview",
-					name: "Development preview",
-					roles: ["operator", "user"],
-				},
-			],
-			user_role: "user",
-		},
-	];
 	async request(request: Request): Promise<Response> {
 		const path = new URL(request.url).pathname;
 		if (request.method === "GET" && path === BASE) {

@@ -2,7 +2,8 @@ import { useId, useRef, useState } from "react";
 import { Form } from "../../components/forms/form";
 import { FormError } from "../../components/forms/form-error";
 import { useAppForm } from "../../components/forms/use-app-form";
-import { api, type Team, type TeamRole } from "../../lib/api";
+import type { Team, TeamRole } from "../../lib/api";
+import { api } from "../../lib/api";
 import { errorMessage } from "../../lib/error-message";
 import { TeamRoleFields } from "./team-role-fields";
 
@@ -83,9 +84,9 @@ export function InviteTeamMemberForm({
 			className="team-form team-invite-form stack"
 			onSubmit={form.handleSubmit}
 		>
-			<h3 className="team-section-title" id={heading}>
-				Invite someone
-			</h3>
+			<h2 className="team-section-title" id={heading}>
+				Invite team member
+			</h2>
 			<form.AppField name="name">
 				{(field) => (
 					<field.TextField

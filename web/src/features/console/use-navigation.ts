@@ -6,7 +6,8 @@ import {
 } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { machineKey } from "../../../../shared/machine-identity";
-import { type View, viewFromPath, viewPath } from "../../app/route-state";
+import type { View } from "../../app/route-state";
+import { viewFromPath, viewPath } from "../../app/route-state";
 import { transition } from "../../lib/motion";
 
 export type { View } from "../../app/route-state";
@@ -26,21 +27,35 @@ export function useNavigation(team: string) {
 	);
 	const push = useCallback(
 		(next: View, name?: string) =>
-			router.navigate({ search, to: viewPath(team, next, name) }),
+			router.navigate({
+				search:
+					next === "order" || next === "image"
+						? { gpus: search.gpus, image: search.image, offer: search.offer }
+						: {},
+				to: viewPath(team, next, name),
+			}),
 		[router, team, search]
 	);
 	const focusMachine = useCallback(
 		(name?: string, replace = false) =>
-			router.navigate({ replace, search, to: viewPath(team, "home", name) }),
-		[router, team, search]
+			router.navigate({
+				replace,
+				search: {},
+				to: viewPath(team, "home", name),
+			}),
+		[router, team]
 	);
 	const back = useCallback(() => {
 		if (router.history.canGoBack()) {
 			router.history.back();
 		} else {
-			router.navigate({ replace: true, search, to: viewPath(team, "home") });
+			router.navigate({
+				replace: true,
+				search: {},
+				to: viewPath(team, "home"),
+			});
 		}
-	}, [router, team, search]);
+	}, [router, team]);
 	return {
 		back,
 		focus:

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect } from "react";
-import { api, type Status } from "../lib/api";
+import type { Status } from "../lib/api";
+import { api } from "../lib/api";
 import { historyVault } from "../lib/history-vault";
 import { keyVault } from "../lib/key-vault";
 
@@ -79,8 +80,7 @@ export function useSessionActions() {
 			advanceSessionEpoch();
 			historyVault.lock();
 			lockOtherTabs();
-		},
-		onSettled: () => {
+			client.cancelQueries();
 			client.setQueryData<Status>(STATUS_KEY, (previous) => ({
 				email_login: previous?.email_login ?? true,
 				key_stored: previous?.key_stored ?? false,

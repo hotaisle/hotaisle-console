@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-	hasMaintainerApproval,
-	type Identity,
-	type PullRequest,
-	type Review,
-} from "./approval-policy";
+import type { Identity, PullRequest, Review } from "./approval-policy";
+import { hasMaintainerApproval } from "./approval-policy";
 
 const JON: Identity = { id: 159_235_294, type: "User" };
 const CLINT: Identity = { id: 160_780_714, type: "User" };

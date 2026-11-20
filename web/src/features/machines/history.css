@@ -67,3 +67,14 @@
 .history-pages > :last-child {
 	justify-self: end;
 }
+
+@media (max-width: 360px) {
+	.history-pages {
+		grid-template-columns: auto minmax(0, 1fr) auto;
+		gap: 8px;
+		text-align: center;
+	}
+	.history-pages .btn {
+		padding-inline: 10px;
+	}
+}

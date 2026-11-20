@@ -51,8 +51,9 @@ in a development session when you want preview rebuilds on file changes. A missi
 instructions instead of redirecting into the real account. The normal console stays at `localhost:8787`.
 
 For the scripted walkthrough, run `bun run showcase` and open
-[Showcase studio](http://preview.localhost:8787/__preview/showcase.html). It follows sign-in, team creation,
-Add credits, launch, release, history, and settings with captions and optional local voiceover.
+[Showcase studio](http://preview.localhost:8787/__preview/showcase.html). It follows sign-in, first-team
+setup, credits, machine launch, release, and history. Only then does it return to Teams & tokens to
+manage member permissions and create a team-limited API token, before opening Settings.
 See [the recording guide](showcase.md) for beat timing, capture, and MP4 export.
 Follow [the media sync process](media-sync.md) to refresh README, website, and blog screenshots
 alongside the video, captions, transcript, and poster before a UI-changing PR.
@@ -91,7 +92,16 @@ spaces as required by its syntax.
 Pages use URLs for bookmarks and browser navigation. History URLs reopen after signing in to the same account
 in the same browser. Encrypted history does not sync across devices or browser profiles.
 
-Launch choices retain a hardware-class identity in the validated `offer` search parameter.
+Expired account authentication returns immediately to sign-in (or browser-key unlock) with a dismissible
+explanation and the original destination preserved. Private queries are cancelled and cleared before
+network sign-out cleanup finishes; late cleanup cannot sign out a newly authenticated session.
+Connection failures retain their retry screen rather than discarding the session. The local preview's
+**Session ended** scenario exercises the expired-session redirect without real credentials.
+
+Launch choices retain a compact hardware-class fingerprint in the validated `offer` search parameter:
+`vm-` or `bm-` followed by a URL-safe SHA-256 digest (46 characters total). Full hardware specifications
+stay in availability data rather than being serialized into the address. Machine selection and navigation
+to settings or credits drop launch parameters; browser back restores the previous launch URL.
 GPU count alone does not identify a class: two whole-server configurations may both have eight GPUs.
 Selection, estimates, stage specifications, and reservation requests use the same class. Identity excludes
 stock and prices, so polling and catalog reordering preserve the selection. If an explicitly selected class
@@ -100,27 +110,101 @@ retain their available-size fallback; numeric shortcuts apply only to unambiguou
 
 The team chooser refreshes memberships and invitations every 30 seconds while active, and on returning to
 the tab. Failed background updates keep the current list visible and offer a retry in a dismissible notice.
+Team selection and creation omit the account/sign-out footer; sign-out remains in account settings.
+First-team creation shows a focused setup screen without team/token navigation and opens the new
+team's machines after updating the account cache. Creating additional teams returns to `/teams`.
+Accepting an invitation still opens that team's machines.
+Returning to teams exposes the compact **Teams & tokens** area, with URL-backed Teams and
+API tokens navigation tabs. Team cards show the user's membership permissions; team management
+retains Details, Members, and Invite subtabs. Tokens belong to the signed-in user, never to a team.
+The token editor offers every accepted membership in a compact permission matrix with a shared role
+key. Unchecked teams have no access. Permissions outside the user's membership cannot be added;
+existing grants can be removed. Upstream authorization remains authoritative when membership access
+changes. Account-level read/manage capabilities are labeled explicitly, separately from team roles.
+There are no team-scoped token lists or `tokenTeam` navigation parameters.
+Team owners edit current members' permissions inline on the Members tab. Each member has an
+independent draft, explicit Save, and Cancel; unchanged forms cannot submit. Successful
+saves refresh authoritative team and account permissions. Pending invitations and non-owner
+views are read-only. The editor guards against clearing all permissions or removing the last
+current owner; these client-side safeguards do not replace upstream authorization.
+The Members panel uses the available page width, with compact permission controls alongside
+the member's actions where space allows. Narrow screens wrap controls without shrinking buttons.
+One compact, aligned two-column permission key below the member list explains all four roles;
+it stacks on narrow screens. Hover hints and
+accessible checkbox descriptions remain available. Compact editors retain a screen-reader
+fieldset legend without repeating a visible Permissions heading on every card.
+The sole current owner's status appears in the member header, not beneath the action buttons.
 
-| URL | Page |
-| --- | --- |
-| `/sign-in` | Email sign-in |
-| `/sign-in/check-email` | Email approval |
-| `/sign-in/key` | Save an API key locally |
-| `/unlock` | Unlock the saved API key |
-| `/teams` | Team selection |
-| `/account/api-tokens` | Account API tokens; optional `tokenTeam` scopes the list |
-| `/account/api-tokens/new` | Create an API token |
-| `/account/api-tokens/:prefix` | Edit an API token |
-| `/teams/new` | Create a team |
-| `/teams/:team/machines` | Machines |
-| `/teams/:team/machines/:kind/:deployment` | Selected machine |
-| `/teams/:team/launch` | Launch a machine |
-| `/teams/:team/settings` | Preferences and account |
-| `/teams/:team/credits` | Credits checkout |
-| `/teams/:team/settings#ssh-keys` | SSH keys |
-| `/teams/:team/keys` | Redirects to SSH keys in Settings |
-| `/teams/:team/image` | Cloud-init URL |
-| `/teams/:team/history/:kind/:run` | An earlier run |
+Team management has separate Details, Members, and Invite pages, presented as navigation tabs.
+Each tab is a native link with an active-page indicator; reload and browser history retain the selected
+section. Only owners can edit team details or send invitations.
+Team-detail saves remain disabled until the submitted values differ from the saved values (including
+trimmed names). Successful saves reset the baseline and replace the button label with “Saved”; an
+accessible status announcement stays out of layout, so feedback does not move the controls.
+
+Standard action buttons use one shared 44px height, 16px text, and 16px horizontal padding, with no
+small/large variants or page-specific sizing. Icon buttons use a 44px square target. Pending, copied,
+and saved labels reserve their space through `ButtonLabels`.
+Single-line fields and selects share the same 44px height and 16px text as buttons, including
+authentication, team, token, and settings forms. Side-by-side fields and actions align at both edges;
+stacked mobile sign-in controls fill the same width.
+Mobile access panels use shrinkable grid tracks and container-based permission layouts so member
+cards, token grants, and expanded timestamps stay inside the available width. Narrow console views
+wrap launch and checkout labels, stack machine readouts, and retain full-width history pagination.
+Settings segmented controls keep 44px touch targets on small screens and coarse-pointer devices;
+editable SSH fields retain 16px text to avoid focus zoom on mobile browsers.
+The token editor keeps Created and Updated timestamps inline beside its token-name heading,
+wrapping naturally on narrow screens. Token names in the list link directly to editing when permitted;
+the API tokens tab returns to the list without a redundant breadcrumb trail.
+Team grants use plain labeled checkboxes within each team row, without nested option boxes;
+the full 44px-high labels remain clickable.
+Desktop team permission rows are capped at 45rem with content-sized permission columns and the
+standard card background. Help text uses the full available width; the two-column permission key
+is capped at 53rem to keep its columns close together.
+4px block padding keeps rows compact without reducing checkbox label hit targets.
+Token Save compares current form values with the latest saved token, including refreshed metadata;
+unchanged or reverted values keep it disabled.
+Team management pairs a prominent team name with a smaller muted monospace handle, without a
+redundant label. The Teams tab returns to the list without a duplicate All teams link.
+Team lists use compact rows with identity, readable permissions, and equally sized Manage/Open
+links aligned on desktop. Narrow screens wrap these regions in reading order.
+Team names link directly to that team's management Details tab.
+Member permission saves make the controls inert while pending rather than changing native checkbox
+disabled styling or fading the permission rows.
+The API-token ownership explanation lives in a help popover beside the access tabs rather than
+an in-flow paragraph. It reuses the shared anchored popover, with keyboard and outside dismissal.
+Team detail tabs retain their panel chrome while loading, using field or member skeletons instead
+of visible loading text. The loading region exposes a labeled busy progress indicator.
+The team invitation hint uses the available page width, wrapping only when the screen requires it.
+Teams & tokens uses a 12px page grid gap without inherited auth form or paragraph margins stacking
+on top of it. Introductory copy uses normal 16px text rather than the sign-in lead style.
+List-level create actions appear above both teams and API tokens; form submission actions remain
+below their fields.
+The token editor heading follows the live label field; typing does not persist changes until Save.
+
+| URL                                       | Page                                                                  |
+| ----------------------------------------- | --------------------------------------------------------------------- |
+| `/sign-in`                                | Email sign-in                                                         |
+| `/sign-in/check-email`                    | Email approval                                                        |
+| `/sign-in/key`                            | Save an API key locally                                               |
+| `/unlock`                                 | Unlock the saved API key                                              |
+| `/teams`                                  | First-team setup or team list                                         |
+| `/account/api-tokens`                     | Teams & tokens: API tokens                                            |
+| `/account/api-tokens/new`                 | Create an API token                                                   |
+| `/account/api-tokens/:prefix`             | Edit an API token                                                     |
+| `/teams/new`                              | Create a team                                                         |
+| `/teams/:team/details`                    | Team details                                                          |
+| `/teams/:team/members`                    | Members and pending invitations                                       |
+| `/teams/:team/invite`                     | Invite a team member                                                  |
+| `/teams/:team/machines`                   | Machines                                                              |
+| `/teams/:team/machines/:kind/:deployment` | Selected machine                                                      |
+| `/teams/:team/launch`                     | Launch a machine                                                      |
+| `/teams/:team/settings`                   | Preferences and account                                               |
+| `/teams/:team/credits`                    | Credits checkout                                                      |
+| `/teams/:team/settings#ssh-keys`          | SSH keys                                                              |
+| `/teams/:team/keys`                       | Redirects to SSH keys in Settings                                     |
+| `/teams/:team/image`                      | Cloud-init URL                                                        |
+| `/teams/:team/history/:kind/:run`         | An earlier run                                                        |
 | `/teams/:team/history?page=2&pageSize=12` | Machine history, entries per page adapt to the panel's visible height |
 
 Machine identity uses the API’s team, collection and `deployment_id`. In machine/history URLs, `:kind` is
@@ -383,14 +467,14 @@ requires repository access through the Cloudflare Workers & Pages GitHub App.
 
 Use the repository root and these build settings:
 
-| Setting | Value |
-| --- | --- |
-| Build command | `bun run build:cloudflare` |
-| Deploy command | `bun run deploy:cloudflare` |
-| `NODE_VERSION` | `26.13.0` |
-| `BUN_VERSION` | `1.4.4` |
-| `SKIP_DEPENDENCY_INSTALL` | `1` |
-| `CF_SEND_TELEMETRY` | `false` |
+| Setting                   | Value                       |
+| ------------------------- | --------------------------- |
+| Build command             | `bun run build:cloudflare`  |
+| Deploy command            | `bun run deploy:cloudflare` |
+| `NODE_VERSION`            | `26.13.0`                   |
+| `BUN_VERSION`             | `1.4.4`                     |
+| `SKIP_DEPENDENCY_INSTALL` | `1`                         |
+| `CF_SEND_TELEMETRY`       | `false`                     |
 
 The build command installs frozen dependencies, runs lint/types/tests, builds the application,
 and validates the prebuilt Worker. The deploy command publishes that same output through `cf`
@@ -411,7 +495,6 @@ for the verified settings and the first-build verification boundary.
 
 See [AGENTS.md](../AGENTS.md) for the source layout and implementation rules.
 
-
 ## Screenshots
 
 These views use simulated machines from the local development preview.
@@ -429,4 +512,3 @@ AMD's MI300X data sheet, Hot Aisle's data-center information, and ServeTheHome's
 
 Digits: [DSEG](https://github.com/keshikan/DSEG) by keshikan, SIL Open Font License 1.1
 (`web/src/assets/fonts/DSEG-LICENSE.txt`). Instrument Sans and IBM Plex Mono are also OFL licensed.
-

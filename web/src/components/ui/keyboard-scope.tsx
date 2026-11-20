@@ -1,5 +1,6 @@
 import { HotkeysProvider } from "@tanstack/react-hotkeys";
-import { type ReactNode, useId } from "react";
+import type { ReactNode } from "react";
+import { useId } from "react";
 
 export function KeyboardScope({ children }: { children: ReactNode }) {
 	const scope = useId();

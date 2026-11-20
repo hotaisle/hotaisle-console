@@ -2,7 +2,8 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { type Clip, narrationClip } from "../../web/dev/showcase/narration";
+import type { Clip } from "../../web/dev/showcase/narration";
+import { narrationClip } from "../../web/dev/showcase/narration";
 import { THEME_BLEND_SECONDS } from "../../web/dev/showcase/presentation";
 import { subtitles } from "../../web/dev/showcase/runner";
 import {
@@ -12,13 +13,8 @@ import {
 } from "../../web/dev/showcase/storyboard";
 import { showcaseArtwork } from "./showcase-artwork";
 import { captionTrack, spokenCaptions } from "./showcase-captions";
-import {
-	editTiming,
-	type Frame,
-	INTRO_SECONDS,
-	type Timing,
-	walkthroughFrames,
-} from "./showcase-edit";
+import type { Frame, Timing } from "./showcase-edit";
+import { editTiming, INTRO_SECONDS, walkthroughFrames } from "./showcase-edit";
 import { blendTheme } from "./showcase-theme";
 
 const FRAME_FILE = /^frame-\d+\.jpg$/u;

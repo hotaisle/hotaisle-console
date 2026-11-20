@@ -14,6 +14,9 @@ const exactFormat = new Intl.DateTimeFormat(undefined, {
 	dateStyle: "medium",
 	timeStyle: "long",
 });
+const relativeFormat = new Intl.RelativeTimeFormat(undefined, {
+	numeric: "always",
+});
 
 describe("token timestamps", () => {
 	it("shows short relative times with exact recorded instants available through native disclosures", () => {
@@ -22,8 +25,8 @@ describe("token timestamps", () => {
 		const { container } = render(
 			<TokenDates token={{ ...TOKEN, created, updated }} />
 		);
-		expect(screen.getByText("2 days ago")).toBeVisible();
-		expect(screen.getByText("3 hours ago")).toBeVisible();
+		expect(screen.getByText(relativeFormat.format(-2, "day"))).toBeVisible();
+		expect(screen.getByText(relativeFormat.format(-3, "hour"))).toBeVisible();
 		const details = container.querySelectorAll("details");
 		for (const [index, value] of [created, updated].entries()) {
 			const disclosure = details[index];
@@ -80,9 +83,9 @@ describe("token timestamps", () => {
 		const updatedExact = screen.getByText(
 			exactFormat.format(new Date(updated))
 		);
-		fireEvent.click(screen.getByText("2 days ago"));
+		fireEvent.click(screen.getByText(relativeFormat.format(-2, "day")));
 		expect(createdExact).toBeVisible();
-		const updatedTrigger = screen.getByText("3 hours ago");
+		const updatedTrigger = screen.getByText(relativeFormat.format(-3, "hour"));
 		fireEvent.pointerDown(updatedTrigger);
 		fireEvent.click(updatedTrigger);
 		expect(createdExact).not.toBeVisible();
@@ -99,7 +102,7 @@ describe("token timestamps", () => {
 		act(() => {
 			vi.advanceTimersByTime(60_000);
 		});
-		expect(screen.getByText("1 minute ago")).toBeVisible();
+		expect(screen.getByText(relativeFormat.format(-1, "minute"))).toBeVisible();
 		unmount();
 		expect(vi.getTimerCount()).toBe(0);
 	});
@@ -130,6 +133,6 @@ describe("token timestamps", () => {
 		);
 		expect(screen.queryByText("Created")).not.toBeInTheDocument();
 		expect(screen.getByText("Updated")).toBeInTheDocument();
-		expect(screen.getByText("2 minutes ago")).toBeVisible();
+		expect(screen.getByText(relativeFormat.format(-2, "minute"))).toBeVisible();
 	});
 });

@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { KeyboardHelpButton } from "../../components/keyboard-controls";
 import { PreferenceToggle } from "../../components/ui/preference-toggle";
 import { usePrefs } from "../../lib/prefs";
 
@@ -21,7 +20,6 @@ export function KeyboardSettings() {
 				Press <kbd>?</kbd> outside text fields to see controls for the current
 				page or section.
 			</p>
-			<KeyboardHelpButton />
 		</section>
 	);
 }

@@ -118,8 +118,8 @@
 	z-index: 5;
 	display: grid;
 	place-items: center;
-	inline-size: 36px;
-	block-size: 36px;
+	inline-size: var(--button-height);
+	block-size: var(--button-height);
 	padding: 0;
 	color: var(--ink-2);
 	cursor: pointer;

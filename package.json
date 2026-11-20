@@ -30,13 +30,13 @@
 		"typecheck": "bun run --bun tsc -p tsconfig.tools.json && bun run --bun tsc -p worker && bun run --cwd web typecheck"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.6.6",
-		"@cloudflare/vitest-plugin": "1.6.1",
-		"@cloudflare/workers-types": "5.20261109.1",
+		"@biomejs/biome": "2.6.8",
+		"@cloudflare/vitest-plugin": "1.8.5",
+		"@cloudflare/workers-types": "5.20261120.1",
 		"@types/node": "26.6.6",
 		"typescript": "7.0.2",
-		"ultracite": "8.1.1",
-		"vitest": "5.1.0"
+		"ultracite": "8.3.1",
+		"vitest": "5.1.1"
 	},
 	"packageManager": "bun@1.4.4",
 	"engines": {

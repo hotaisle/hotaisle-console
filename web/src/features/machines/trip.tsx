@@ -5,7 +5,8 @@ import { TripDetails } from "./trip-details";
 import { TripHeading } from "./trip-heading";
 import { TripReadings } from "./trip-readings";
 import { TripSummary } from "./trip-summary";
-import { type TripProps, useTrip } from "./use-trip";
+import type { TripProps } from "./use-trip";
+import { useTrip } from "./use-trip";
 export function Trip(props: TripProps) {
 	const context = useTrip(props);
 	const { vm, head, phase, style, expanded, panel } = context;

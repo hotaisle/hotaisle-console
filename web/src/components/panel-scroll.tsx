@@ -1,10 +1,5 @@
-import {
-	type ReactNode,
-	useEffect,
-	useLayoutEffect,
-	useRef,
-	useState,
-} from "react";
+import type { ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import "./panel-scroll.css";
 
 export function PanelScroll({ children }: { children: ReactNode }) {

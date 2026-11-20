@@ -1,10 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { PullRequest } from "./approval-policy";
-import {
-	type PolicyRun,
-	type RefreshAPI,
-	refreshApprovals,
-} from "./approval-refresh";
+import type { PolicyRun, RefreshAPI } from "./approval-refresh";
+import { refreshApprovals } from "./approval-refresh";
 
 const CONTRIBUTOR: PullRequest = {
 	head: { sha: "a".repeat(40) },

@@ -3,9 +3,8 @@ import { Link } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { FormError } from "../../components/forms/form-error";
 import { ButtonLabels } from "../../components/ui/button-labels";
-import { useSessionActions } from "../../hooks/use-session";
 import type { Team } from "../../lib/api";
-import { AuthShell } from "../auth/auth-shell";
+import { AccessShell } from "./access-shell";
 import { CreateTeamForm } from "./create-team-form";
 import { TeamInvitation } from "./team-invitation";
 import "./teams.css";
@@ -15,6 +14,7 @@ export function TeamChoice({
 	email,
 	creating = false,
 	onAvailable,
+	onCreated,
 	onRefresh,
 	refreshError,
 	requestedTeam,
@@ -23,36 +23,22 @@ export function TeamChoice({
 	email: string;
 	creating?: boolean;
 	onAvailable: (team: Team) => Promise<void>;
+	onCreated: (team: Team) => Promise<void>;
 	onRefresh: () => Promise<void>;
 	refreshError?: Error | null;
 	requestedTeam?: string;
 }) {
-	const { logout } = useSessionActions();
 	const refresh = useMutation({ mutationFn: onRefresh });
-	const signOut = useCallback(() => logout.mutate(), [logout.mutate]);
 	const reload = useCallback(() => refresh.mutate(), [refresh.mutate]);
 	const memberships = teams.filter((team) => !team.invitation);
 	const invitations = teams.filter((team) => team.invitation);
 	const showCreate = creating || teams.length === 0;
+	const onboarding = showCreate && memberships.length === 0;
 	return (
-		<AuthShell
-			footer={
-				<div className="team-footer">
-					<span className="muted">Logged in as {email}</span>
-					<button
-						className="btn-text"
-						disabled={logout.isPending}
-						onClick={signOut}
-						type="button"
-					>
-						Sign out
-					</button>
-					<FormError message={logout.error?.message ?? ""} />
-				</div>
-			}
-			label="Teams"
-		>
-			<h1>{showCreate ? "Create a team" : "Choose a team"}</h1>
+		<AccessShell section={onboarding ? "setup" : "teams"}>
+			{showCreate && !onboarding ? (
+				<h2 className="team-section-title">Create a team</h2>
+			) : null}
 			{showCreate ? (
 				<p className="lede team-intro">
 					Teams keep your machines and members together. Create one to get
@@ -84,52 +70,54 @@ export function TeamChoice({
 				/>
 			) : null}
 			{showCreate ? (
-				<CreateTeamForm onCreated={onAvailable} />
+				<CreateTeamForm onCreated={onCreated} />
 			) : (
 				<div className="team-sections">
+					<Link className="btn primary team-create-link" to="/teams/new">
+						Create a team
+					</Link>
 					{memberships.length > 0 ? (
 						<section aria-label="Your teams">
-							<h2 className="team-section-title">Open an existing team</h2>
 							<ul className="team-list">
 								{memberships.map((team) => (
 									<li className="team-card" key={team.handle}>
-										<Link
-											aria-label={`Open team ${team.name}`}
-											className="team-row team-link"
-											params={{ team: team.handle }}
-											to="/teams/$team/machines"
-										>
-											<div className="team-identity">
-												<strong>{team.name}</strong>
-												<span className="mono muted">{team.handle}</span>
-											</div>
-											<span className="team-open">
-												Open team <span aria-hidden="true">→</span>
-											</span>
-										</Link>
-										<footer className="team-card-actions">
-											{team.effective_roles.includes("owner") ? (
+										<div className="team-identity">
+											<strong>
 												<Link
-													aria-label={`Manage team ${team.name}`}
-													className="team-edit-link btn-text"
 													params={{ team: team.handle }}
 													to="/teams/$team/details"
 												>
-													Manage team
+													{team.name}
 												</Link>
-											) : null}
+											</strong>
+											<span className="mono muted">{team.handle}</span>
+										</div>
+										<ul
+											aria-label="Your permissions"
+											className="team-role-list"
+										>
+											{team.roles.map((role) => (
+												<li key={role}>{role}</li>
+											))}
+										</ul>
+										<div className="team-card-actions">
 											<Link
-												aria-label={`API tokens for ${team.name}`}
-												className="team-edit-link btn-text"
-												search={{
-													returnTo: `/teams/${encodeURIComponent(team.handle)}/machines`,
-													tokenTeam: team.handle,
-												}}
-												to="/account/api-tokens"
+												aria-label={`Manage team ${team.name}`}
+												className="btn"
+												params={{ team: team.handle }}
+												to="/teams/$team/details"
 											>
-												API tokens
+												Manage team
 											</Link>
-										</footer>
+											<Link
+												aria-label={`Open team ${team.name}`}
+												className="btn"
+												params={{ team: team.handle }}
+												to="/teams/$team/machines"
+											>
+												Open team <span aria-hidden="true">→</span>
+											</Link>
+										</div>
 									</li>
 								))}
 							</ul>
@@ -149,21 +137,6 @@ export function TeamChoice({
 							</ul>
 						</section>
 					) : null}
-					<div aria-hidden="true" className="team-choice-divider">
-						or
-					</div>
-					<section
-						aria-label="Create a new team"
-						className="team-create-option"
-					>
-						<div>
-							<h2 className="team-section-title">Create a new team</h2>
-							<p>Start a team for a new project or group.</p>
-						</div>
-						<Link className="btn primary team-create-link" to="/teams/new">
-							Create a team
-						</Link>
-					</section>
 				</div>
 			)}
 			{showCreate && teams.length > 0 ? (
@@ -176,6 +149,6 @@ export function TeamChoice({
 					Joining an existing team? Ask a team owner to invite you at {email}.
 				</p>
 			) : null}
-		</AuthShell>
+		</AccessShell>
 	);
 }

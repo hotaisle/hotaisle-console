@@ -1,5 +1,6 @@
 import DOMPurify from "dompurify";
-import { type RefObject, type SVGProps, useLayoutEffect, useRef } from "react";
+import type { RefObject, SVGProps } from "react";
+import { useLayoutEffect, useRef } from "react";
 
 interface SvgMarkupProps
 	extends Omit<

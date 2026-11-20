@@ -2,11 +2,10 @@ import { useMutation } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { FormError } from "../../components/forms/form-error";
 import { PreferenceToggle } from "../../components/ui/preference-toggle";
-import {
-	SegmentedControl,
-	type SegmentOption,
-} from "../../components/ui/segmented-control";
-import { type StatusMotion, type Theme, usePrefs } from "../../lib/prefs";
+import type { SegmentOption } from "../../components/ui/segmented-control";
+import { SegmentedControl } from "../../components/ui/segmented-control";
+import type { StatusMotion, Theme } from "../../lib/prefs";
+import { usePrefs } from "../../lib/prefs";
 
 const THEMES: readonly SegmentOption<Theme>[] = [
 	{ label: "System", value: "system" },

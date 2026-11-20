@@ -4,17 +4,11 @@ import { isPresent } from "../../../../shared/present";
 import { HoldButton } from "../../components/ui/hold-button";
 import { useToast } from "../../components/ui/toast";
 import { useShortcuts } from "../../hooks/use-shortcut";
-import {
-	type APIError,
-	api,
-	type Balance,
-	type Offer,
-	type SSHKey,
-	type Team,
-	type VM,
-} from "../../lib/api";
+import type { APIError, Balance, Offer, SSHKey, Team, VM } from "../../lib/api";
+import { api } from "../../lib/api";
 import { hoursOr, money } from "../../lib/format";
-import { type Image, VLLM_URL } from "../../lib/prefs";
+import type { Image } from "../../lib/prefs";
+import { VLLM_URL } from "../../lib/prefs";
 import type { Signal } from "../../lib/signal";
 import { sound } from "../../lib/sound";
 import { MachineOptions } from "./machine-options";

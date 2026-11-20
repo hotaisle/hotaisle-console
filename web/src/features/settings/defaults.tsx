@@ -1,13 +1,9 @@
-import {
-	type ChangeEvent,
-	useCallback,
-	useEffect,
-	useState,
-	useSyncExternalStore,
-} from "react";
+import type { ChangeEvent } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { FormError } from "../../components/forms/form-error";
 import { cloudInitVault } from "../../lib/cloud-init-vault";
-import { IMAGES, type Image, usePrefs } from "../../lib/prefs";
+import type { Image } from "../../lib/prefs";
+import { IMAGES, usePrefs } from "../../lib/prefs";
 
 const IMAGE_OPTIONS = Object.keys(IMAGES) as Image[];
 export function DefaultMachineSettings() {

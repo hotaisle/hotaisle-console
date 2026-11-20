@@ -1,4 +1,5 @@
-import { type ComponentProps, useCallback, useId } from "react";
+import type { ComponentProps } from "react";
+import { useCallback, useId } from "react";
 import { useFieldContext } from "./form-context";
 import { FormError } from "./form-error";
 

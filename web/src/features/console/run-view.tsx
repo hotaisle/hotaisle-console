@@ -13,7 +13,7 @@ export function RunView({ run }: { run: Ended }) {
 			</div>
 			<div className="foot">
 				<Link
-					className="btn primary big"
+					className="btn primary"
 					params={{ team: run.team }}
 					search={{
 						...search,

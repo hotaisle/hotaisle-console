@@ -58,10 +58,6 @@
 	display: block;
 	flex: none;
 }
-.header-tools .btn.icon {
-	width: 44px;
-	height: 44px;
-}
 .crumbs {
 	display: flex;
 	gap: 10px;
@@ -175,8 +171,8 @@
 	display: grid;
 	flex: none;
 	place-items: center;
-	width: 34px;
-	height: 34px;
+	width: var(--button-height);
+	height: var(--button-height);
 	margin-right: 12px;
 	color: var(--ink-2);
 	appearance: none;
@@ -353,7 +349,7 @@
 .money.low .money-sub {
 	color: var(--amber);
 }
-.foot .btn.big {
+.foot .btn {
 	width: 100%;
 }
 .row-item.hist .when {

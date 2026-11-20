@@ -1,11 +1,11 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { CanvasTools } from "./showcase-canvas";
+import type { Frame } from "./showcase-edit";
 import {
 	BRAND_HOLD_SECONDS,
 	BROWSER_INTRO_SECONDS,
 	CONSOLE_URL,
-	type Frame,
 } from "./showcase-edit";
 import { loadShowcaseTool } from "./showcase-tools";
 

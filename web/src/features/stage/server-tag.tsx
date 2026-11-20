@@ -1,5 +1,7 @@
-import { type MouseEvent, useCallback } from "react";
-import { NEW, TAG_STATE, type Tag } from "./model";
+import type { MouseEvent } from "react";
+import { useCallback } from "react";
+import type { Tag } from "./model";
+import { NEW, TAG_STATE } from "./model";
 
 function tagName(tag: Tag) {
 	if (tag.mode === "new") {

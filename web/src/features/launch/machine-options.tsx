@@ -1,4 +1,5 @@
-import { type ChangeEvent, useCallback, useId } from "react";
+import type { ChangeEvent } from "react";
+import { useCallback, useId } from "react";
 import { isPresent } from "../../../../shared/present";
 import type { Offer } from "../../lib/api";
 import { gb, hbm, money } from "../../lib/format";

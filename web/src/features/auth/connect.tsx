@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRouter, useSearch } from "@tanstack/react-router";
-import { type ReactNode, useCallback, useState } from "react";
+import type { ReactNode } from "react";
+import { useCallback, useState } from "react";
 import { Redirect } from "../../app/redirect";
 import { STATUS_KEY } from "../../hooks/use-session";
 import type { PendingEmailLogin, Status } from "../../lib/api";

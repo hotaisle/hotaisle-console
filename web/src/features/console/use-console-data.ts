@@ -1,4 +1,5 @@
-import { type UseQueryResult, useQueries } from "@tanstack/react-query";
+import type { UseQueryResult } from "@tanstack/react-query";
+import { useQueries } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import {
 	machineAddress,
@@ -6,7 +7,8 @@ import {
 } from "../../../../shared/machine-identity";
 import { recordsByIdentity } from "../../../../shared/records";
 import { usePoll } from "../../hooks/use-resource";
-import { api, type Ended, type VMState } from "../../lib/api";
+import type { Ended, VMState } from "../../lib/api";
+import { api } from "../../lib/api";
 import { sshCommand } from "../../lib/format";
 import { phaseOf, settled } from "../machines/state";
 import type { StageMachine } from "../stage/model";

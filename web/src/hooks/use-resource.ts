@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { type SetStateAction, useCallback, useMemo } from "react";
+import type { SetStateAction } from "react";
+import { useCallback, useMemo } from "react";
 
 /** Server state scoped by resource and team; local writes cancel older in-flight polls. */
 export function usePoll<T>(

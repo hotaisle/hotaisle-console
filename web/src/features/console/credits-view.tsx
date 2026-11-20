@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
-import { type ChangeEvent, useCallback, useId } from "react";
+import type { ChangeEvent } from "react";
+import { useCallback, useId } from "react";
 import { Form } from "../../components/forms/form";
 import { FormError } from "../../components/forms/form-error";
 import { useAppForm } from "../../components/forms/use-app-form";
@@ -94,7 +95,7 @@ function OneTimeCredits({
 					confirmed.
 				</p>
 				<a
-					className="btn primary big"
+					className="btn primary"
 					href={checkout.data.checkout_url}
 					rel="noopener noreferrer"
 					target="_blank"
@@ -177,7 +178,7 @@ function OneTimeCredits({
 						<div className="foot">
 							<form.AppForm>
 								<form.SubmitButton
-									className="btn primary big"
+									className="btn primary"
 									pendingText="Preparing checkout…"
 								>
 									{`Continue to checkout, ${money(dollars * 100, 0)}`}
