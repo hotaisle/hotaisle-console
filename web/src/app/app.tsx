@@ -6,7 +6,7 @@ import {
 	useRouterState,
 	useSearch,
 } from "@tanstack/react-router";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FormError } from "../components/forms/form-error";
 import { APITokens } from "../features/api-tokens/api-tokens";
 import { Connect } from "../features/auth/connect";
@@ -22,13 +22,8 @@ import {
 	useSessionActions,
 	useSessionSync,
 } from "../hooks/use-session";
-import {
-	APIError,
-	api,
-	type Status,
-	type Team,
-	type UserAccount,
-} from "../lib/api";
+import type { Status, Team, UserAccount } from "../lib/api";
+import { APIError, api } from "../lib/api";
 import { applyStatusMotion, applyTheme, usePrefs } from "../lib/prefs";
 import { NotFound } from "./not-found";
 import { Redirect } from "./redirect";
@@ -76,7 +71,18 @@ export function ConnectionError({
 function isAccountAuthError(error: Error | null) {
 	return error instanceof APIError && [401, 403].includes(error.status);
 }
-function AccountView({ status }: { status: Status }) {
+function isTeamSection(
+	value: string
+): value is "details" | "members" | "invite" {
+	return value === "details" || value === "members" || value === "invite";
+}
+function AccountView({
+	status,
+	onSessionEnded,
+}: {
+	status: Status;
+	onSessionEnded: () => void;
+}) {
 	const client = useQueryClient();
 	// Keep path and params on the same committed match during navigation.
 	const location = useRouterState({
@@ -100,7 +106,6 @@ function AccountView({ status }: { status: Status }) {
 	const { params } = location;
 	const router = useRouter();
 	const search = useSearch({ from: "__root__" });
-	const { logout } = useSessionActions();
 	const initiatingEpoch = currentSessionEpoch();
 	const initiatingEmail = account.data?.user.email;
 	const initiatingCreated = account.data?.user.created;
@@ -120,7 +125,7 @@ function AccountView({ status }: { status: Status }) {
 		[router]
 	);
 	const available = useCallback(
-		async (team: Team) => {
+		async (team: Team, openTeam = true) => {
 			if (currentSessionEpoch() !== initiatingEpoch) {
 				return;
 			}
@@ -147,9 +152,28 @@ function AccountView({ status }: { status: Status }) {
 						}
 					: previous
 			);
-			await pickTeam(team.handle);
+			if (openTeam) {
+				await pickTeam(team.handle);
+			} else {
+				await router.navigate({ to: "/teams" });
+			}
 		},
-		[client, pickTeam, initiatingEpoch, initiatingEmail, initiatingCreated]
+		[
+			client,
+			pickTeam,
+			router,
+			initiatingEpoch,
+			initiatingEmail,
+			initiatingCreated,
+		]
+	);
+	const created = useCallback(
+		(team: Team) =>
+			available(
+				team,
+				!account.data?.teams.some((existing) => !existing.invitation)
+			),
+		[available, account.data?.teams]
 	);
 	const retry = useCallback(async () => {
 		await account.refetch({ throwOnError: true });
@@ -183,24 +207,17 @@ function AccountView({ status }: { status: Status }) {
 		},
 		[client, account.data?.user.email, account.data?.user.created]
 	);
-	const signIn = useCallback(() => {
-		logout.mutate();
-	}, [logout.mutate]);
+	useEffect(() => {
+		if (account.isError && isAccountAuthError(account.error)) {
+			onSessionEnded();
+		}
+	}, [account.isError, account.error, onSessionEnded]);
 	if (account.isPending) {
 		return <LoadingScreen />;
 	}
 	if (account.isError) {
 		if (isAccountAuthError(account.error)) {
-			return (
-				<ConnectionError
-					label="Sign in again"
-					message={
-						logout.error?.message ??
-						"Your session has ended. Sign in again to continue."
-					}
-					onRetry={signIn}
-				/>
-			);
+			return <LoadingScreen />;
 		}
 		if (!account.data) {
 			return (
@@ -243,6 +260,7 @@ function AccountView({ status }: { status: Status }) {
 				creating={creating}
 				email={account.data.user.email}
 				onAvailable={available}
+				onCreated={created}
 				onRefresh={retry}
 				refreshError={account.error}
 				requestedTeam={params.team}
@@ -250,11 +268,11 @@ function AccountView({ status }: { status: Status }) {
 			/>
 		);
 	}
-	if (
-		location.pathname ===
-		`/teams/${encodeURIComponent(selected.handle)}/details`
-	) {
-		return <TeamDetails onSaved={teamSaved} team={selected} />;
+	const [, , , teamSection] = location.pathname.split("/");
+	if (isTeamSection(teamSection)) {
+		return (
+			<TeamDetails onSaved={teamSaved} section={teamSection} team={selected} />
+		);
 	}
 	return (
 		<HistoryAccess
@@ -288,7 +306,17 @@ export function App() {
 		queryKey: STATUS_KEY,
 		retry: false,
 	});
-	const { connected } = useSessionActions();
+	const { connected, logout } = useSessionActions();
+	const [sessionEnded, setSessionEnded] = useState(false);
+	const sessionExpired = useCallback(() => {
+		setSessionEnded(true);
+		logout.mutate();
+	}, [logout.mutate]);
+	useEffect(() => {
+		if (session.data?.signed_in) {
+			setSessionEnded(false);
+		}
+	}, [session.data?.signed_in]);
 	const retry = useCallback(async () => {
 		await session.refetch();
 	}, [session.refetch]);
@@ -302,10 +330,10 @@ export function App() {
 		return <ConnectionError message={session.error.message} onRetry={retry} />;
 	}
 	if (!session.data.signed_in) {
-		if (location.pathname === "/unlock") {
-			return <UnlockKey />;
-		}
-		if (!location.pathname.startsWith("/sign-in")) {
+		if (
+			location.pathname !== "/unlock" &&
+			!location.pathname.startsWith("/sign-in")
+		) {
 			const returnTo = safeReturnTo(location.href);
 			const entry = session.data.key_stored ? "/unlock" : "/sign-in";
 			const destination = returnTo
@@ -313,7 +341,22 @@ export function App() {
 				: entry;
 			return <Redirect href={destination} />;
 		}
-		return <Connect onConnected={connected} status={session.data} />;
+		return (
+			<>
+				<FormError
+					message={
+						sessionEnded
+							? "Your session has ended. Sign in again to continue."
+							: undefined
+					}
+				/>
+				{location.pathname === "/unlock" ? (
+					<UnlockKey />
+				) : (
+					<Connect onConnected={connected} status={session.data} />
+				)}
+			</>
+		);
 	}
-	return <AccountView status={session.data} />;
+	return <AccountView onSessionEnded={sessionExpired} status={session.data} />;
 }

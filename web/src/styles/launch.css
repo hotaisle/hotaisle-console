@@ -260,4 +260,41 @@
 	border-radius: 50%;
 }
 
+@media (max-width: 440px) {
+	.opt {
+		column-gap: 8px;
+		block-size: auto;
+		min-block-size: 60px;
+		padding: 8px 12px;
+	}
+	.opt-sub {
+		white-space: normal;
+	}
+	.order .estimate dl {
+		grid-template-columns: minmax(0, 1fr) fit-content(45%);
+		column-gap: 12px;
+	}
+	.order .estimate dt,
+	.order .estimate dd {
+		white-space: normal;
+	}
+	.order .hold {
+		gap: 8px;
+		block-size: auto;
+		min-block-size: var(--button-height);
+		padding-block: 8px;
+		text-align: start;
+	}
+	.order .hold-label {
+		min-inline-size: 0;
+	}
+	.order .hold-label > span {
+		white-space: normal;
+	}
+	.order .hold-trail {
+		flex: none;
+		white-space: nowrap;
+	}
+}
+
 /* details: one row per setting, label left, value right */

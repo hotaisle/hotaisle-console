@@ -3,7 +3,8 @@ import { useCallback, useRef } from "react";
 import { FormError } from "../../components/forms/form-error";
 import { ButtonLabels } from "../../components/ui/button-labels";
 import { Modal } from "../../components/ui/modal";
-import { type APIToken, api } from "../../lib/api";
+import type { APIToken } from "../../lib/api";
+import { api } from "../../lib/api";
 
 export function RevokeToken({
 	token,

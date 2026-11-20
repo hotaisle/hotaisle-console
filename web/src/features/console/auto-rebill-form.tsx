@@ -1,11 +1,8 @@
 import { useRef } from "react";
 import { Form } from "../../components/forms/form";
 import { useAppForm } from "../../components/forms/use-app-form";
-import {
-	type AutoRebillSettings,
-	rebillSettings,
-	rebillValidation,
-} from "../../lib/auto-rebill";
+import type { AutoRebillSettings } from "../../lib/auto-rebill";
+import { rebillSettings, rebillValidation } from "../../lib/auto-rebill";
 
 const FIELDS = [
 	{

@@ -42,17 +42,23 @@
 	margin: 0;
 	font-size: 14px;
 }
+.credits-view > .availability-empty {
+	margin-block: 16px;
+}
 .amounts {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	gap: 8px;
+}
+.credits-view .amounts {
+	margin-block-end: 8px;
 }
 .dollar {
 	display: inline-flex;
 	gap: 4px;
 	align-items: center;
 	width: fit-content;
-	height: 38px;
+	height: var(--button-height);
 	padding: 0 12px;
 	background: var(--card);
 	border: 1px solid var(--line-2);
@@ -92,7 +98,7 @@
 }
 .dollar input {
 	width: 10ch;
-	height: 36px;
+	height: 100%;
 	padding: 0;
 	outline: none;
 	background: none;
@@ -104,4 +110,39 @@
 .amounts label.on {
 	background: var(--card-2);
 	box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+
+@media (max-width: 440px) {
+	.settings .check {
+		min-block-size: var(--button-height);
+	}
+	.settings-ssh .pasterow input {
+		font-size: var(--button-font-size);
+	}
+}
+@media (max-width: 360px) {
+	.settings-ssh .pasterow {
+		flex-wrap: wrap;
+		justify-content: end;
+	}
+	.settings-ssh .pasterow .form-field {
+		flex-basis: 100%;
+	}
+	.settings-ssh .modal-actions .btn {
+		flex: 1;
+		min-inline-size: 0;
+		block-size: auto;
+		min-block-size: var(--button-height);
+		padding: 8px 10px;
+		white-space: normal;
+	}
+	.credits-view .foot .btn {
+		block-size: auto;
+		min-block-size: var(--button-height);
+		padding-block: 8px;
+		white-space: normal;
+	}
+	.credits-view .foot .button-labels {
+		min-inline-size: 0;
+	}
 }

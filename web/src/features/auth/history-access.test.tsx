@@ -3,7 +3,8 @@ import { act, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithQuery } from "../../../test/render";
 import { api } from "../../lib/api";
-import { type HistoryKey, historyVault } from "../../lib/history-vault";
+import type { HistoryKey } from "../../lib/history-vault";
+import { historyVault } from "../../lib/history-vault";
 import { useSessionRecords } from "../console/use-session-records";
 import { HistoryAccess } from "./history-access";
 

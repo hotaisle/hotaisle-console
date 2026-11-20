@@ -1,17 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRouter, useSearch } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
 	ACCOUNT_KEY,
 	currentSessionEpoch,
 	useSessionActions,
 } from "../../hooks/use-session";
-import {
-	type APIToken,
-	api,
-	type Status,
-	type UserAccount,
-} from "../../lib/api";
+import type { APIToken, Status, UserAccount } from "../../lib/api";
+import { api } from "../../lib/api";
 
 export const TOKEN_PATH = "/account/api-tokens";
 export function useTokenManagement(account: UserAccount, status: Status) {
@@ -36,11 +32,9 @@ export function useTokenManagement(account: UserAccount, status: Status) {
 		| {
 				value: string;
 				label: string;
-				team?: string;
 		  }
 		| undefined
 	>(undefined);
-	const previousTeam = useRef(search.tokenTeam);
 	const [removing, setRemoving] = useState<APIToken>();
 	const prefix = api.activeTokenPrefix();
 	const canManage =
@@ -50,14 +44,10 @@ export function useTokenManagement(account: UserAccount, status: Status) {
 		) ||
 		false;
 	useEffect(() => {
-		if (
-			location.pathname !== TOKEN_PATH ||
-			previousTeam.current !== search.tokenTeam
-		) {
+		if (location.pathname !== TOKEN_PATH) {
 			setGenerated(undefined);
 		}
-		previousTeam.current = search.tokenTeam;
-	}, [location.pathname, search.tokenTeam]);
+	}, [location.pathname]);
 	const sameAccount = useCallback(() => {
 		const current = client.getQueryData<UserAccount>(ACCOUNT_KEY);
 		return (
@@ -79,9 +69,7 @@ export function useTokenManagement(account: UserAccount, status: Status) {
 				details,
 			]);
 			setGenerated(
-				secret
-					? { label: details.label, team: search.tokenTeam, value: secret }
-					: undefined
+				secret ? { label: details.label, value: secret } : undefined
 			);
 			await client.invalidateQueries({ queryKey });
 			if (sameAccount()) {
@@ -120,8 +108,7 @@ export function useTokenManagement(account: UserAccount, status: Status) {
 		canManage,
 		close,
 		dismiss,
-		generated:
-			generated && generated.team === search.tokenTeam ? generated : undefined,
+		generated,
 		prefix,
 		remove: setRemoving,
 		removing,

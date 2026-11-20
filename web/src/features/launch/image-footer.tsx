@@ -1,4 +1,5 @@
-import { type Image, VLLM_URL } from "../../lib/prefs";
+import type { Image } from "../../lib/prefs";
+import { VLLM_URL } from "../../lib/prefs";
 
 export function ImageFooter({
 	image,

@@ -1,13 +1,14 @@
 import { useId } from "react";
 import type { Team, TeamMember } from "../../lib/api";
-import { InviteTeamMemberForm } from "./invite-team-member-form";
+import { TEAM_ROLE_OPTIONS } from "../../lib/team-role-options";
+import { EditMemberPermissions } from "./edit-member-permissions";
 
 export function TeamMembers({
 	team,
-	onInvited,
+	onUpdated,
 }: {
 	team: Team;
-	onInvited: () => Promise<void>;
+	onUpdated: () => Promise<void>;
 }) {
 	const heading = useId();
 	return (
@@ -16,50 +17,87 @@ export function TeamMembers({
 				Members
 			</h2>
 			{team.members ? (
-				<MemberTable members={team.members} />
+				<div className="team-member-list">
+					{team.members.map((member) => (
+						<MemberCard
+							key={member.email}
+							member={member}
+							onUpdated={onUpdated}
+							team={team}
+						/>
+					))}
+					{team.members.length === 0 ? (
+						<p className="hint">No team members to show.</p>
+					) : null}
+				</div>
 			) : (
 				<p className="hint">Member information is unavailable.</p>
 			)}
-			{team.effective_roles.includes("owner") ? (
-				<InviteTeamMemberForm onInvited={onInvited} team={team} />
-			) : (
-				<p className="hint">A team owner can invite people to this team.</p>
-			)}
+			<aside aria-label="Permission key" className="team-permission-key">
+				<dl>
+					{TEAM_ROLE_OPTIONS.map((role) => (
+						<div key={role.value}>
+							<dt>{role.label}:</dt>
+							<dd>{role.description}</dd>
+						</div>
+					))}
+				</dl>
+			</aside>
 		</section>
 	);
 }
 
-function MemberTable({ members }: { members: TeamMember[] }) {
-	const caption = useId();
+function MemberCard({
+	member,
+	team,
+	onUpdated,
+}: {
+	member: TeamMember;
+	team: Team;
+	onUpdated: () => Promise<void>;
+}) {
+	const heading = useId();
+	const editable = team.effective_roles.includes("owner") && !member.invitation;
+	const lastOwner =
+		member.roles.includes("owner") &&
+		!team.members?.some(
+			(other) =>
+				other.email !== member.email &&
+				!other.invitation &&
+				other.roles.includes("owner")
+		);
+	const currentStatus = lastOwner ? "Current owner" : "Current member";
+	const status = member.invitation ? "Pending invitation" : currentStatus;
 	return (
-		<section aria-labelledby={caption} className="team-member-table-wrap">
-			<table className="team-member-table">
-				<caption className="visually-hidden" id={caption}>
-					Team members and invitations
-				</caption>
-				<thead>
-					<tr>
-						<th scope="col">Name</th>
-						<th scope="col">Email</th>
-						<th scope="col">Permissions</th>
-						<th scope="col">Status</th>
-					</tr>
-				</thead>
-				<tbody>
-					{members.map((member) => (
-						<tr key={member.email}>
-							<th scope="row">{member.name}</th>
-							<td>
-								<a href={`mailto:${encodeURIComponent(member.email)}`}>
-									{member.email}
-								</a>
-							</td>
-							<td className="team-member-roles">{member.roles.join(", ")}</td>
-							<td>{member.invitation ? "Pending" : "Current"}</td>
-						</tr>
-					))}
-				</tbody>
-			</table>
+		<section aria-labelledby={heading} className="team-member-card">
+			<header className="team-member-heading">
+				<div className="team-member-identity">
+					<h3 id={heading}>{member.name || member.email}</h3>
+					{member.name && member.name !== member.email ? (
+						<a href={`mailto:${encodeURIComponent(member.email)}`}>
+							{member.email}
+						</a>
+					) : null}
+				</div>
+				<span className="team-member-status">{status}</span>
+			</header>
+			{editable ? (
+				<EditMemberPermissions
+					lastOwner={lastOwner}
+					member={member}
+					onUpdated={onUpdated}
+					team={team.handle}
+				/>
+			) : (
+				<div className="team-member-readonly">
+					<p className="team-member-roles">{member.roles.join(", ")}</p>
+					<p className="hint">
+						{member.invitation
+							? "Permissions can be edited after the invitation is accepted."
+							: "A team owner can edit permissions."}
+					</p>
+				</div>
+			)}
 		</section>
 	);
 }

@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { isPresent } from "../../../../shared/present";
-import { type View, viewPath } from "../../app/route-state";
+import type { View } from "../../app/route-state";
+import { viewPath } from "../../app/route-state";
 import { Brand } from "../../components/brand";
 import type { Balance, Team } from "../../lib/api";
 import { duration, money } from "../../lib/format";
@@ -24,7 +25,7 @@ export function ConsoleHeader({
 	balance?: Balance;
 	titles: Record<View, string>;
 }) {
-	const { view, search } = useNavigation(team.handle);
+	const { view } = useNavigation(team.handle);
 	const runout = balance?.estimated_runout_time
 		? Date.parse(balance.estimated_runout_time) - Date.now()
 		: undefined;
@@ -34,11 +35,7 @@ export function ConsoleHeader({
 	return (
 		<header className="top">
 			<nav aria-label="Where you are" className="crumbs">
-				<Link
-					className="brand"
-					search={search}
-					to={viewPath(team.handle, "home")}
-				>
+				<Link className="brand" search={{}} to={viewPath(team.handle, "home")}>
 					<Brand />
 				</Link>
 				<Link
@@ -65,7 +62,7 @@ export function ConsoleHeader({
 						/>
 					</svg>
 				</Link>
-				{view === "home" ? null : (
+				{view === "home" || view === "settings" ? null : (
 					<span className="crumb">
 						<span aria-hidden="true" className="sep">
 							›
@@ -87,7 +84,7 @@ export function ConsoleHeader({
 				<Link
 					aria-current={view === "credits" ? "page" : undefined}
 					className="btn primary credits-cta"
-					search={search}
+					search={{}}
 					to={viewPath(team.handle, "credits")}
 				>
 					Add credits
@@ -97,7 +94,7 @@ export function ConsoleHeader({
 				<Link
 					aria-label="Settings"
 					className={`btn icon ${view === "settings" ? "on" : ""}`}
-					search={search}
+					search={{}}
 					title="Settings"
 					to={viewPath(team.handle, "settings")}
 				>

@@ -1,13 +1,9 @@
-import { useCallback, useId, useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Form } from "../../components/forms/form";
 import { FormError } from "../../components/forms/form-error";
 import { useAppForm } from "../../components/forms/use-app-form";
-import {
-	type APIToken,
-	type APITokenRequest,
-	api,
-	type Team,
-} from "../../lib/api";
+import type { APIToken, APITokenRequest, Team } from "../../lib/api";
+import { api } from "../../lib/api";
 import { errorMessage } from "../../lib/error-message";
 import { TokenDates } from "./token-dates";
 import { TokenAccountAccess, TokenTeamAccess } from "./token-fields";
@@ -38,27 +34,23 @@ function tokenHasChanges(value: APITokenRequest, token: APIToken) {
 	);
 }
 
+function selectValues(state: { values: APITokenRequest }) {
+	return state.values;
+}
+
 export function TokenForm({
 	token,
 	teams,
 	onSaved,
-	requiredTeam,
 }: {
 	token?: APIToken;
 	teams: Team[];
 	onSaved: (details: APIToken, value?: string) => Promise<void>;
-	requiredTeam?: string;
 }) {
 	const heading = useId();
 	const label = useRef<HTMLInputElement>(null);
 	const permission = useRef<HTMLInputElement>(null);
 	const [error, setError] = useState("");
-	const changed = useCallback(
-		(state: { values: APITokenRequest }) =>
-			!!state.values.label.trim() &&
-			(!token || tokenHasChanges(state.values, token)),
-		[token]
-	);
 	const initialTeams =
 		token?.teams.map((team) => ({ roles: team.roles, team: team.handle })) ??
 		[];
@@ -119,16 +111,6 @@ export function TokenForm({
 				if (!value.label.trim()) {
 					return { fields: { label: "Enter a label for this token." } };
 				}
-				if (
-					requiredTeam &&
-					!value.teams.some(
-						(team) => team.team === requiredTeam && team.roles.length
-					)
-				) {
-					return {
-						fields: { teams: "Choose at least one permission for this team." },
-					};
-				}
 			},
 		},
 	});
@@ -139,8 +121,11 @@ export function TokenForm({
 			className="team-form token-form stack"
 			onSubmit={form.handleSubmit}
 		>
-			{token ? <TokenDates token={token} /> : null}
-			{token ? null : (
+			{token ? (
+				<div className="token-editor-heading">
+					<TokenDates key={token.prefix} token={token} />
+				</div>
+			) : (
 				<h2 className="team-section-title" id={heading}>
 					Create a token
 				</h2>
@@ -163,14 +148,17 @@ export function TokenForm({
 			</form.AppField>
 			<FormError message={error} />
 			<form.AppForm>
-				<form.Subscribe selector={changed}>
-					{(hasChanges) => (
+				<form.Subscribe selector={selectValues}>
+					{(values) => (
 						<form.SubmitButton
 							className="btn primary"
-							disabled={!hasChanges}
+							disabled={
+								!values.label.trim() ||
+								(!!token && !tokenHasChanges(values, token))
+							}
 							pendingText={token ? "Saving…" : "Creating…"}
 						>
-							{token ? "Save token" : "Create token"}
+							{token ? "Save" : "Create token"}
 						</form.SubmitButton>
 					)}
 				</form.Subscribe>

@@ -1,8 +1,8 @@
 .auth-passphrases input {
 	width: 100%;
-	height: 60px;
-	padding-inline: 18px;
-	font-size: 18px;
+	height: var(--button-height);
+	padding-inline: 12px;
+	font-size: var(--button-font-size);
 	background: var(--card);
 	border: 1px solid var(--line-2);
 	border-radius: 6px;
@@ -21,7 +21,6 @@
 	align-items: center;
 	padding-bottom: 28px;
 	font-size: clamp(20px, 2.4vw, 25px);
-	border-bottom: 1px solid var(--line-2);
 }
 .auth-brand {
 	display: inline-flex;
@@ -146,10 +145,6 @@
 	margin-top: 18px;
 	font-size: 16px;
 }
-.auth-alternative .btn-text {
-	min-height: 44px;
-	font-size: 16px;
-}
 .auth-content .steps {
 	gap: 28px;
 	margin-block: 32px;
@@ -169,19 +164,13 @@
 	color: var(--on);
 }
 .auth-content .pasterow input {
-	height: 60px;
-	padding-inline: 18px;
-	font-size: 18px;
+	height: var(--button-height);
+	padding-inline: 12px;
+	font-size: var(--button-font-size);
 	border-radius: 6px;
 }
 .auth-content .cmd code {
 	font-size: 17px;
-}
-.auth-content .pasterow .btn {
-	height: 60px;
-	padding-inline: 26px;
-	font-size: 17px;
-	border-radius: 6px;
 }
 @media (max-width: 600px) {
 	.auth-page {
@@ -194,7 +183,8 @@
 	.auth-content {
 		padding-block: 32px 64px;
 	}
-	.auth-content .pasterow {
+	.auth-content .pasterow,
+	.auth-content .pasterow:has(.form-field) {
 		flex-direction: column;
 		align-items: stretch;
 	}

@@ -16,7 +16,6 @@ describe("cloud-init URL navigation", () => {
 			page: undefined,
 			pageSize: undefined,
 			returnTo: undefined,
-			tokenTeam: undefined,
 		});
 	});
 });

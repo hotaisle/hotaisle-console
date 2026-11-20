@@ -19,12 +19,28 @@ function TokenRow({
 	return (
 		<li className="token-row">
 			<div className="token-identity">
-				<strong>{token.label || "Unlabelled token"}</strong>
+				<strong>
+					{canManage ? (
+						<Link
+							params={{ prefix: token.prefix }}
+							search={search}
+							to="/account/api-tokens/$prefix"
+						>
+							{token.label || "Unlabelled token"}
+						</Link>
+					) : (
+						token.label || "Unlabelled token"
+					)}
+				</strong>
 				<code>{token.prefix}</code>
 				{current ? <span className="small">Current sign-in</span> : null}
 			</div>
 			<div className="token-access">
-				<span>Account: {token.user_role}</span>
+				<span>
+					{token.user_role === "owner"
+						? "Manage account and API tokens"
+						: "Read account details"}
+				</span>
 				{token.teams.length ? (
 					token.teams.map((team) => (
 						<span key={team.handle}>

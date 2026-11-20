@@ -1,4 +1,5 @@
-import { type RefObject, useLayoutEffect, useRef, useState } from "react";
+import type { RefObject } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 /** Measure intrinsic row heights so wrapped names and larger text stay fully visible. */
 export function useHistoryCapacity(

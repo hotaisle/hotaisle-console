@@ -1,10 +1,6 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
-import {
-	type Ended,
-	historyOf,
-	listMachines,
-	type MachineUpdate,
-} from "../../../../shared/records";
+import type { Ended, MachineUpdate } from "../../../../shared/records";
+import { historyOf, listMachines } from "../../../../shared/records";
 import { historyVault } from "../../lib/history-vault";
 
 export function useSessionRecords(team: string) {

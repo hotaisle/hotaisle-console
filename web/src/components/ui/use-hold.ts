@@ -1,5 +1,5 @@
+import type { HotkeyChord } from "@tanstack/react-hotkeys";
 import {
-	type HotkeyChord,
 	useDefaultHotkeysOptions,
 	useHotkey,
 	useHotkeyScopesState,
@@ -8,7 +8,8 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useShortcut } from "../../hooks/use-shortcut";
 import { sound } from "../../lib/sound";
-import { createHoldController, type HoldPhase } from "./hold-controller";
+import type { HoldPhase } from "./hold-controller";
+import { createHoldController } from "./hold-controller";
 
 export function useHold({
 	ms,

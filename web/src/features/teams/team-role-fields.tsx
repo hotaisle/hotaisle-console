@@ -1,4 +1,5 @@
-import { type ChangeEvent, type Ref, useCallback, useId } from "react";
+import type { ChangeEvent, Ref } from "react";
+import { useCallback, useId } from "react";
 import { useFieldContext } from "../../components/forms/form-context";
 import { FormError } from "../../components/forms/form-error";
 import { PermissionOption } from "../../components/forms/permission-option";
@@ -6,8 +7,10 @@ import type { TeamRole } from "../../lib/api";
 import { TEAM_ROLE_OPTIONS } from "../../lib/team-role-options";
 
 export function TeamRoleFields({
+	compact = false,
 	inputRef,
 }: {
+	compact?: boolean;
 	inputRef: Ref<HTMLInputElement>;
 }) {
 	const field = useFieldContext<TeamRole[]>();
@@ -34,8 +37,10 @@ export function TeamRoleFields({
 				.join(" ")
 		: "";
 	return (
-		<fieldset className="team-permissions">
-			<legend>Permissions</legend>
+		<fieldset className="team-permissions" data-compact={compact || undefined}>
+			<legend className={compact ? "visually-hidden" : undefined}>
+				Permissions
+			</legend>
 			<div className="permission-options">
 				{TEAM_ROLE_OPTIONS.map((option, index) => (
 					<PermissionOption
@@ -49,6 +54,7 @@ export function TeamRoleFields({
 						onBlur={field.handleBlur}
 						onChange={change}
 						ref={index === 0 ? inputRef : undefined}
+						title={compact ? option.description : undefined}
 						type="checkbox"
 						value={option.value}
 					/>

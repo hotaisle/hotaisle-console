@@ -1,4 +1,5 @@
-import { type ChangeEvent, type ReactNode, useCallback, useId } from "react";
+import type { ChangeEvent, ReactNode } from "react";
+import { useCallback, useId } from "react";
 import { sound } from "../../lib/sound";
 import "./picker.css";
 

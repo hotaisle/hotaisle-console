@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { mockNativeDialogs } from "../../../test/native-dialog";
 import { renderWithQuery } from "../../../test/render";
 import { ToastHost } from "../../components/ui/toast";
-import { api, type Team, type VM } from "../../lib/api";
+import type { Team, VM } from "../../lib/api";
+import { api } from "../../lib/api";
 import { Trip } from "./trip";
 import type { TripProps } from "./use-trip";
 

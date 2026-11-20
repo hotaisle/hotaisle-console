@@ -3,21 +3,22 @@ import { useEffect, useRef, useState } from "react";
 import { machineKey } from "../../../../shared/machine-identity";
 import { isPresent } from "../../../../shared/present";
 import { useToast } from "../../components/ui/toast";
-import {
-	type APIError,
-	api,
-	type Ended,
-	type MachineRecord,
-	type Team,
-	type VM,
-	type VMState,
+import type {
+	APIError,
+	Ended,
+	MachineRecord,
+	Team,
+	VM,
+	VMState,
 } from "../../lib/api";
+import { api } from "../../lib/api";
 import { money, sshHost } from "../../lib/format";
 import { vtName } from "../../lib/motion";
 import { sound } from "../../lib/sound";
 import type { PowerOperation } from "./power-actions";
 import { reservationReadings } from "./reservation";
-import { HEAD, type Phase, phaseOf, stageModeOf, usesCloudInit } from "./state";
+import type { Phase } from "./state";
+import { HEAD, phaseOf, stageModeOf, usesCloudInit } from "./state";
 import { useNow } from "./use-now";
 
 export interface TripProps {

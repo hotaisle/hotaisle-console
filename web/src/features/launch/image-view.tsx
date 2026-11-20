@@ -37,7 +37,7 @@ export function ImageView({
 				)}
 			</form.AppField>
 			<form.AppForm>
-				<form.SubmitButton className="btn primary big" pendingText="Saving…">
+				<form.SubmitButton className="btn primary" pendingText="Saving…">
 					Use this file
 				</form.SubmitButton>
 			</form.AppForm>

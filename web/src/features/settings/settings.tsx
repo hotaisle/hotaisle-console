@@ -1,4 +1,4 @@
-import type { SSHKey, Status, Team } from "../../lib/api";
+import type { SSHKey, Status } from "../../lib/api";
 import { AccountSettings } from "./account";
 import { AppearanceSettings } from "./appearance";
 import { DefaultMachineSettings } from "./defaults";
@@ -7,17 +7,11 @@ import { SshKeys } from "./ssh-keys/ssh-keys";
 
 export function SettingsView({
 	status,
-	teams,
-	team,
-	onTeam,
 	sshKeys,
 	keysError,
 	refreshKeys,
 }: {
 	status: Status;
-	teams: Team[];
-	team: Team;
-	onTeam: (handle: string) => void;
 	sshKeys?: SSHKey[];
 	keysError?: Error;
 	refreshKeys: () => Promise<void>;
@@ -28,12 +22,7 @@ export function SettingsView({
 			<DefaultMachineSettings />
 			<SshKeys keys={sshKeys} queryError={keysError} refresh={refreshKeys} />
 			<KeyboardSettings />
-			<AccountSettings
-				onTeam={onTeam}
-				status={status}
-				team={team}
-				teams={teams}
-			/>
+			<AccountSettings status={status} />
 		</div>
 	);
 }

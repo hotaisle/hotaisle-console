@@ -1,5 +1,6 @@
 import type { HotkeyChord } from "@tanstack/react-hotkeys";
-import { type MouseEvent, type PointerEvent, useCallback } from "react";
+import type { MouseEvent, PointerEvent } from "react";
+import { useCallback } from "react";
 import { useHold } from "./use-hold";
 
 export interface HoldButtonProps {

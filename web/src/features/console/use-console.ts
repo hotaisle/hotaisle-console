@@ -65,7 +65,7 @@ export function useConsole({
 		);
 	const rootIsOrder = list.length === 0 && receipts.length === 0 && !focus;
 	useMachineShortcuts(h, view === "home", focused, states);
-	// ---------------------------------------------------------------- the order, kept while you look at keys or settings
+	// Launch choices live in the launch URL; browser back restores them after settings.
 	const { order, setOrder } = useOrder();
 	// an earlier run, opened from the history to look back at it
 

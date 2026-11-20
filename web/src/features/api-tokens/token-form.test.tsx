@@ -8,7 +8,8 @@ import {
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { renderWithQuery } from "../../../test/render";
-import { type APIToken, api, type Team } from "../../lib/api";
+import type { APIToken, Team } from "../../lib/api";
+import { api } from "../../lib/api";
 import { TokenForm } from "./token-form";
 
 const TEAM: Team = {
@@ -47,13 +48,10 @@ describe("API token form", () => {
 		renderWithQuery(
 			<TokenForm onSaved={vi.fn()} teams={[TEAM]} token={TOKEN} />
 		);
-		const save = screen.getByRole("button", { name: "Save token" });
+		const save = screen.getByRole("button", { name: "Save" });
 		const label = screen.getByLabelText("Label");
 		const user = userEvent.setup();
 		expect(save).toBeDisabled();
-		expect(
-			screen.queryByRole("heading", { name: "Edit token" })
-		).not.toBeInTheDocument();
 		await act(() => {
 			fireEvent.submit(screen.getByRole("form", { name: "Edit token" }));
 		});
@@ -65,15 +63,40 @@ describe("API token form", () => {
 		await user.clear(label);
 		await user.type(label, TOKEN.label);
 		expect(save).toBeDisabled();
-		await user.click(screen.getByRole("radio", { name: "Owner" }));
+		await user.click(
+			screen.getByRole("radio", { name: "Manage account and API tokens" })
+		);
 		expect(save).toBeEnabled();
-		await user.click(screen.getByRole("radio", { name: "User" }));
+		await user.click(
+			screen.getByRole("radio", { name: "Read account details" })
+		);
 		expect(save).toBeDisabled();
 		await user.click(screen.getByRole("checkbox", { name: "Operator" }));
 		expect(save).toBeEnabled();
 		await user.click(screen.getByRole("checkbox", { name: "Operator" }));
 		expect(save).toBeDisabled();
 		expect(update).not.toHaveBeenCalled();
+	});
+	it("disables Save when refreshed token data matches the edited values", async () => {
+		const onSaved = vi.fn();
+		const { rerender } = renderWithQuery(
+			<TokenForm onSaved={onSaved} teams={[TEAM]} token={TOKEN} />
+		);
+		const user = userEvent.setup();
+		const label = screen.getByLabelText("Label");
+		await user.clear(label);
+		await user.type(label, "Renamed");
+		expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+		rerender(
+			<TokenForm
+				onSaved={onSaved}
+				teams={[TEAM]}
+				token={{ ...TOKEN, label: "Renamed" }}
+			/>
+		);
+		expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+		await user.type(label, " again");
+		expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
 	});
 	it("treats restored grants as unchanged even when team and role order differs", async () => {
 		const research = { ...TEAM, handle: "research", name: "Research" };
@@ -87,7 +110,7 @@ describe("API token form", () => {
 		renderWithQuery(
 			<TokenForm onSaved={vi.fn()} teams={[TEAM, research]} token={token} />
 		);
-		const save = screen.getByRole("button", { name: "Save token" });
+		const save = screen.getByRole("button", { name: "Save" });
 		const operator = within(
 			screen.getByRole("group", { name: "Lab lab" })
 		).getByRole("checkbox", { name: "Operator" });
@@ -113,11 +136,8 @@ describe("API token form", () => {
 		const research = within(
 			screen.getByRole("group", { name: "Research research" })
 		);
-		expect(lab.getAllByRole("checkbox")).toHaveLength(3);
-		expect(research.getAllByRole("checkbox")).toHaveLength(1);
-		expect(
-			research.queryByRole("checkbox", { name: "Owner" })
-		).not.toBeInTheDocument();
+		expect(lab.getByRole("checkbox", { name: "Purchaser" })).toBeDisabled();
+		expect(research.getByRole("checkbox", { name: "Owner" })).toBeDisabled();
 		const user = userEvent.setup();
 		await user.type(screen.getByLabelText("Label"), "Two teams");
 		await user.click(lab.getByRole("checkbox", { name: "User" }));
@@ -144,7 +164,9 @@ describe("API token form", () => {
 			<TokenForm onSaved={saved} teams={[TEAM]} />
 		);
 		const user = userEvent.setup();
-		expect(screen.getByRole("radio", { name: "User" })).toBeChecked();
+		expect(
+			screen.getByRole("radio", { name: "Read account details" })
+		).toBeChecked();
 		for (const checkbox of screen.getAllByRole("checkbox")) {
 			expect(checkbox).not.toBeChecked();
 		}
@@ -171,7 +193,7 @@ describe("API token form", () => {
 		await user.type(screen.getByLabelText("Label"), "Deploy");
 		await user.click(
 			screen.getByRole("radio", {
-				name: "Owner",
+				name: "Manage account and API tokens",
 			})
 		);
 		await user.click(screen.getByRole("checkbox", { name: "Operator" }));
@@ -193,7 +215,7 @@ describe("API token form", () => {
 		const user = userEvent.setup();
 		await user.clear(screen.getByLabelText("Label"));
 		await user.type(screen.getByLabelText("Label"), "Renamed");
-		await user.click(screen.getByRole("button", { name: "Save token" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent(
 			"Owner access required"
 		);

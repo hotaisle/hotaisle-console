@@ -1,6 +1,7 @@
 import { useLocation, useRouter, useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
-import { type ConsoleSearch, validateSearch } from "../../app/route-state";
+import type { ConsoleSearch } from "../../app/route-state";
+import { validateSearch } from "../../app/route-state";
 import { cloudInitVault } from "../../lib/cloud-init-vault";
 import { usePrefs } from "../../lib/prefs";
 import type { Order } from "./types";

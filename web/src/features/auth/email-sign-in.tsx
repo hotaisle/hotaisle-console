@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Form } from "../../components/forms/form";
 import { FormError } from "../../components/forms/form-error";
 import { useAppForm } from "../../components/forms/use-app-form";
-import { api, type PendingEmailLogin } from "../../lib/api";
+import type { PendingEmailLogin } from "../../lib/api";
+import { api } from "../../lib/api";
 import { errorMessage } from "../../lib/error-message";
 
 export function EmailSignIn({

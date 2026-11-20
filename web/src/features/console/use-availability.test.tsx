@@ -1,7 +1,8 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { queryWrapper } from "../../../test/render";
-import { api, type Offer } from "../../lib/api";
+import type { Offer } from "../../lib/api";
+import { api } from "../../lib/api";
 import { useAvailability } from "./use-availability";
 
 const AVAILABLE: Offer[] = [

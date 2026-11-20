@@ -2,7 +2,8 @@ import { useMutation } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { FormError } from "../../components/forms/form-error";
 import { ButtonLabels } from "../../components/ui/button-labels";
-import { APIError, api, type Team } from "../../lib/api";
+import type { Team } from "../../lib/api";
+import { APIError, api } from "../../lib/api";
 
 export function TeamInvitation({
 	team,

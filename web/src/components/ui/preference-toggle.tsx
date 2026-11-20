@@ -1,4 +1,5 @@
-import { type ChangeEvent, useCallback, useId } from "react";
+import type { ChangeEvent } from "react";
+import { useCallback, useId } from "react";
 
 export function PreferenceToggle({
 	label,

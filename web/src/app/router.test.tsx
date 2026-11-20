@@ -21,14 +21,21 @@ import { machineKey } from "../../../shared/machine-identity";
 import { TestProvider, testClient } from "../../test/render";
 import { useNavigation } from "../features/console/use-navigation";
 import { useOrder } from "../features/launch/use-order";
-import { ACCOUNT_KEY, STATUS_KEY } from "../hooks/use-session";
-import { APIError, type APIToken, api, type Team } from "../lib/api";
+import {
+	ACCOUNT_KEY,
+	STATUS_KEY,
+	useSessionActions,
+} from "../hooks/use-session";
+import type { APIToken, Team } from "../lib/api";
+import { APIError, api } from "../lib/api";
 import { keyVault } from "../lib/key-vault";
 import { createAppRouter } from "./router";
 
 function ConsoleProbe({ team }: { team: Team }) {
 	const navigation = useNavigation(team.handle);
 	const { order } = useOrder();
+	const { logout } = useSessionActions();
+	const signOut = useCallback(() => logout.mutate(), [logout.mutate]);
 	const location = useLocation();
 	const settings = useCallback(
 		() => navigation.push("settings"),
@@ -49,6 +56,9 @@ function ConsoleProbe({ team }: { team: Team }) {
 			</button>
 			<button onClick={navigation.back} type="button">
 				Back
+			</button>
+			<button onClick={signOut} type="button">
+				Sign out
 			</button>
 		</main>
 	);
@@ -155,13 +165,7 @@ describe("console URLs", () => {
 			const request = pendingTokens();
 			vi.spyOn(api, "apiTokens").mockReturnValue(request.promise);
 			await open(path);
-			expect(
-				await screen.findByRole("heading", { name: "API tokens" })
-			).toBeVisible();
-			expect(
-				screen.getByRole("navigation", { name: "Breadcrumbs" })
-			).toBeVisible();
-			const pending = screen.getByRole("progressbar", { name: label });
+			const pending = await screen.findByRole("progressbar", { name: label });
 			expect(pending).toHaveAttribute("aria-busy", "true");
 			expect(pending.querySelector(".token-skeleton")).toHaveAttribute(
 				"aria-hidden",
@@ -214,7 +218,6 @@ describe("console URLs", () => {
 		expect(
 			screen.queryByRole("progressbar", { name: "API token list" })
 		).not.toBeInTheDocument();
-		expect(screen.getByRole("heading", { name: "API tokens" })).toBeVisible();
 	});
 
 	it("keeps the token form and edits mounted during a background refresh", async () => {
@@ -257,7 +260,7 @@ describe("console URLs", () => {
 		expect(input).toHaveValue("Automation edit");
 	});
 
-	it("opens a team's token list from its card and creates grants only for that team", async () => {
+	it("switches between teams and personal tokens and creates grants across selected teams", async () => {
 		vi.mocked(api.status).mockResolvedValue({
 			email_login: true,
 			key_stored: false,
@@ -296,97 +299,39 @@ describe("console URLs", () => {
 			list.mockResolvedValue([...existing, details]);
 			return Promise.resolve({ ...details, token: "scoped-fixture-secret" });
 		});
-		const { router } = await open("/teams");
+		const { history, router } = await open("/teams");
 		const user = userEvent.setup();
-		expect(
-			screen.queryByText(
-				"Open an existing team, accept an invitation, or create a new team."
-			)
-		).not.toBeInTheDocument();
-		await user.click(
-			await screen.findByRole("link", { name: "API tokens for Lab" })
-		);
-		expect(router.state.location.search.tokenTeam).toBe("lab");
+		await user.click(await screen.findByRole("link", { name: "API tokens" }));
+		expect(router.state.location.pathname).toBe("/account/api-tokens");
 		expect(await screen.findByText("Lab CLI")).toBeVisible();
-		expect(screen.queryByText("Research CLI")).not.toBeInTheDocument();
-		expect(
-			screen.queryByText("Manage access for your applications and scripts.")
-		).not.toBeInTheDocument();
+		expect(screen.getByText("Research CLI")).toBeVisible();
+		await act(async () => history.back());
+		await screen.findByRole("link", { name: "Open team Lab" });
+		await act(async () => history.forward());
+		await screen.findByText("Lab CLI");
 		await user.click(screen.getByRole("link", { name: "Create API token" }));
 		expect(await screen.findByRole("group", { name: "Lab lab" })).toBeVisible();
-		expect(
-			screen.queryByRole("group", { name: "Research research" })
-		).not.toBeInTheDocument();
-		await user.type(screen.getByLabelText("Label"), "Lab automation");
-		await user.click(screen.getByRole("button", { name: "Create token" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent(
-			"Choose at least one permission for this team."
+		const research = within(
+			screen.getByRole("group", { name: "Research research" })
 		);
-		expect(create).not.toHaveBeenCalled();
-		await user.click(screen.getByRole("checkbox", { name: "Owner" }));
+		await user.type(screen.getByLabelText("Label"), "Lab automation");
+		await user.click(research.getByRole("checkbox", { name: "Owner" }));
 		await user.click(screen.getByRole("button", { name: "Create token" }));
 		expect(await screen.findByLabelText(API_TOKEN_LABEL)).toHaveValue(
 			"scoped-fixture-secret"
 		);
 		expect(create).toHaveBeenCalledWith({
 			label: "Lab automation",
-			teams: [{ roles: ["owner"], team: "lab" }],
+			teams: [{ roles: ["owner"], team: "research" }],
 			user_role: "user",
 		});
-		expect(router.state.location.search.tokenTeam).toBe("lab");
-		await act(() =>
-			router.navigate({
-				search: { tokenTeam: "research" },
-				to: "/account/api-tokens",
-			})
-		);
-		expect(await screen.findByText("Research CLI")).toBeVisible();
+		await user.click(screen.getByRole("link", { name: "Teams" }));
+		await screen.findByRole("link", { name: "Open team Lab" });
+		await user.click(screen.getByRole("link", { name: "API tokens" }));
+		await screen.findByText("Research CLI");
 		expect(
 			screen.queryByDisplayValue("scoped-fixture-secret")
 		).not.toBeInTheDocument();
-		await act(() =>
-			router.navigate({
-				search: { tokenTeam: "lab" },
-				to: "/account/api-tokens",
-			})
-		);
-		expect(
-			screen.queryByDisplayValue("scoped-fixture-secret")
-		).not.toBeInTheDocument();
-	});
-	it("does not substitute another team or token for an inaccessible team scope", async () => {
-		vi.spyOn(api, "apiTokens").mockResolvedValue([
-			{
-				label: "Private automation",
-				prefix: "fixture-prefix",
-				teams: [],
-				user_role: "user",
-			},
-		]);
-		await open("/account/api-tokens?tokenTeam=unknown");
-		expect(await screen.findByRole("alert")).toHaveTextContent(
-			"not a member of this team"
-		);
-		expect(screen.queryByText("Private automation")).not.toBeInTheDocument();
-		expect(
-			screen.queryByRole("link", { name: "Team console" })
-		).not.toBeInTheDocument();
-		expect(
-			screen.queryByRole("link", { name: "Create API token" })
-		).not.toBeInTheDocument();
-	});
-	it("does not open another team's token through a scoped edit URL", async () => {
-		vi.spyOn(api, "apiTokens").mockResolvedValue([
-			{
-				label: "Research CLI",
-				prefix: "other-prefix",
-				teams: [{ handle: "research", name: "Research", roles: ["user"] }],
-				user_role: "user",
-			},
-		]);
-		await open("/account/api-tokens/other-prefix?tokenTeam=lab");
-		expect(await screen.findByRole("alert")).toHaveTextContent("not found");
-		expect(screen.queryByLabelText("Label")).not.toBeInTheDocument();
 	});
 	it("allows an owner signed in with a typed key to create and edit API tokens", async () => {
 		const prefix = "0123456789abcdef01234567";
@@ -418,7 +363,7 @@ describe("console URLs", () => {
 		const label = await screen.findByLabelText("Label");
 		expect(label).toHaveValue("Typed owner");
 		await user.type(label, " edited");
-		expect(screen.getByRole("button", { name: "Save token" })).toBeEnabled();
+		expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
 	});
 	it("signs out after explicitly revoking the token used for the current sign-in", async () => {
 		vi.mocked(api.status).mockResolvedValue({
@@ -558,35 +503,23 @@ describe("console URLs", () => {
 		const { router } = await open(
 			"/account/api-tokens/new?returnTo=%2Fteams%2Flab%2Fsettings"
 		);
-		const breadcrumbs = within(
-			await screen.findByRole("navigation", { name: "Breadcrumbs" })
-		);
-		expect(
-			breadcrumbs.getByRole("link", { name: "Create token" })
-		).toHaveAttribute("aria-current", "page");
-		expect(
-			breadcrumbs.getByRole("link", { name: "Your teams" })
-		).toHaveAttribute("href", "/teams");
-		expect(screen.getByRole("link", { name: "Team console" })).toHaveAttribute(
+		expect(await screen.findByRole("link", { name: "Teams" })).toHaveAttribute(
 			"href",
-			"/teams/lab/machines"
+			"/teams"
 		);
 		expect(await screen.findByRole("group", { name: "Lab lab" })).toBeVisible();
 		const research = within(
 			screen.getByRole("group", { name: "Research research" })
 		);
 		expect(research.getByRole("checkbox", { name: "Operator" })).toBeVisible();
-		expect(
-			research.queryByRole("checkbox", { name: "Owner" })
-		).not.toBeInTheDocument();
+		expect(research.getByRole("checkbox", { name: "Owner" })).toBeDisabled();
 		expect(
 			screen.queryByRole("group", { name: "Pending team pending" })
 		).not.toBeInTheDocument();
 		await userEvent
 			.setup()
-			.click(breadcrumbs.getByRole("link", { name: "API tokens" }));
+			.click(screen.getByRole("link", { name: "API tokens" }));
 		expect(router.state.location.pathname).toBe("/account/api-tokens");
-		expect(router.state.location.search.returnTo).toBe("/teams/lab/settings");
 		expect(screen.getByRole("link", { name: "API tokens" })).toHaveAttribute(
 			"aria-current",
 			"page"
@@ -734,6 +667,7 @@ describe("console URLs", () => {
 		await user.type(screen.getByLabelText("Team handle"), "old-team");
 		await user.click(screen.getByRole("button", { name: "Create team" }));
 		await waitFor(() => expect(api.createTeam).toHaveBeenCalledOnce());
+		await act(() => router.navigate({ to: "/teams/lab/settings" }));
 		await user.click(screen.getByRole("button", { name: "Sign out" }));
 		await waitFor(() =>
 			expect(
@@ -790,7 +724,7 @@ describe("console URLs", () => {
 		await user.click(screen.getByRole("button", { name: "Save changes" }));
 		await screen.findByText("Team details saved.");
 		expect(router.state.location.pathname).toBe("/teams/lab/details");
-		await user.click(screen.getByRole("link", { name: "Back to your teams" }));
+		await user.click(screen.getByRole("link", { name: "Teams" }));
 		expect(
 			await screen.findByRole("link", { name: "Open team Renamed Lab" })
 		).toBeInTheDocument();
@@ -810,6 +744,31 @@ describe("console URLs", () => {
 		expect(
 			screen.queryByRole("button", { name: "Send email invitation" })
 		).not.toBeInTheDocument();
+	});
+	it("navigates team sections with deep links and browser history", async () => {
+		vi.spyOn(api, "team").mockResolvedValue({ ...TEAM, members: [] });
+		const { history, router } = await open("/teams/lab/members");
+		const user = userEvent.setup();
+		await screen.findByRole("heading", { name: "Members" });
+		expect(screen.queryByLabelText("Team name")).not.toBeInTheDocument();
+		await user.click(screen.getByRole("link", { name: "Details" }));
+		await screen.findByLabelText("Team name");
+		expect(router.state.location.pathname).toBe("/teams/lab/details");
+		await user.click(screen.getByRole("link", { name: "Invite" }));
+		await screen.findByRole("form", { name: "Invite team member" });
+		expect(router.state.location.pathname).toBe("/teams/lab/invite");
+		await act(async () => history.back());
+		await screen.findByLabelText("Team name");
+		expect(screen.getByRole("link", { name: "Details" })).toHaveAttribute(
+			"aria-current",
+			"page"
+		);
+		await act(async () => history.forward());
+		await screen.findByRole("form", { name: "Invite team member" });
+		expect(screen.getByRole("link", { name: "Invite" })).toHaveAttribute(
+			"aria-current",
+			"page"
+		);
 	});
 	it("invites from a deep-linked team page and reloads authoritative pending members", async () => {
 		const owner = {
@@ -832,10 +791,10 @@ describe("console URLs", () => {
 			getTeam.mockResolvedValue({ ...TEAM, members: [owner, pending] });
 			return Promise.resolve();
 		});
-		const { router } = await open("/teams/lab/details");
+		const { router } = await open("/teams/lab/invite");
 		const user = userEvent.setup();
 		const form = within(
-			await screen.findByRole("form", { name: "Invite someone" })
+			await screen.findByRole("form", { name: "Invite team member" })
 		);
 		await user.type(form.getByRole("textbox", { name: "Name" }), pending.name);
 		await user.type(form.getByLabelText("Email address"), pending.email);
@@ -845,12 +804,10 @@ describe("console URLs", () => {
 		expect(await screen.findByRole("status")).toHaveTextContent(
 			"Invitation sent to dana@example.com."
 		);
-		await screen.findByRole("cell", { name: "Pending" });
-		const members = screen.getByRole("table", {
-			name: "Team members and invitations",
-		});
+		await user.click(screen.getByRole("link", { name: "Members" }));
+		await screen.findByText("Pending invitation");
 		expect(
-			within(members).getByRole("rowheader", { name: "Dana Doe" })
+			screen.getByRole("heading", { name: "Dana Doe" })
 		).toBeInTheDocument();
 		expect(invite).toHaveBeenCalledWith("lab", {
 			email: pending.email,
@@ -861,7 +818,46 @@ describe("console URLs", () => {
 			testClient.getQueryData<Team>(["resource", "team-details", "lab"])
 				?.members
 		).toEqual([owner, pending]);
-		expect(router.state.location.pathname).toBe("/teams/lab/details");
+		expect(router.state.location.pathname).toBe("/teams/lab/members");
+	});
+	it("refreshes team and account permissions after an owner changes their own roles", async () => {
+		const owner = { ...USER, roles: ["owner" as const] };
+		const other = {
+			...owner,
+			email: "another@example.invalid",
+			name: "Another owner",
+		};
+		const getTeam = vi.spyOn(api, "team").mockResolvedValue({
+			...TEAM,
+			members: [owner, other],
+		});
+		vi.spyOn(api, "updateTeamMember").mockImplementation(() => {
+			const updated = { ...owner, roles: ["user" as const] };
+			getTeam.mockResolvedValue({
+				...TEAM,
+				effective_roles: ["user"],
+				members: [updated, other],
+				roles: ["user"],
+			});
+			return Promise.resolve(updated);
+		});
+		await open("/teams/lab/members");
+		const user = userEvent.setup();
+		const form = within(
+			await screen.findByRole("form", {
+				name: `Permissions for ${USER.email}`,
+			})
+		);
+		await user.click(form.getByRole("checkbox", { name: "User" }));
+		await user.click(form.getByRole("checkbox", { name: "Owner" }));
+		await user.click(form.getByRole("button", { name: "Save" }));
+		await waitFor(() =>
+			expect(screen.queryByRole("checkbox")).not.toBeInTheDocument()
+		);
+		expect(
+			testClient.getQueryData<{ teams: Team[] }>(ACCOUNT_KEY)?.teams[0]
+				.effective_roles
+		).toEqual(["user"]);
 	});
 	it("automatically moves an accepted invitation into current members", async () => {
 		vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
@@ -876,16 +872,12 @@ describe("console URLs", () => {
 			...TEAM,
 			members: [{ ...member, invitation: true }],
 		});
-		await open("/teams/lab/details");
-		await screen.findByRole("cell", { name: "Pending" });
+		await open("/teams/lab/members");
+		await screen.findByText("Pending invitation");
 		getTeam.mockResolvedValue({ ...TEAM, members: [member] });
 		await act(async () => vi.advanceTimersByTime(10_000));
-		expect(
-			await screen.findByRole("cell", { name: "Current" })
-		).toBeInTheDocument();
-		expect(
-			screen.queryByRole("cell", { name: "Pending" })
-		).not.toBeInTheDocument();
+		expect(await screen.findByText("Current member")).toBeInTheDocument();
+		expect(screen.queryByText("Pending invitation")).not.toBeInTheDocument();
 	});
 	it("refreshes the team chooser automatically, pauses in background, and stops polling while creating a team", async () => {
 		vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
@@ -1004,10 +996,12 @@ describe("console URLs", () => {
 		await waitFor(() =>
 			expect(router.state.location.pathname).toBe("/teams/lab/settings")
 		);
-		expect(screen.getByTestId("order")).toHaveTextContent("2:standard");
+		expect(router.state.location.search.offer).toBeUndefined();
+		expect(router.state.location.search.gpus).toBeUndefined();
 		await user.click(screen.getByRole("button", { name: "Back" }));
 		await screen.findByRole("heading", { name: "order" });
 		expect(router.state.location.pathname).toBe("/teams/lab/launch");
+		expect(screen.getByTestId("order")).toHaveTextContent("2:standard");
 	});
 	it("keeps the requested destination when sign-in is required", async () => {
 		vi.spyOn(api, "status").mockResolvedValue({
@@ -1022,6 +1016,78 @@ describe("console URLs", () => {
 		expect(router.state.location.pathname).toBe("/sign-in");
 		expect(router.state.location.search.returnTo).toBe("/teams/lab/settings");
 	});
+	it.each([
+		{ cached: false, keyStored: false, status: 401 },
+		{ cached: false, keyStored: true, status: 403 },
+		{ cached: true, keyStored: false, status: 401 },
+	])(
+		"returns expired sessions to sign-in without waiting for cleanup ($status, cached=$cached, key=$keyStored)",
+		async ({ cached, keyStored, status }) => {
+			const signedIn = {
+				email_login: true,
+				key_stored: keyStored,
+				passkeys: false,
+				signed_in: true,
+				version: "test",
+			};
+			vi.mocked(api.status).mockResolvedValue(signedIn);
+			let rejectCleanup: (error: Error) => void = () => undefined;
+			const cleanup = new Promise<{ ok: boolean }>((_resolve, reject) => {
+				rejectCleanup = reject;
+			});
+			const signOut = vi.spyOn(api, "signOut").mockReturnValue(cleanup);
+			const expired = new APIError(status, "Session expired");
+			if (!cached) {
+				vi.mocked(api.user).mockRejectedValue(expired);
+			}
+			const destination = "/teams/lab/launch?gpus=2&image=vllm";
+			const { router } = await open(destination);
+			if (cached) {
+				await screen.findByRole("heading", { name: "order" });
+				vi.mocked(api.user).mockRejectedValue(expired);
+				await act(async () => {
+					await testClient.refetchQueries({ queryKey: ACCOUNT_KEY });
+				});
+			}
+			await screen.findByLabelText(
+				keyStored ? "Unlock passphrase" : "Email address"
+			);
+			expect(router.state.location.pathname).toBe(
+				keyStored ? "/unlock" : "/sign-in"
+			);
+			expect(router.state.location.search.returnTo).toBe(destination);
+			expect(screen.getByRole("alert")).toHaveTextContent(
+				"Your session has ended"
+			);
+			expect(testClient.getQueryData(ACCOUNT_KEY)).toBeUndefined();
+			expect(signOut).toHaveBeenCalledOnce();
+			vi.mocked(api.user).mockResolvedValue({ teams: [TEAM], user: USER });
+			await act(() => {
+				testClient.setQueryData(STATUS_KEY, signedIn);
+			});
+			await screen.findByRole("heading", { name: "order" });
+			expect(router.state.location.href).toBe(destination);
+			expect(screen.getByTestId("order")).toHaveTextContent("2:vllm");
+			await act(() => {
+				rejectCleanup(new Error("Cleanup unavailable"));
+			});
+			expect(
+				screen.getByRole("heading", { name: "order" })
+			).toBeInTheDocument();
+			expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+		}
+	);
+	it("keeps connection failures distinct from expired sessions", async () => {
+		vi.mocked(api.user).mockRejectedValue(
+			new APIError(503, "Temporarily unavailable")
+		);
+		const signOut = vi.spyOn(api, "signOut");
+		const { router } = await open("/teams/lab/settings");
+		await screen.findByRole("heading", { name: "Can't reach Hot Aisle" });
+		expect(screen.getByRole("button", { name: "Try again" })).toBeEnabled();
+		expect(router.state.location.pathname).toBe("/teams/lab/settings");
+		expect(signOut).not.toHaveBeenCalled();
+	});
 	it("restores an earlier run from its URL", async () => {
 		await open("/teams/lab/history/vm-old");
 		expect(await screen.findByTestId("run")).toHaveTextContent("vm-old");
@@ -1035,24 +1101,56 @@ describe("console URLs", () => {
 		).toBeInTheDocument();
 		expect(router.state.location.pathname).toBe("/teams");
 		expect(screen.getByLabelText("Team name")).toBeInTheDocument();
+		expect(
+			screen.queryByRole("navigation", { name: "Teams and tokens" })
+		).not.toBeInTheDocument();
 	});
 	it("keeps the create-team page reachable for an existing member", async () => {
 		const { router } = await open("/teams/new");
 		await screen.findByRole("heading", { name: "Create a team" });
 		expect(router.state.location.pathname).toBe("/teams/new");
+		expect(
+			screen.getByRole("link", { name: "API tokens" })
+		).toBeInTheDocument();
 	});
-	it("creates a team through the API and opens the returned team", async () => {
-		vi.spyOn(api, "user").mockResolvedValue({ teams: [], user: USER });
-		const create = vi.spyOn(api, "createTeam").mockResolvedValue(TEAM);
-		const { router } = await open("/teams");
-		const user = userEvent.setup();
-		await user.type(await screen.findByLabelText("Team name"), " Lab ");
-		await user.type(screen.getByLabelText("Team handle"), "lab");
-		await user.click(screen.getByRole("button", { name: "Create team" }));
-		await screen.findByTestId("team");
-		expect(create).toHaveBeenCalledWith({ handle: "lab", name: "Lab" });
-		expect(router.state.location.pathname).toBe("/teams/lab/machines");
-	});
+	it.each(["/teams", "/teams/new"])(
+		"creates a team from %s and continues to the appropriate destination",
+		async (path) => {
+			vi.spyOn(api, "user").mockResolvedValue({
+				teams:
+					path === "/teams/new"
+						? [{ ...TEAM, handle: "existing", name: "Existing" }]
+						: [],
+				user: USER,
+			});
+			const create = vi.spyOn(api, "createTeam").mockResolvedValue(TEAM);
+			const { router } = await open(path);
+			const user = userEvent.setup();
+			await user.type(await screen.findByLabelText("Team name"), " Lab ");
+			await user.type(screen.getByLabelText("Team handle"), "lab");
+			await user.click(screen.getByRole("button", { name: "Create team" }));
+			if (path === "/teams") {
+				await screen.findByTestId("team");
+			} else {
+				await screen.findByRole("link", { name: "Open team Lab" });
+			}
+			expect(router.state.location.pathname).toBe(
+				path === "/teams" ? "/teams/lab/machines" : "/teams"
+			);
+			await act(async () => {
+				await router.navigate({ to: "/teams" });
+			});
+			await screen.findByRole("link", { name: "Open team Lab" });
+			expect(
+				screen.getByRole("link", { name: "API tokens" })
+			).toBeInTheDocument();
+			expect(create).toHaveBeenCalledWith({ handle: "lab", name: "Lab" });
+			expect(router.state.location.pathname).toBe("/teams");
+			expect(
+				screen.queryByRole("link", { name: "Open team Existing" }) !== null
+			).toBe(path === "/teams/new");
+		}
+	);
 	it("shows pending invitations and opens the team only after acceptance succeeds", async () => {
 		vi.spyOn(api, "user").mockResolvedValue({
 			teams: [{ ...TEAM, invitation: true }],

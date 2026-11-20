@@ -1,12 +1,5 @@
-import {
-	type ReactNode,
-	type RefObject,
-	type ToggleEvent,
-	useCallback,
-	useId,
-	useLayoutEffect,
-	useRef,
-} from "react";
+import type { ReactNode, RefObject, ToggleEvent } from "react";
+import { useCallback, useId, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useShortcut } from "../../hooks/use-shortcut";
 import { KeyboardScope } from "./keyboard-scope";
@@ -142,7 +135,7 @@ function PopoverBody({
 				<h2 id={titleId}>{title}</h2>
 				<button
 					aria-label="Close"
-					className="btn ghost sm"
+					className="btn ghost"
 					onClick={onClose}
 					type="button"
 				>

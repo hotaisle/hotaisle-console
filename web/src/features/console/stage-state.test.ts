@@ -3,7 +3,8 @@ import { machineKey } from "../../../../shared/machine-identity";
 import type { Ended, VM } from "../../lib/api";
 import { offerKey } from "../launch/offers";
 import { layout } from "../stage/model";
-import { buildStage, type StageInput } from "./stage-state";
+import type { StageInput } from "./stage-state";
+import { buildStage } from "./stage-state";
 
 function input(): StageInput {
 	return {

@@ -1,4 +1,5 @@
-import { type ComponentProps, type SubmitEvent, useCallback } from "react";
+import type { ComponentProps, SubmitEvent } from "react";
+import { useCallback } from "react";
 
 export function Form({
 	onSubmit,

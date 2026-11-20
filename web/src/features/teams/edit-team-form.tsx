@@ -1,8 +1,10 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Form } from "../../components/forms/form";
 import { FormError } from "../../components/forms/form-error";
 import { useAppForm } from "../../components/forms/use-app-form";
-import { api, type Team } from "../../lib/api";
+import { ButtonLabels } from "../../components/ui/button-labels";
+import type { Team } from "../../lib/api";
+import { api } from "../../lib/api";
 import { errorMessage } from "../../lib/error-message";
 
 const encoder = new TextEncoder();
@@ -16,6 +18,16 @@ export function EditTeamForm({
 	const [error, setError] = useState("");
 	const [saved, setSaved] = useState(false);
 	const name = useRef<HTMLInputElement>(null);
+	const hasChanges = useCallback(
+		(state: {
+			isDefaultValue: boolean;
+			values: { name: string; description: string };
+		}) =>
+			!state.isDefaultValue &&
+			(state.values.name.trim() !== team.name ||
+				state.values.description !== (team.description ?? "")),
+		[team.name, team.description]
+	);
 	const description = useRef<HTMLInputElement>(null);
 	const form = useAppForm({
 		defaultValues: { description: team.description ?? "", name: team.name },
@@ -98,12 +110,20 @@ export function EditTeamForm({
 				)}
 			</form.AppField>
 			<FormError message={error} />
-			{saved ? <p role="status">Team details saved.</p> : null}
-			<form.AppForm>
-				<form.SubmitButton pendingText="Saving…">
-					Save changes
-				</form.SubmitButton>
-			</form.AppForm>
+			<form.Subscribe selector={hasChanges}>
+				{(changed) => (
+					<form.AppForm>
+						<form.SubmitButton disabled={!changed} pendingText="Saving…">
+							<ButtonLabels active={saved && !changed} alternate="Saved">
+								Save changes
+							</ButtonLabels>
+						</form.SubmitButton>
+						<span className="visually-hidden" role="status">
+							{saved && !changed ? "Team details saved." : ""}
+						</span>
+					</form.AppForm>
+				)}
+			</form.Subscribe>
 		</Form>
 	);
 }

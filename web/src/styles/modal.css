@@ -40,7 +40,6 @@ dialog::backdrop {
 }
 .modal-actions .btn {
 	min-inline-size: 112px;
-	min-block-size: 40px;
 }
 .remove-key-details {
 	display: grid;
