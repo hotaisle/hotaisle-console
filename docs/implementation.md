@@ -21,6 +21,9 @@ bun run dev
 The app is available at `http://localhost:8787`. It connects to the real API; launching, reserving, rebuilding,
 ending machines, and purchasing credits have real effects.
 
+For reliable Fast Refresh, component modules export only React components. Keep internal constants
+private and shared runtime helpers in separate `.ts` modules so edits do not invalidate component boundaries.
+
 To explore the machine UX without renting hardware, keep that development process running and build the
 local preview:
 
