@@ -123,6 +123,9 @@ disappears or sells out, launch is blocked rather than silently choosing another
 retain their available-size fallback; numeric shortcuts apply only to unambiguous GPU counts.
 The picker renders its available-size fallback before synchronizing the URL, so selection and pricing
 do not briefly appear empty. Option rows do not replay staggered entrance animations when inventory loads.
+Size options sort by GPU count, CPU cores, RAM, and disk capacity, ascending. Equal-size VM and
+bare-metal classes use machine type and their stable hardware fingerprint as tie-breakers.
+Availability counts, prices, and API response order never reorder the picker.
 
 The team chooser refreshes memberships and invitations every 30 seconds while active, and on returning to
 the tab. Failed background updates keep the current list visible and offer a retry in a dismissible notice.
