@@ -193,6 +193,7 @@
 	display: inline-block;
 	font-family: "DSEG7", var(--mono);
 	font-style: normal;
+	font-weight: 400;
 	line-height: 1;
 	letter-spacing: 0.04em;
 	white-space: pre;

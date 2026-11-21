@@ -25,7 +25,7 @@ import { RentalEstimate } from "./rental-estimate";
 import { RentalImage } from "./rental-image";
 import type { LaunchMeta, Order } from "./types";
 
-export const HTTPS_URL_PATTERN = /^https:\/\/\S+$/u;
+const HTTPS_URL_PATTERN = /^https:\/\/\S+$/u;
 
 export function OrderView({
 	team,

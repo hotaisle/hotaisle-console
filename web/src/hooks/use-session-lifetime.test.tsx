@@ -63,6 +63,29 @@ describe("browser session lifetime", () => {
 		expect(browserSessionExpired()).toBe(true);
 	});
 
+	it.each([null, 240] as const)(
+		"uses the latest cross-tab session limit (%s) before React rerenders",
+		(sessionMinutes) => {
+			beginBrowserSession();
+			const expired = vi.fn();
+			renderHook(() => useSessionLifetime(true, expired));
+			vi.setSystemTime(Date.now() + 61 * MINUTE);
+			act(() => {
+				localStorage.setItem(
+					"hotaisle-ui:prefs",
+					JSON.stringify({ sessionMinutes })
+				);
+				window.dispatchEvent(
+					new StorageEvent("storage", { key: "hotaisle-ui:prefs" })
+				);
+			});
+			expect(expired).not.toHaveBeenCalled();
+			expect(browserSessionExpired()).toBe(false);
+			act(() => vi.advanceTimersByTime(179 * MINUTE));
+			expect(expired).toHaveBeenCalledTimes(sessionMinutes === null ? 0 : 1);
+		}
+	);
+
 	it("checks elapsed wall time when a suspended page regains focus", () => {
 		beginBrowserSession();
 		const expired = vi.fn();

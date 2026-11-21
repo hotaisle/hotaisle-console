@@ -49,6 +49,16 @@
 	gap: 8px;
 	align-items: center;
 }
+.copy-command-value {
+	flex: 1;
+	padding: 0;
+	color: inherit;
+	text-align: start;
+	cursor: pointer;
+	background: none;
+	border: 0;
+	border-radius: 10px;
+}
 .hint {
 	font-size: 14px;
 	color: var(--muted);

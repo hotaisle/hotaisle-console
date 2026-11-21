@@ -12,6 +12,8 @@ function reset() {
 }
 
 export function PreviewControls({ scenario }: { scenario: Scenario }) {
+	const consoleURL = new URL("/", window.location.href);
+	consoleURL.hostname = "localhost";
 	return (
 		<aside
 			aria-label="Development preview controls"
@@ -23,6 +25,9 @@ export function PreviewControls({ scenario }: { scenario: Scenario }) {
 				<button className="btn" onClick={reset} type="button">
 					Reset preview
 				</button>
+				<a className="btn" href={consoleURL.href}>
+					End preview
+				</a>
 			</div>
 			<nav aria-label="Start from a preview state">
 				{SCENARIOS.map((item) => (

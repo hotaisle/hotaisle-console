@@ -5,6 +5,10 @@ TanStack Form for forms, and TanStack Hotkeys for contextual keyboard controls. 
 serves the frontend and proxies the [Hot Aisle API](https://admin.hotaisle.app/api/docs/).
 Paths below are relative to the repository root unless they are links.
 
+Typography uses Instrument Sans Variable for UI text, IBM Plex Mono at weights 400 and 500 for
+technical text (500 for emphasis), and DSEG7 Classic Regular at weight 400 for digital readouts.
+Keep CSS weights aligned with these loaded faces rather than relying on synthesized bold text.
+
 ## Development
 
 Use Bun 1.4.4 and Node 26 LTS:
@@ -21,6 +25,9 @@ bun run dev
 The app is available at `http://localhost:8787`. It connects to the real API; launching, reserving, rebuilding,
 ending machines, and purchasing credits have real effects.
 
+For reliable Fast Refresh, component modules export only React components. Keep internal constants
+private and shared runtime helpers in separate `.ts` modules so edits do not invalidate component boundaries.
+
 To explore the machine UX without renting hardware, keep that development process running and build the
 local preview:
 
@@ -33,6 +40,7 @@ Booting, Running, Multiple machines, Bare metal, Ended, History (200 runs), and 
 Choose Empty, then hold Launch to watch assignment and SSH readiness. Cloud-init adds a simulated booting phase. Try
 ending a machine to see the minimum-charge confirmation and receipt. Reload or Reset returns to the selected
 scenario; simulated changes are held only in memory.
+End preview returns to the normal local console on the same port, outside the simulated environment.
 
 Open [the bare-metal example](http://preview.localhost:8787/__preview/?scenario=bare-metal) for an assigned
 8× MI300X server. Its More popup provides simulated bare-metal power operations, support access, and reinstall; End exercises
@@ -289,7 +297,8 @@ instead of orphaning that session.
 **Console session length:** Settings defaults to 60 minutes from sign-in or API-key unlock, with
 4-hour, 12-hour, 24-hour, and Infinite options. Changing the duration applies to the current session's
 original start time; activity, status polling, and reloads do not extend it. Browser preferences and a
-nonsecret start/ended marker synchronize across tabs. Expiration clears decrypted keys and private caches
+nonsecret start/ended marker synchronize across tabs. Each expiry check reads the latest duration, including
+cross-tab changes before the settings UI rerenders. Expiration clears decrypted keys and private caches
 and returns to sign-in with the original destination retained. Infinite disables only Console's automatic
 sign-out: upstream expiration, revocation, and explicit sign-out still apply. If browser storage is blocked,
 the deadline survives only in the current page's memory. No Worker-side session storage is added.

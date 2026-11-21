@@ -8,10 +8,12 @@ export function CopyButton({
 	text,
 	label = "Copy",
 	className = "",
+	showText = false,
 }: {
 	text: string;
 	label?: string;
 	className?: string;
+	showText?: boolean;
 }) {
 	const copy = useMutation({
 		mutationFn: () => navigator.clipboard.writeText(text),
@@ -26,7 +28,17 @@ export function CopyButton({
 		return () => window.clearTimeout(timer);
 	}, [copy.isSuccess, copy.reset]);
 	return (
-		<span>
+		<span className={showText ? "cmd" : undefined}>
+			{!!showText && (
+				<button
+					aria-label={`Copy ${text}`}
+					className="copy-command-value"
+					onClick={click}
+					type="button"
+				>
+					<code>{text}</code>
+				</button>
+			)}
 			<button
 				className={`btn copy ${copy.isSuccess ? "done" : ""} ${className}`}
 				onClick={click}
