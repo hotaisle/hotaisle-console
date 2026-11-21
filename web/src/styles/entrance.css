@@ -11,9 +11,6 @@
 .app.entering .plate {
 	animation: plate-in 900ms var(--ease) both;
 }
-.app.entering .order .opt {
-	animation: enter 620ms var(--ease) both;
-}
 .app.entering .order .details {
 	animation: enter 620ms var(--ease) both;
 	animation-delay: 370ms;
@@ -39,15 +36,6 @@
 }
 .app.entering .pv-body > :nth-child(2) {
 	animation-delay: 480ms;
-}
-.app.entering .order .opt:nth-child(1) {
-	animation-delay: 220ms;
-}
-.app.entering .order .opt:nth-child(2) {
-	animation-delay: 270ms;
-}
-.app.entering .order .opt:nth-child(3) {
-	animation-delay: 320ms;
 }
 @keyframes enter {
 	from {

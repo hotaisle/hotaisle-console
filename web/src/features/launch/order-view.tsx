@@ -64,8 +64,12 @@ export function OrderView({
 	const { image, customURL } = order;
 
 	// Legacy count-only links may choose an available size; explicit classes never switch silently.
-	const currentSize = selectedOffer(sizes, order);
-	const fallbackCount = fallbackGPUCount(sizes, order, currentSize);
+	const requestedSize = selectedOffer(sizes, order);
+	const fallbackCount = fallbackGPUCount(sizes, order, requestedSize);
+	// Render the resolved selection immediately; URL synchronization must not flash an empty selection.
+	const currentSize = fallbackCount
+		? selectedOffer(sizes, { count: fallbackCount })
+		: requestedSize;
 	const requestedCount = useRef<number>(undefined);
 	useEffect(() => {
 		if (!fallbackCount) {

@@ -31,7 +31,7 @@ bun install --cwd tools/showcase --frozen-lockfile
 bun run showcase
 ```
 
-This generates narration locally with Kokoro's Bella female voice and FFmpeg, then
+This generates narration locally with Kokoro's Heart female voice and FFmpeg, then
 builds preview assets. It uses the fixed voice at its original pitch and speed.
 The first run downloads the public 82M model into ignored `tools/showcase/.cache/`.
 Speech runs on the CPU; narration is not sent to a speech service. Native media tools

@@ -206,10 +206,13 @@ not just JPEGs. Edit the blog source asset directory, never its generated mirror
 ## Compose the video and delivery copy
 
 Follow [music and beat timing](showcase.md#music-and-beat-timing) for the exact
-tracked excerpt and existing voice configuration. Current composition uses the
-provided Flavour Trip excerpt beginning at 33.04 seconds, 118 BPM, Bella's original
-voice pitch/speed, and at most 6 dB music ducking. Keep these choices unless the
-user changes them. The two-minute excerpt is retained in
+tracked excerpt and existing voice configuration. The published take uses the
+provided Flavour Trip excerpt beginning at 33.04 seconds, 118 BPM, and Bella.
+New narration uses Heart at its original pitch/speed, with at most 6 dB music
+ducking. The refreshed Ocean/Heart walkthrough, captions, transcript, and poster
+remain local pending music publication permission. The public video set remains
+unchanged; the refreshed screenshots can be published independently.
+The two-minute Flavour Trip excerpt is retained in
 `tools/showcase/assets/flavour-trip-brunch-excerpt.m4a`, including roughly 23 seconds
 beyond the current edit; a clone includes it. The full recording stays untracked.
 Do not trim the excerpt again or silently substitute a different song or voice.
@@ -273,6 +276,9 @@ theme change, and both cards. Confirm captions/voice agree, actions land in thei
 scenes, pauses are readable, the song remains audible, and text stays in place.
 Check both themes, selected-GPU rings, drawer/fans, specs edges, panel scrolling,
 and unclipped content. A successful encode alone is not visual QA.
+Inspect the browser intro through the fully revealed sign-in frame, not just its
+opening card. Preserve the captured page across its full height; obsolete
+caption-background strips can create a visible band before the walkthrough starts.
 
 In Console, run the required checks for changed code and the Worker suite before
 each commit. For media packaging changes, verify the normal production build and

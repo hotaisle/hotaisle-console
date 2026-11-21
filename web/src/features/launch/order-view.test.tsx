@@ -241,6 +241,21 @@ describe("rental availability and credits", () => {
 			expect(screen.getByRole("button", { name: HOLD_ANY })).toBeDisabled();
 		}
 	);
+	it("renders the available size and price before fallback navigation completes", () => {
+		const metal = {
+			...OFFER,
+			metal: true,
+			Specs: { ...OFFER.Specs, gpus: [{ count: 8, model: "MI300X" }] },
+		};
+		const props = open({ offers: [metal] });
+		// The mocked navigation deliberately leaves the original one-GPU URL unchanged.
+		expect(props.setOrder).toHaveBeenCalledWith({ count: 8 });
+		expect(screen.getByRole("radio")).toBeChecked();
+		expect(screen.getByRole("button", { name: HOLD_METAL })).toBeEnabled();
+		expect(screen.getByRole("button", { name: HOLD_METAL })).toHaveTextContent(
+			"$3.00/hr"
+		);
+	});
 	it("settles the automatic size fallback when offers are freshly derived during navigation", async () => {
 		const router = openRouted("/teams/lab/launch?gpus=1");
 		await screen.findByRole("button", { name: HOLD_TWO });
