@@ -40,6 +40,7 @@ Booting, Running, Multiple machines, Bare metal, Ended, History (200 runs), and 
 Choose Empty, then hold Launch to watch assignment and SSH readiness. Cloud-init adds a simulated booting phase. Try
 ending a machine to see the minimum-charge confirmation and receipt. Reload or Reset returns to the selected
 scenario; simulated changes are held only in memory.
+End preview returns to the normal local console on the same port, outside the simulated environment.
 
 Open [the bare-metal example](http://preview.localhost:8787/__preview/?scenario=bare-metal) for an assigned
 8× MI300X server. Its More popup provides simulated bare-metal power operations, support access, and reinstall; End exercises
