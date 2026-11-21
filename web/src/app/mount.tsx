@@ -10,6 +10,7 @@ import type { RouterHistory } from "@tanstack/react-router";
 import { RouterProvider } from "@tanstack/react-router";
 import { ErrorNotices } from "../components/ui/error-notices";
 import { ToastHost } from "../components/ui/toast";
+import { UpdateNotice } from "../components/update-notice";
 import { applyStatusMotion, applyTheme, getPrefs } from "../lib/prefs";
 import { createQueryClient } from "./query-client";
 import { createAppRouter } from "./router";
@@ -43,6 +44,7 @@ export async function mountApp(
 				<ToastHost>
 					<ErrorNotices>
 						<RouterProvider router={router} />
+						<UpdateNotice />
 					</ErrorNotices>
 				</ToastHost>
 			</QueryClientProvider>
