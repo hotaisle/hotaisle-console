@@ -15,9 +15,8 @@ export function useSessionLifetime(signedIn: boolean, onExpired: () => void) {
 		resumeBrowserSession();
 		let timer: number | undefined;
 		let notified = false;
-		const check = () => {
+		const schedule = (remaining: number | undefined) => {
 			clearTimeout(timer);
-			const remaining = sessionRemaining(prefs.sessionMinutes);
 			if (remaining === undefined || notified) {
 				return;
 			}
@@ -28,7 +27,8 @@ export function useSessionLifetime(signedIn: boolean, onExpired: () => void) {
 				timer = window.setTimeout(check, remaining);
 			}
 		};
-		check();
+		const check = () => schedule(sessionRemaining());
+		schedule(sessionRemaining(prefs.sessionMinutes));
 		window.addEventListener("focus", check);
 		window.addEventListener("pageshow", check);
 		window.addEventListener("storage", check);
