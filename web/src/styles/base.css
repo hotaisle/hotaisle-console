@@ -158,6 +158,9 @@ kbd {
 	font-family: var(--mono);
 	font-size: 0.9em;
 }
+strong.mono {
+	font-weight: 500;
+}
 :focus {
 	outline: none;
 }
@@ -303,5 +306,7 @@ label:has(> input.visually-hidden:focus-visible) {
 @font-face {
 	font-family: "DSEG7";
 	src: url("../assets/fonts/DSEG7Classic-Regular.woff2") format("woff2");
+	font-style: normal;
+	font-weight: 400;
 	font-display: block;
 }

@@ -53,10 +53,7 @@ export function ApiKeySignIn({
 				Connect with your Hot Aisle API key. We'll save it encrypted on this
 				device, protected by a passphrase only you know.
 			</p>
-			<div className="cmd">
-				<code>ssh admin.hotaisle.app</code>
-				<CopyButton text="ssh admin.hotaisle.app" />
-			</div>
+			<CopyButton showText text="ssh admin.hotaisle.app" />
 			<p className="hint">
 				Create a key under your account in the terminal app, then paste it
 				below.
@@ -92,7 +89,7 @@ export function ApiKeySignIn({
 						return (
 							<p
 								className="hint passphrase-feedback"
-								data-matched={matched}
+								data-minimum-met={passphrase.length >= 12}
 								id={feedbackId}
 							>
 								{passphrase.length}{" "}

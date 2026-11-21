@@ -63,7 +63,16 @@ export function Connect({
 		);
 	}
 	return (
-		<AuthShell footer={footer}>
+		<AuthShell
+			footer={
+				<>
+					{footer}
+					<a className="btn-text" href="https://hotaisle.xyz/quick-start">
+						What is this?
+					</a>
+				</>
+			}
+		>
 			{waiting && pending ? (
 				<EmailApproval
 					email={pending.email}

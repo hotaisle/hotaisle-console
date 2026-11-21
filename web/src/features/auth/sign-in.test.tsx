@@ -20,16 +20,12 @@ describe("sign-in components", () => {
 		await user.type(passphrase, "short");
 		await user.type(confirmation, "short");
 		expect(feedback).toHaveTextContent("5 characters · Minimum 12.");
-		expect(feedback).toHaveAttribute("data-matched", "false");
 		await user.type(passphrase, " passphrase");
 		expect(feedback).toHaveTextContent("16 characters · Minimum 12.");
-		expect(feedback).toHaveAttribute("data-matched", "false");
 		await user.type(confirmation, " passphrase");
 		expect(feedback).toHaveTextContent("Passphrases match.");
-		expect(feedback).toHaveAttribute("data-matched", "true");
 		await user.type(passphrase, "!");
 		expect(feedback).not.toHaveTextContent("Passphrases match.");
-		expect(feedback).toHaveAttribute("data-matched", "false");
 	});
 	it("keeps the API key out of the password-manager form and still requires it", async () => {
 		const request = vi.spyOn(api, "signInWithKey");

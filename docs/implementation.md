@@ -5,6 +5,10 @@ TanStack Form for forms, and TanStack Hotkeys for contextual keyboard controls. 
 serves the frontend and proxies the [Hot Aisle API](https://admin.hotaisle.app/api/docs/).
 Paths below are relative to the repository root unless they are links.
 
+Typography uses Instrument Sans Variable for UI text, IBM Plex Mono at weights 400 and 500 for
+technical text (500 for emphasis), and DSEG7 Classic Regular at weight 400 for digital readouts.
+Keep CSS weights aligned with these loaded faces rather than relying on synthesized bold text.
+
 ## Development
 
 Use Bun 1.4.4 and Node 26 LTS:

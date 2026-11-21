@@ -65,6 +65,18 @@ describe("shared controls", () => {
 		vi.advanceTimersByTime(100);
 		expect(confirm).toHaveBeenCalledTimes(1);
 	});
+	it("copies the command text and updates the adjacent button", async () => {
+		vi.useFakeTimers();
+		userEvent.setup();
+		const write = vi
+			.spyOn(navigator.clipboard, "writeText")
+			.mockResolvedValue();
+		renderWithQuery(<CopyButton showText text="ssh example" />);
+		fireEvent.click(screen.getByRole("button", { name: "Copy ssh example" }));
+		await act(async () => vi.advanceTimersByTimeAsync(1));
+		expect(write).toHaveBeenCalledWith("ssh example");
+		expect(screen.getByRole("button", { name: "Copied" })).toBeVisible();
+	});
 	it("reports clipboard failure instead of claiming the text was copied", async () => {
 		const user = userEvent.setup();
 		vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(
