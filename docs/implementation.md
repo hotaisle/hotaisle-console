@@ -121,6 +121,8 @@ Selection, estimates, stage specifications, and reservation requests use the sam
 stock and prices, so polling and catalog reordering preserve the selection. If an explicitly selected class
 disappears or sells out, launch is blocked rather than silently choosing another. Count-only legacy links
 retain their available-size fallback; numeric shortcuts apply only to unambiguous GPU counts.
+The picker renders its available-size fallback before synchronizing the URL, so selection and pricing
+do not briefly appear empty. Option rows do not replay staggered entrance animations when inventory loads.
 
 The team chooser refreshes memberships and invitations every 30 seconds while active, and on returning to
 the tab. Failed background updates keep the current list visible and offer a retry in a dismissible notice.
