@@ -88,7 +88,12 @@ export const sizesOf = (offers?: Offer[]) => {
 		.filter((o) => o.Specs?.gpus?.length)
 		.sort(
 			(a, b) =>
-				(a.Specs.gpus?.[0]?.count ?? 0) - (b.Specs.gpus?.[0]?.count ?? 0)
+				(a.Specs.gpus?.[0]?.count ?? 0) - (b.Specs.gpus?.[0]?.count ?? 0) ||
+				a.Specs.cpu_cores - b.Specs.cpu_cores ||
+				a.Specs.ram_capacity - b.Specs.ram_capacity ||
+				a.Specs.disk_capacity - b.Specs.disk_capacity ||
+				Number(!!a.metal) - Number(!!b.metal) ||
+				offerKey(a).localeCompare(offerKey(b))
 		);
 	return list;
 };
