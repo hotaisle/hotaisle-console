@@ -40,7 +40,7 @@ function command(file: string, args: string[]) {
 }
 
 const MODEL = "onnx-community/Kokoro-82M-v1.0-ONNX";
-const VOICE = "af_bella";
+const VOICE = "af_heart";
 const transformers = await loadShowcaseTool<{ env: { cacheDir: string } }>(
 	"@huggingface/transformers"
 );
