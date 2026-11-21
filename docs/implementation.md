@@ -9,6 +9,12 @@ Typography uses Instrument Sans Variable for UI text, IBM Plex Mono at weights 4
 technical text (500 for emphasis), and DSEG7 Classic Regular at weight 400 for digital readouts.
 Keep CSS weights aligned with these loaded faces rather than relying on synthesized bold text.
 
+Production builds publish `/version.json` with the build time and release PR URL. Open pages check
+on load, every five minutes while visible, and when refocused after a minute. A newer build shows
+a quiet reload suggestion and its GitHub PR; it never reloads automatically. “Later” dismisses that
+build for the current page. Checks omit credentials, bypass the browser cache, and fail silently
+offline. Development and preview do not check production versions.
+
 ## Development
 
 Use Bun 1.4.4 and Node 26 LTS:

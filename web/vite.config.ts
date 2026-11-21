@@ -92,6 +92,24 @@ export default defineConfig(({ command, mode }) => {
 					: undefined,
 			sourcemap: false,
 		},
-		plugins: [react()],
+		plugins: [
+			react(),
+			{
+				name: "build-version",
+				generateBundle() {
+					if (local) {
+						return;
+					}
+					this.emitFile({
+						type: "asset",
+						fileName: "version.json",
+						source: JSON.stringify({
+							builtAt: process.env.VITE_BUILD_DATE,
+							prURL: process.env.VITE_BUILD_PR_URL,
+						}),
+					});
+				},
+			},
+		],
 	};
 });
