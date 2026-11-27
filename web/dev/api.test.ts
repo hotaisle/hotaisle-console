@@ -122,6 +122,53 @@ describe("development preview machine lifecycle", () => {
 		});
 		expect((await request(api, "POST", path, settings)).status).toBe(501);
 	});
+	it("shows and clears the submitted amounts in the pending setup preview", async () => {
+		const api = new PreviewAPI("auto-rebill-pending");
+		const path = "/api/teams/preview/auto-rebill/";
+		expect(await (await request(api, "GET", path)).json()).toMatchObject({
+			can_disable: true,
+			can_resume_setup: true,
+			can_update_settings: false,
+			enabled: false,
+			monthly_cap_cents: 0,
+			pending_settings: {
+				monthly_cap_cents: 50_000,
+				rebill_amount_cents: 10_000,
+				threshold_cents: 5000,
+			},
+			rebill_amount_cents: 0,
+			setup_pending: true,
+			threshold_cents: 0,
+		});
+		expect((await request(api, "GET", `${path}setup/`)).status).toBe(501);
+		expect((await request(api, "DELETE", path)).status).toBe(204);
+		const status = await (await request(api, "GET", path)).json();
+		expect(status).toMatchObject({
+			can_resume_setup: false,
+			enabled: false,
+			setup_pending: false,
+			state: "disabled",
+		});
+		expect(status).not.toHaveProperty("pending_settings");
+	});
+	it("keeps a processing payment reserved after simulated autopay is turned off", async () => {
+		const api = new PreviewAPI("auto-rebill-processing");
+		const path = "/api/teams/preview/auto-rebill/";
+		const payment = {
+			cap_remaining_this_month_cents: 30_000,
+			cap_reserved_this_month_cents: 10_000,
+			state: "payment_processing",
+		};
+		expect(await (await request(api, "GET", path)).json()).toMatchObject({
+			...payment,
+			enabled: true,
+		});
+		expect((await request(api, "DELETE", path)).status).toBe(204);
+		expect(await (await request(api, "GET", path)).json()).toMatchObject({
+			...payment,
+			enabled: false,
+		});
+	});
 	it("simulates invitations in memory and keeps members when team details change", async () => {
 		const api = new PreviewAPI("running");
 		const invitation = {

@@ -59,6 +59,7 @@ const routeTree = rootRoute.addChildren([
 	createRoute({ getParentRoute: parent, path: "/teams/$team/members" }),
 	createRoute({ getParentRoute: parent, path: "/teams/$team/invite" }),
 	createRoute({ getParentRoute: parent, path: "/teams/$team/credits" }),
+	createRoute({ getParentRoute: parent, path: "/teams/$team/credits/autopay" }),
 	createRoute({
 		beforeLoad: ({ params, search }) => {
 			throw redirect({

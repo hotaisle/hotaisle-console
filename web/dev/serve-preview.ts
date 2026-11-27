@@ -8,6 +8,7 @@ const TYPES: Record<string, string> = {
 	".html": "text/html; charset=utf-8",
 	".js": "text/javascript",
 	".svg": "image/svg+xml",
+	".txt": "text/plain; charset=utf-8",
 	".woff": "font/woff",
 	".woff2": "font/woff2",
 };

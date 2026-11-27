@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { machineKey } from "../../../../shared/machine-identity";
 import { isPresent } from "../../../../shared/present";
-import { useShortcut } from "../../hooks/use-shortcut";
 import type { Ended, Status, Team, VM } from "../../lib/api";
 import { usePrefs } from "../../lib/prefs";
 import { signal } from "../../lib/signal";
@@ -48,12 +47,19 @@ export function useConsole({
 		list,
 	} = useConsoleData(h, prefs.notify);
 
-	const { stack, view, go, push, back, focusMachine, focus, runName, legacy } =
-		useNavigation(h);
-	useShortcut("Escape", back, {
-		enabled: view !== "home",
-		meta: { name: "Go back" },
-	});
+	const {
+		back,
+		backView,
+		editingAutopay,
+		focus,
+		focusMachine,
+		go,
+		legacy,
+		push,
+		runName,
+		stack,
+		view,
+	} = useNavigation(h);
 	const { focused, focusedReceipt, focusedKey, run, runError, selectionError } =
 		useMachineSelection(
 			h,
@@ -219,8 +225,10 @@ export function useConsole({
 	return {
 		b,
 		back,
+		backView,
 		balance,
 		dismiss,
+		editingAutopay,
 		entering,
 		focused,
 		focusedKey,

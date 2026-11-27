@@ -23,12 +23,6 @@
 	border: 0;
 }
 
-.amounts {
-	min-inline-size: 0;
-	padding: 0;
-	margin: 0;
-	border: 0;
-}
 .estimate dl {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) 11em;

@@ -12,6 +12,7 @@ import { BareMetalPreview } from "./bare-metal";
 import type { PreviewMachine } from "./machines";
 import { available, machineView, newMachine, powerView } from "./machines";
 import type { Scenario } from "./scenarios";
+import { autopayScenario } from "./scenarios";
 import { PreviewTeamMembers } from "./team-members";
 
 const TEAM_HANDLE = /^[a-z0-9](?:[a-z0-9_-]{0,98}[a-z0-9])?$/u;
@@ -76,7 +77,9 @@ export class PreviewAPI {
 			[this.team, ...this.otherTeams],
 			scenario !== "sign-in"
 		);
-		this.rebill = new PreviewAutoRebill(scenario === "auto-rebill");
+		this.rebill = new PreviewAutoRebill(
+			autopayScenario(scenario)?.state ?? "disabled"
+		);
 		this.scenario = scenario;
 		this.expireSession = scenario === "session-ended";
 		this.auth = {
@@ -272,6 +275,9 @@ export class PreviewAPI {
 		if (parts.length === 1 && parts[0] === "auto-rebill") {
 			return this.rebill.request(request, this.now());
 		}
+		if (method === "GET" && parts.join("/") === "auto-rebill/setup") {
+			return fail(501, "Stripe authorization is unavailable in the preview.");
+		}
 		if (parts.join("/") === "members/invitations") {
 			return await this.members.invitations(request, this.now());
 		}
@@ -394,11 +400,14 @@ export class PreviewAPI {
 			(sum, machine) => sum + (machine.vm.gpus?.[0]?.count ?? 0) * 299,
 			this.metal?.assigned ? 2392 : 0
 		);
+		const balance = this.scenario === "auto-rebill-setup" ? 1200 : 50_000;
 		return json({
-			available_balance: 50_000,
+			available_balance: balance,
 			bare_metal_server_count: this.metal?.assigned ? 1 : 0,
 			estimated_runout_time: hourlyRate
-				? new Date(this.now() + (49_000 / hourlyRate) * 3_600_000).toISOString()
+				? new Date(
+						this.now() + ((balance - 1000) / hourlyRate) * 3_600_000
+					).toISOString()
 				: undefined,
 			hourly_rate: hourlyRate,
 			minimum_balance: 1000,

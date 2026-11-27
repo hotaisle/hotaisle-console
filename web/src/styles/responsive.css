@@ -108,9 +108,13 @@
 	}
 	.top > .money {
 		grid-area: money;
-		align-items: flex-start;
+		grid-template-areas: "amount" "detail" "autopay";
+		justify-items: start;
 		min-width: 0;
 		margin: 0;
+	}
+	.header-autopay-status .autopay-badge {
+		margin: 4px 0 0;
 	}
 
 	.row-item.hist {

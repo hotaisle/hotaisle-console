@@ -1,11 +1,36 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { isPresent } from "../../../../shared/present";
 import type { View } from "../../app/route-state";
 import { viewPath } from "../../app/route-state";
 import { Brand } from "../../components/brand";
 import type { Balance, Team } from "../../lib/api";
+import type { AutoRebillStatus } from "../../lib/auto-rebill";
 import { duration, money } from "../../lib/format";
+import { autoRebillQuery } from "./use-auto-rebill";
 import { useNavigation } from "./use-navigation";
+
+type CrumbView = Exclude<View, "home" | "settings" | "credits">;
+
+const AUTOPAY_BADGES = {
+	capped: { label: "Autopay cap reached", tone: "primary" },
+	disabled: { label: "Autopay off", tone: "" },
+	enabled: { label: "Autopay on", tone: "is-on" },
+	payment_failed: { label: "Autopay needs attention", tone: "primary" },
+	payment_processing: { label: "Autopay payment processing", tone: "primary" },
+	setup_pending: { label: "Autopay setup pending", tone: "primary" },
+	stopped: { label: "Autopay disabled", tone: "primary" },
+};
+
+function autopayBadgeState(status: AutoRebillStatus | undefined) {
+	if (status?.setup_pending) {
+		return "setup_pending";
+	}
+	if (status && !status.enabled && status.problem) {
+		return "stopped";
+	}
+	return status?.state;
+}
 
 function balanceLabel(balance?: Balance, runout?: number) {
 	if (!balance) {
@@ -23,7 +48,7 @@ export function ConsoleHeader({
 }: {
 	team: Team;
 	balance?: Balance;
-	titles: Record<View, string>;
+	titles: Record<CrumbView, string>;
 }) {
 	const { view } = useNavigation(team.handle);
 	const runout = balance?.estimated_runout_time
@@ -32,6 +57,16 @@ export function ConsoleHeader({
 	const canBuy =
 		team.effective_roles.includes("purchaser") ||
 		team.effective_roles.includes("owner");
+	const { data: autopayStatus } = useQuery({
+		...autoRebillQuery(team.handle),
+		// The credits panel already polls the same team status.
+		enabled: canBuy && view !== "credits",
+		refetchInterval: 60_000,
+		staleTime: 60_000,
+	});
+	const badgeState = autopayBadgeState(canBuy ? autopayStatus : undefined);
+	const autopay = badgeState && AUTOPAY_BADGES[badgeState];
+	const autopayBadge = `autopay-badge ${autopay?.tone ?? ""}`;
 	return (
 		<header className="top">
 			<nav aria-label="Where you are" className="crumbs">
@@ -62,7 +97,7 @@ export function ConsoleHeader({
 						/>
 					</svg>
 				</Link>
-				{view === "home" || view === "settings" ? null : (
+				{view === "home" || view === "settings" || view === "credits" ? null : (
 					<span className="crumb">
 						<span aria-hidden="true" className="sep">
 							›
@@ -79,12 +114,27 @@ export function ConsoleHeader({
 					{balance ? money(balance.available_balance) : " "}
 				</span>
 				<span className="money-sub">{balanceLabel(balance, runout)}</span>
+				<span className="header-autopay-status" role="status">
+					{autopay !== undefined &&
+						(view === "credits" ? (
+							<span className={autopayBadge}>{autopay.label}</span>
+						) : (
+							<Link
+								className={`btn ${autopayBadge}`}
+								search={{}}
+								state={{ creditsFrom: view }}
+								to={viewPath(team.handle, "credits")}
+							>
+								{autopay.label}
+							</Link>
+						))}
+				</span>
 			</div>
-			{canBuy ? (
+			{canBuy && view !== "credits" ? (
 				<Link
-					aria-current={view === "credits" ? "page" : undefined}
 					className="btn primary credits-cta"
 					search={{}}
+					state={{ creditsFrom: view }}
 					to={viewPath(team.handle, "credits")}
 				>
 					Add credits

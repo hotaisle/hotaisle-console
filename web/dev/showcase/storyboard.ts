@@ -75,25 +75,19 @@ export const STORYBOARD: Scene[] = [
 	},
 	{
 		actions: [
-			{ kind: "click", selector: ".auto-rebill > summary" },
-			{
-				kind: "click",
-				selector: ".auto-rebill button",
-				text: "Set up automatic rebill",
-			},
-			{ kind: "wait", selector: ".rebill-form" },
+			{ kind: "click", selector: ".autopay-toggle" },
+			{ kind: "wait", selector: ".autopay-fields" },
 			{
 				after: 6.3,
 				kind: "click",
-				selector: ".rebill-form button",
-				text: "Cancel",
+				selector: ".autopay-toggle",
 			},
 			{ after: 7.2, kind: "click", selector: 'button[title="Back (Esc)"]' },
 		],
 		at: 19.2,
 		id: "auto-rebill",
 		narration:
-			"Set up automatic rebill with a balance trigger, a top-up amount, and a monthly cap.",
+			"Enable autopay right in checkout with a balance trigger, top-up amount, and monthly cap.",
 	},
 	{
 		actions: [

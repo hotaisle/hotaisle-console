@@ -1,9 +1,7 @@
 import { useRouter, useSearch } from "@tanstack/react-router";
 import { useCallback } from "react";
-import { isPresent } from "../../../../shared/present";
 import { BuildDate } from "../../components/build-date";
 import { FormError } from "../../components/forms/form-error";
-import { PanelScroll } from "../../components/panel-scroll";
 import { cloudInitVault } from "../../lib/cloud-init-vault";
 import { ImageView } from "../launch/image-view";
 import { OrderView } from "../launch/order-view";
@@ -14,28 +12,19 @@ import { SettingsView } from "../settings/settings";
 import { AccountInstruments } from "./account-instruments";
 import { CreditsView } from "./credits-view";
 import { MachineList } from "./machine-list";
+import { PanelPage } from "./panel-page";
 import { RunResult, runSubtitle } from "./run-result";
 import type { ConsoleContext } from "./use-console";
 import type { View } from "./use-navigation";
 
-const chevronLeft = (
-	<svg aria-hidden="true" height="14" viewBox="0 0 8 14" width="8">
-		<path
-			d="M7 1L1 7l6 6"
-			fill="none"
-			stroke="currentColor"
-			strokeLinecap="round"
-			strokeLinejoin="round"
-			strokeWidth="1.6"
-		/>
-	</svg>
-);
 export function ConsolePanel({ context }: { context: ConsoleContext }) {
 	const {
 		b,
 		back,
+		backView,
 		balance,
 		dismiss,
+		editingAutopay,
 		focusMachine,
 		focusedKey,
 		gpusAtWork,
@@ -88,6 +77,17 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 		run: runTitle(run),
 		settings: "Settings",
 	};
+	const backAction = { label: `Back to ${titles[backView]}`, onClick: back };
+	const notice = vms.error ? (
+		<FormError
+			actions={
+				<button className="btn-text" onClick={refreshAll} type="button">
+					Try again
+				</button>
+			}
+			message={vms.error.message}
+		/>
+	) : null;
 	const router = useRouter();
 	const search = useSearch({ from: "__root__" });
 	const showImage = useCallback(() => push("image"), [push]);
@@ -130,7 +130,6 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 	);
 	let body: React.ReactNode;
 	let sub: string | undefined;
-	const action: React.ReactNode = null;
 	const launchSubtitle = sizes.some((size) => size.Quantity > 0)
 		? "Availability refreshes automatically every 10 seconds"
 		: undefined;
@@ -180,12 +179,10 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 	} else if (view === "credits") {
 		body = (
 			<CreditsView
-				gpuHour={Math.min(
-					...sizes
-						.filter((o) => o.Specs.gpus?.[0]?.count === 1 && o.OnDemandPrice)
-						.map((o) => o.OnDemandPrice)
-						.filter(isPresent)
-				)}
+				back={backAction}
+				balanceCents={b?.available_balance}
+				editingAutopay={editingAutopay}
+				notice={notice}
 				onDone={creditsDone}
 				team={h}
 				waitingForCapacity={
@@ -216,37 +213,18 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 					viewTransitionName: "panel",
 				}}
 			>
-				<header className="pv-head">
-					<div className="pv-title">
-						{stack.length > 1 && (
-							<button
-								aria-label={`Back to ${stack.at(-2) === "home" ? homeTitle : titles[stack.at(-2) ?? "home"]}`}
-								className="back-btn"
-								onClick={back}
-								title="Back (Esc)"
-								type="button"
-							>
-								{chevronLeft}
-							</button>
-						)}
-						<h1>{titles[view]}</h1>
-						{action}
-					</div>
-					{sub !== undefined && <p className="pv-sub">{sub}</p>}
-				</header>
-				{!!vms.error && (
-					<FormError
-						actions={
-							<button className="btn-text" onClick={refreshAll} type="button">
-								Try again
-							</button>
-						}
-						message={vms.error.message}
-					/>
+				{view === "credits" && loaded ? (
+					body
+				) : (
+					<PanelPage
+						back={stack.length > 1 ? backAction : undefined}
+						notice={notice}
+						subtitle={sub}
+						title={titles[view]}
+					>
+						{loaded ? body : <div aria-busy="true" className="placeholder" />}
+					</PanelPage>
 				)}
-				<PanelScroll>
-					{loaded ? body : <div aria-busy="true" className="placeholder" />}
-				</PanelScroll>
 			</div>
 			<footer className="panel-build">
 				<BuildDate />

@@ -1,8 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { api } from "../src/lib/api";
 import { PreviewAPI } from "./api";
 import { installPreviewTransport, isPreviewLocation } from "./transport";
 
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+	vi.unstubAllEnvs();
+	vi.useRealTimers();
+});
 function previewBrowser(href = "http://preview.localhost:8787/__preview/") {
 	return {
 		fetch: vi.fn<typeof fetch>(),
@@ -25,6 +29,32 @@ describe("preview isolation", () => {
 				installPreviewTransport(new PreviewAPI("empty"), previewBrowser(url))
 			).toThrow("preview.localhost");
 		}
+	});
+	it("opens a fresh simulated account despite old logout and expiry records", async () => {
+		vi.stubEnv("MODE", "preview");
+		const epoch = "old-signout";
+		const state = JSON.stringify({ epoch, phase: "ended" });
+		const lifetime = JSON.stringify({ ended: true, startedAt: 0 });
+		localStorage.setItem("hotaisle-console:email-session:epoch", epoch);
+		localStorage.setItem("hotaisle-console:email-session:v2", state);
+		localStorage.setItem("hotaisle-console:session-lifetime", lifetime);
+
+		const browser = previewBrowser();
+		installPreviewTransport(new PreviewAPI("empty"), browser);
+		vi.stubGlobal("fetch", browser.fetch);
+		await expect(api.status()).resolves.toMatchObject({ signed_in: true });
+		await expect(api.user()).resolves.toMatchObject({
+			user: { email: "preview@example.invalid" },
+		});
+		expect(localStorage.getItem("hotaisle-console:email-session:epoch")).toBe(
+			epoch
+		);
+		expect(localStorage.getItem("hotaisle-console:email-session:v2")).toBe(
+			state
+		);
+		expect(localStorage.getItem("hotaisle-console:session-lifetime")).toBe(
+			lifetime
+		);
 	});
 	it("serves fixture requests and blocks external traffic without native fetch", async () => {
 		const browser = previewBrowser();

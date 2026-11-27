@@ -1,35 +1,78 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { autoRebillStatus } from "../../../test/fixtures/auto-rebill";
 import { renderWithQuery } from "../../../test/render";
 import { api } from "../../lib/api";
 import { CreditsView } from "./credits-view";
 
-const CHECKOUT_PATTERN = /Continue to checkout/u;
+const CHECKOUT_PATTERN = /Continue to Stripe/u;
 const AMOUNT_PATTERN = /\$250/u;
+const CUSTOM_AMOUNT = /^Custom amount/u;
+const SET_UP_AUTOPAY = "Set up autopay";
+const OPEN_CHECKOUT = "Open Stripe checkout";
+const RESERVATION_DISCLOSURE = /credits don't reserve a machine\.$/iu;
+const back = { label: "Back to your machines", onClick: vi.fn() };
 beforeEach(() => {
 	vi.spyOn(window, "open").mockReturnValue(null);
+	vi.spyOn(api, "autoRebill").mockResolvedValue(autoRebillStatus());
 });
 describe("credits checkout", () => {
-	it("discloses the wait before checkout and updates when capacity changes", async () => {
-		const props = { gpuHour: 200, onDone: vi.fn(), team: "lab" };
+	it("shows the current team balance in the header once available", () => {
+		const props = {
+			back,
+			onDone: vi.fn(),
+			team: "lab",
+			waitingForCapacity: false,
+		};
+		const { rerender } = renderWithQuery(<CreditsView {...props} />);
+		const header = within(screen.getByRole("banner"));
+		expect(header.queryByText("Balance")).not.toBeInTheDocument();
+
+		rerender(<CreditsView {...props} balanceCents={0} />);
+		expect(header.getByText("Balance")).toHaveTextContent("Balance $0.00");
+
+		rerender(<CreditsView {...props} balanceCents={12_345} />);
+		expect(header.getByText("Balance")).toHaveTextContent("Balance $123.45");
+	});
+	it("keeps the checkout amount and focus while autopay finishes checking", async () => {
+		const status = autoRebillStatus();
+		let resolveStatus: (value: typeof status) => void = () => undefined;
+		vi.mocked(api.autoRebill).mockReturnValue(
+			new Promise((resolve) => {
+				resolveStatus = resolve;
+			})
+		);
+		renderWithQuery(
+			<CreditsView
+				back={back}
+				onDone={vi.fn()}
+				team="lab"
+				waitingForCapacity={false}
+			/>
+		);
+		expect(screen.getByText("Checking…")).toBeVisible();
+		const amount = screen.getByRole("textbox", { name: CUSTOM_AMOUNT });
+		await userEvent.setup().type(amount, "75");
+
+		resolveStatus(status);
+		await screen.findByRole("switch", { name: SET_UP_AUTOPAY });
+		expect(amount).toHaveFocus();
+		expect(
+			screen.getByRole("button", { name: "Continue to Stripe · $75" })
+		).toBeVisible();
+	});
+	it("discloses the wait before checkout and updates when capacity changes", () => {
+		const props = { back, onDone: vi.fn(), team: "lab" };
 		const { rerender } = renderWithQuery(
 			<CreditsView {...props} waitingForCapacity />
 		);
-		expect(screen.getByRole("status")).toHaveTextContent(
-			"you'll need to wait for availability before you can launch"
-		);
-		const user = userEvent.setup();
-		const custom = screen.getByRole("spinbutton", { name: "Other" });
-		await user.type(custom, "20");
-		expect(custom).toHaveAccessibleDescription(
-			expect.stringContaining("not a compute reservation")
-		);
+		const notice = screen.getByRole("status");
+		expect(notice).toHaveTextContent("No compute is available now.");
+		expect(notice).toHaveTextContent(RESERVATION_DISCLOSURE);
 		rerender(<CreditsView {...props} waitingForCapacity={false} />);
 		expect(screen.queryByRole("status")).not.toBeInTheDocument();
-		expect(custom).toHaveAccessibleDescription(
-			expect.stringContaining("does not guarantee an immediate launch")
-		);
+		expect(screen.getByText(RESERVATION_DISCLOSURE)).toBeVisible();
 	});
 	it("does not create checkout below the minimum amount", async () => {
 		const user = userEvent.setup();
@@ -37,16 +80,85 @@ describe("credits checkout", () => {
 		const done = vi.fn();
 		renderWithQuery(
 			<CreditsView
-				gpuHour={200}
+				back={back}
 				onDone={done}
 				team="lab"
 				waitingForCapacity={false}
 			/>
 		);
-		await user.type(screen.getByRole("spinbutton", { name: "Other" }), "19");
+		const custom = screen.getByRole("textbox", { name: CUSTOM_AMOUNT });
+		await user.type(custom, "19");
+		await user.tab();
+		expect(custom).toHaveAccessibleDescription("Minimum $20.");
 		await user.click(screen.getByRole("button", { name: CHECKOUT_PATTERN }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("$20");
+		expect(custom).toHaveFocus();
 		expect(buy).not.toHaveBeenCalled();
 		expect(window.open).not.toHaveBeenCalled();
+	});
+	it("enforces the $25 autopay minimum and clears errors when switching back to one-time credits", async () => {
+		const user = userEvent.setup();
+		const buy = vi.spyOn(api, "buyCredits").mockResolvedValue({
+			checkout_url: "https://checkout.stripe.com/test",
+			expires_at: "2030-01-01",
+		});
+		const setup = vi.spyOn(api, "setupAutoRebill");
+		renderWithQuery(
+			<CreditsView
+				back={back}
+				balanceCents={2500}
+				onDone={vi.fn()}
+				team="lab"
+				waitingForCapacity={false}
+			/>
+		);
+		const toggle = await screen.findByRole("switch", {
+			name: SET_UP_AUTOPAY,
+		});
+		const custom = screen.getByRole("textbox", { name: CUSTOM_AMOUNT });
+		await user.type(custom, "20.559");
+		expect(custom).toHaveValue("20.55");
+		await user.keyboard("{Control>}a{/Control}");
+		await user.paste("250.123");
+		expect(custom).toHaveValue("20.55");
+		expect(screen.getByRole("group", { name: "Top-up amount" })).toBeVisible();
+		await user.click(toggle);
+		expect(screen.getByRole("group", { name: "Autopay amount" })).toBeVisible();
+		await user.click(
+			screen.getByRole("button", { name: "Set up autopay on Stripe" })
+		);
+		expect(await screen.findByRole("alert")).toHaveTextContent("$25");
+		expect(custom).toHaveFocus();
+		expect(setup).not.toHaveBeenCalled();
+
+		await user.click(toggle);
+		expect(screen.getByRole("group", { name: "Top-up amount" })).toBeVisible();
+		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+		await user.click(
+			screen.getByRole("button", { name: "Continue to Stripe · $20.55" })
+		);
+		await waitFor(() => expect(buy).toHaveBeenCalledWith("lab", 2055));
+	});
+	it("shows the same payment warnings for one-time credits and autopay", async () => {
+		const user = userEvent.setup();
+		renderWithQuery(
+			<CreditsView
+				back={back}
+				onDone={vi.fn()}
+				team="lab"
+				waitingForCapacity={false}
+			/>
+		);
+		const oneTimeDisclosure = screen.getByText(
+			RESERVATION_DISCLOSURE
+		).textContent;
+		await user.click(
+			await screen.findByRole("switch", { name: SET_UP_AUTOPAY })
+		);
+		const disclosure = screen.getByText(RESERVATION_DISCLOSURE);
+		expect(disclosure).toHaveTextContent("4 business days");
+		expect(disclosure).toHaveTextContent("Machines can still be deleted");
+		expect(disclosure.textContent).toBe(oneTimeDisclosure);
 	});
 	it.each([
 		"https://checkout.stripe.com/test",
@@ -68,7 +180,7 @@ describe("credits checkout", () => {
 		const done = vi.fn();
 		renderWithQuery(
 			<CreditsView
-				gpuHour={200}
+				back={back}
 				onDone={done}
 				team="lab"
 				waitingForCapacity={false}
@@ -78,12 +190,12 @@ describe("credits checkout", () => {
 		await user.click(screen.getByRole("button", { name: CHECKOUT_PATTERN }));
 		await waitFor(() => expect(buy).toHaveBeenCalledWith("lab", 25_000));
 		expect(
-			await screen.findByRole("link", { name: "Open checkout" })
+			await screen.findByRole("link", { name: OPEN_CHECKOUT })
 		).toHaveAttribute("href", url);
 		expect(window.open).toHaveBeenCalledWith("about:blank", "_blank");
 		expect(tab.opener).toBeNull();
 		expect(replace).toHaveBeenCalledWith(url);
-		expect(screen.getByRole("link", { name: "Open checkout" })).toHaveAttribute(
+		expect(screen.getByRole("link", { name: OPEN_CHECKOUT })).toHaveAttribute(
 			"target",
 			"_blank"
 		);
@@ -96,7 +208,8 @@ describe("credits checkout", () => {
 		});
 		renderWithQuery(
 			<CreditsView
-				gpuHour={200}
+				back={back}
+				balanceCents={12_345}
 				onDone={vi.fn()}
 				team="lab"
 				waitingForCapacity={false}
@@ -106,8 +219,9 @@ describe("credits checkout", () => {
 			.setup()
 			.click(screen.getByRole("button", { name: CHECKOUT_PATTERN }));
 		expect(
-			await screen.findByRole("link", { name: "Open checkout" })
+			await screen.findByRole("link", { name: OPEN_CHECKOUT })
 		).toHaveAttribute("rel", "noopener noreferrer");
+		expect(screen.getByRole("banner")).toHaveTextContent("Balance $123.45");
 	});
 	it("closes the reserved tab and rejects an unexpected checkout destination", async () => {
 		const tab = {
@@ -123,7 +237,7 @@ describe("credits checkout", () => {
 		});
 		renderWithQuery(
 			<CreditsView
-				gpuHour={200}
+				back={back}
 				onDone={vi.fn()}
 				team="lab"
 				waitingForCapacity={false}
@@ -145,7 +259,7 @@ describe("credits checkout", () => {
 		const done = vi.fn();
 		renderWithQuery(
 			<CreditsView
-				gpuHour={200}
+				back={back}
 				onDone={done}
 				team="lab"
 				waitingForCapacity={false}

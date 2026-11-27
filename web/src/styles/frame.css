@@ -85,24 +85,58 @@
 	border-radius: 999px;
 }
 .money {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-end;
+	display: grid;
+	grid-template-areas: "autopay amount" "autopay detail";
+	place-items: center end;
 	min-width: 180px;
 	margin-right: 4px;
 	line-height: 1.25;
 }
 .money-amt {
+	grid-area: amount;
 	min-height: 20px;
 	font-size: 16px;
 	font-weight: 600;
 	font-variant-numeric: tabular-nums;
 }
 .money-sub {
+	grid-area: detail;
 	min-height: 16px;
 	font-size: 12.5px;
 	font-variant-numeric: tabular-nums;
 	color: var(--muted);
+}
+.header-autopay-status {
+	grid-area: autopay;
+}
+.header-autopay-status .autopay-badge {
+	display: inline-flex;
+	align-items: center;
+	height: auto;
+	min-height: 28px;
+	padding: 2px 10px;
+	margin-inline-end: 12px;
+	font-size: 0.875rem;
+	font-weight: 650;
+	border-radius: 999px;
+}
+span.autopay-badge {
+	color: var(--ink);
+	background: var(--card);
+	border: 1px solid var(--button-outline);
+}
+span.autopay-badge.primary {
+	color: var(--button-on-fill);
+	background: var(--button-primary);
+	border: 1px solid transparent;
+}
+.autopay-badge.is-on {
+	--btn-hover: color-mix(in srgb, var(--on) 16%, var(--card));
+	--btn-active: var(--btn-hover);
+	--btn-hover-border: var(--on);
+	color: var(--on);
+	background: color-mix(in srgb, var(--on) 12%, var(--card));
+	border-color: var(--on);
 }
 .panes {
 	display: grid;
@@ -301,11 +335,15 @@
 	display: inline-flex;
 	color: var(--faint);
 }
-.back-btn:hover {
+.back-btn:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+.back-btn:enabled:hover {
 	color: var(--ink);
 	background: var(--card-2);
 }
-.back-btn:active {
+.back-btn:enabled:active {
 	transform: scale(0.94);
 }
 .row-item.act {

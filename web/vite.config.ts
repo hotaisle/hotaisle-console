@@ -1,6 +1,9 @@
 import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { rename, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
+import type { Plugin } from "vite";
 import { defineConfig } from "vite";
 
 process.env.VITE_BUILD_DATE = new Date().toISOString();
@@ -62,6 +65,40 @@ function buildPRURL() {
 	}
 }
 
+function previewRevision(): Plugin {
+	let revision: string;
+	return {
+		name: "hotaisle-preview-revision",
+		apply: "build",
+		buildStart() {
+			revision = randomUUID();
+		},
+		transformIndexHtml: {
+			order: "post",
+			handler(_, { path }) {
+				if (path.startsWith("/__preview/")) {
+					return [
+						{
+							tag: "meta",
+							attrs: { name: "preview-revision", content: revision },
+						},
+					];
+				}
+			},
+		},
+		async writeBundle({ dir }) {
+			const published = resolve(
+				dir ?? "preview-dist",
+				"__preview/revision.txt"
+			);
+			const temporary = `${published}.${revision}`;
+			// Publish only after all HTML and assets are ready to serve.
+			await writeFile(temporary, revision);
+			await rename(temporary, published);
+		},
+	};
+}
+
 export default defineConfig(({ command, mode }) => {
 	const local =
 		command === "serve" || mode === "development" || mode === "preview";
@@ -94,6 +131,7 @@ export default defineConfig(({ command, mode }) => {
 		},
 		plugins: [
 			react(),
+			mode === "preview" && previewRevision(),
 			{
 				name: "build-version",
 				generateBundle() {
