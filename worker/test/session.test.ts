@@ -157,6 +157,66 @@ describe("email token-pair cookie protocol", () => {
 		}
 	);
 
+	it("renews open email sessions before access expires and skips a second rotation", async () => {
+		const b = fixtureBrowser();
+		await b.login("renew-open@example.com", { access_in: "30" });
+		const previous = (await b.session())?.pair;
+		if (!previous) {
+			throw new Error("Missing fixture pair");
+		}
+		expect(await (await b.call("GET", "/auth/status")).json()).toMatchObject({
+			check_session_in_ms: 0,
+			signed_in: true,
+		});
+		expect(previous.accessExpiresAt).toBeGreaterThan(Date.now());
+		const renewed = await b.call("POST", "/auth/refresh");
+		expect(renewed.status).toBe(200);
+		expect(renewed.headers.get("Set-Cookie")).toContain("HttpOnly");
+		const payload = (await renewed.json()) as { check_session_in_ms: number };
+		expect(payload.check_session_in_ms).toBeGreaterThan(0);
+		const current = (await b.session())?.pair;
+		expect(current?.refreshToken).not.toBe(previous.refreshToken);
+		expect(current?.sessionExpiresAt).toBe(previous.sessionExpiresAt);
+		const secondTab = await b.call("POST", "/auth/refresh");
+		expect(secondTab.headers.get("Set-Cookie")).toBeNull();
+		expect(
+			b.fake.calls.filter((call) => call.startsWith("POST /auth/token/"))
+		).toEqual(["POST /auth/token/ -"]);
+	});
+
+	it.each([
+		[30_000, 200],
+		[-1000, 401],
+	])(
+		"never rotates when access lasts through the absolute deadline (%s ms remaining)",
+		async (remaining, status) => {
+			const b = fixtureBrowser();
+			await b.login();
+			const previous = (await b.session())?.pair;
+			if (!previous) {
+				throw new Error("Missing fixture pair");
+			}
+			const deadline = Date.now() + remaining;
+			b.replaceCookie(
+				await sessionCookie(env.SESSION_SECRET, {
+					kind: "email",
+					pair: {
+						...previous,
+						accessExpiresAt: deadline,
+						refreshExpiresAt: deadline,
+						sessionExpiresAt: deadline,
+					},
+				})
+			);
+			const response = await b.call("POST", "/auth/refresh");
+			expect(response.status).toBe(status);
+			expect(response.headers.get("Set-Cookie")).toBeNull();
+			expect(
+				b.fake.calls.filter((call) => call.startsWith("POST /auth/token/"))
+			).toEqual([]);
+		}
+	);
+
 	it("renews expired access before sending a mutation exactly once, without extending its family", async () => {
 		const b = fixtureBrowser();
 		await b.login();

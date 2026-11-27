@@ -306,6 +306,15 @@ export function App() {
 	const session = useQuery({
 		queryFn: api.status,
 		queryKey: STATUS_KEY,
+		refetchInterval: ({ state: { data } }) =>
+			data?.signed_in && data.check_session_in_ms !== undefined
+				? Math.max(1000, data.check_session_in_ms)
+				: false,
+		refetchIntervalInBackground: false,
+		refetchOnWindowFocus: ({ state: { data } }) =>
+			data?.signed_in && data.check_session_in_ms !== undefined
+				? "always"
+				: false,
 		retry: false,
 	});
 	const { connected, logout } = useSessionActions();
