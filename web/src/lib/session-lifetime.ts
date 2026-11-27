@@ -1,4 +1,5 @@
-import { getPrefs } from "./prefs";
+import { keyVault } from "./key-vault";
+import { getPrefs, resolveSessionMinutes } from "./prefs";
 
 const KEY = "hotaisle-console:session-lifetime";
 export const SESSION_EXPIRED_EVENT = "hotaisle-console:session-expired";
@@ -78,9 +79,13 @@ export function sessionRemaining(
 	if (session.ended) {
 		return 0;
 	}
-	return minutes === null
+	const duration = resolveSessionMinutes(
+		minutes,
+		keyVault.token() !== undefined
+	);
+	return duration === null
 		? undefined
-		: session.startedAt + minutes * 60_000 - Date.now();
+		: session.startedAt + duration * 60_000 - Date.now();
 }
 
 export function browserSessionExpired() {

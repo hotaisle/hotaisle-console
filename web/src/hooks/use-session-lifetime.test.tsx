@@ -95,7 +95,8 @@ describe("browser session lifetime", () => {
 		expect(expired).toHaveBeenCalledOnce();
 	});
 
-	it("blocks expired API requests and locks an expired key session on status restore", async () => {
+	it("locks an API key after an hour without a saved duration", async () => {
+		setPrefs({ sessionMinutes: undefined });
 		beginBrowserSession();
 		vi.spyOn(keyVault, "token").mockReturnValue("fixture-key");
 		const lock = vi.spyOn(keyVault, "lock");
@@ -128,5 +129,23 @@ describe("browser session lifetime", () => {
 		expect(sessionRemaining()).toBeUndefined();
 		await api.emailWait();
 		expect(sessionRemaining()).toBe(60 * MINUTE);
+	});
+
+	it("leaves an email session to the server when no duration was saved", async () => {
+		setPrefs({ sessionMinutes: undefined });
+		const fetcher = vi
+			.fn()
+			.mockResolvedValueOnce(Response.json({ pending: true }))
+			.mockResolvedValueOnce(Response.json({ done: true }))
+			.mockResolvedValueOnce(Response.json({ handle: "fixture-user" }));
+		vi.stubGlobal("fetch", fetcher);
+		await api.emailStart("fixture@example.test");
+		await api.emailWait();
+
+		const expired = vi.fn();
+		renderHook(() => useSessionLifetime(true, expired));
+		act(() => vi.advanceTimersByTime(61 * MINUTE));
+		expect(expired).not.toHaveBeenCalled();
+		await expect(api.user()).resolves.toMatchObject({ handle: "fixture-user" });
 	});
 });

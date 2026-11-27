@@ -241,6 +241,10 @@ launch view. Keyboard shortcuts can be disabled in Settings without disabling na
 
 The theme selector is available before and after sign-in. Light, Dark, and System apply to every view and the server drawing, and persist in browser preferences.
 
+Dropdowns that save preferences immediately, such as Session length and Default image, show a green
+checkmark on success or a red X and a warning on failure. The mark fades after three seconds.
+Failed writes leave the previous selection in effect. Launch choices in the URL are not saved preferences.
+
 Sign-in preserves the requested console destination. Worker assets use SPA fallback for direct page requests.
 
 ## Credentials and records
@@ -313,14 +317,13 @@ revocation. API keys themselves are never revoked by sign-out. Starting a replac
 the previous cookie session before discarding its only verifier; failed revocation retains an ended cookie
 instead of orphaning that session.
 
-**Console session length:** Settings defaults to 60 minutes from sign-in or API-key unlock, with
-4-hour, 12-hour, 24-hour, and Infinite options. Changing the duration applies to the current session's
-original start time; activity, status polling, and reloads do not extend it. Browser preferences and a
-nonsecret start/ended marker synchronize across tabs. Each expiry check reads the latest duration, including
-cross-tab changes before the settings UI rerenders. Expiration clears decrypted keys and private caches
-and returns to sign-in with the original destination retained. Infinite disables only Console's automatic
-sign-out: upstream expiration, revocation, and explicit sign-out still apply. If browser storage is blocked,
-the deadline survives only in the current page's memory. No Worker-side session storage is added.
+**Console session length:** Settings shows 60 minutes, 4 hours, 12 hours, 24 hours, or Infinite.
+Without a saved choice, email sign-ins show Infinite (no Console timer), and API keys show 60 minutes.
+A saved choice applies to both sign-in methods. Limits run from sign-in or unlock, not the last
+activity, and cannot extend a server session. Browser preferences and a nonsecret start/ended marker
+synchronize across tabs. Expiration clears decrypted keys and private caches and returns to sign-in with
+the original destination retained. With browser storage blocked, the local deadline survives only in
+the current page's memory. No Worker-side session storage is added.
 
 **Browser history:** Launch details and receipts are saved as append-only AES-256-GCM encrypted entries in
 local storage, with a fresh random IV for each write. Entry IDs and account scope are authenticated with the
