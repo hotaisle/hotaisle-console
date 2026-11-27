@@ -268,12 +268,20 @@ The Worker handles Hot Aisle's email approval flow. Completion exchanges the pri
 `token_type: Bearer`, `access_token_expires_at`, `refresh_token_expires_at`, `session_expires_at`, and
 `session_handle`. The private claim and resulting pair stay in an AES-GCM encrypted, HttpOnly, Secure,
 SameSite=Strict cookie. Frontend completion remains `{done: true, user, teams}`; status and completion
-never expose tokens, session handles, or token-expiry metadata. Legacy v1 session cookies, including old
-email and API-key cookies, require a new sign-in. Browser API-key and history ciphertext formats are unchanged.
+never expose tokens or session handles. Legacy v1 session cookies, including old email and API-key
+cookies, require a new sign-in. Browser API-key and history ciphertext formats are unchanged.
 
 V2 email cookies live until the fixed logical-session deadline, not the shorter access-token deadline.
-Before an authenticated resource or history-key request, the Worker refreshes access with at most one
-`POST /auth/token/` exchange when access is expired or within a minute of expiry. Its URL-encoded body is
+Console schedules a status check for one minute before the access token expires, using a relative delay
+from the Worker rather than the browser clock. While visible, it sends `POST /auth/refresh` if the check
+says renewal is due. The POST uses the same Web Lock as protected requests and rechecks the current
+cookie, so a tab that already renewed does not cause a second rotation. Returning to the tab checks
+again; hidden tabs do not send proactive refreshes. Once access already lasts to the fixed session
+deadline, Console checks at that deadline without rotating again. Keykeeper's idle and absolute
+defaults are unchanged; refresh counts as server activity but cannot revive an expired session.
+
+On that POST or before an authenticated resource or history-key request, the Worker refreshes access
+with at most one `POST /auth/token/` exchange when renewal is due. Its URL-encoded body is
 `grant_type=refresh_token&refresh_token=...`, with no authorization header. The Worker validates token
 types, deadlines, rotated credentials, the unchanged session handle, and the unchanged absolute deadline
 before replacing both tokens atomically. Resources receive only `Authorization: Bearer <access_token>`;

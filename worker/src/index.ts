@@ -1,8 +1,8 @@
 // Hot Aisle Console: static assets, email authentication, and a stateless API proxy.
 //
 // Routes:
-//   /auth/*       email sign-in, API-key verification, session status, sign-out,
-//                 and authenticated derivation of the browser-history encryption key
+//   /auth/*       email sign-in, API-key verification, session status, refresh,
+//                 sign-out, and authenticated derivation of the browser-history encryption key
 //   /api/*        forward requests to the configured Hot Aisle API without following redirects
 //   /records/*    retired; returns 410, as does /live/*
 //   other paths   serve the app; /__preview is restricted to preview.localhost
@@ -142,13 +142,24 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 
 const ACCESS_RENEWAL_WINDOW_MS = 60_000;
 
+const SESSION_RESPONSE_HEADERS = {
+	"Cross-Origin-Resource-Policy": "same-origin",
+};
+
+function nextSessionCheckIn(pair: TokenPair, now: number) {
+	// If access already lasts until the absolute deadline, renewal cannot help.
+	const lead =
+		pair.accessExpiresAt < pair.sessionExpiresAt ? ACCESS_RENEWAL_WINDOW_MS : 0;
+	return Math.max(0, pair.accessExpiresAt - now - lead);
+}
+
 function isAuthenticatedSession(
-	session: Session | undefined
+	session: Session | undefined,
+	now: number
 ): session is Session & { pair: TokenPair } {
 	if (!session?.pair || session.ended) {
 		return false;
 	}
-	const now = Date.now();
 	return (
 		session.exp > now &&
 		session.pair.refreshExpiresAt > now &&
@@ -160,14 +171,18 @@ function isAuthenticatedSession(
 async function withEmailSession(
 	env: Env,
 	session: Session | undefined,
-	request: (credential: Credential) => Promise<Response>
+	request: (
+		credential: Credential,
+		pair: TokenPair
+	) => Response | Promise<Response>
 ): Promise<Response> {
-	if (!isAuthenticatedSession(session)) {
+	const now = Date.now();
+	if (!isAuthenticatedSession(session, now)) {
 		return fail(401, "Sign in again.", { "X-Session-Ended": "true" });
 	}
 	let { pair } = session;
 	let cookie: string | undefined;
-	if (pair.accessExpiresAt - Date.now() <= ACCESS_RENEWAL_WINDOW_MS) {
+	if (nextSessionCheckIn(pair, now) === 0) {
 		const refreshed = await refreshEmailSession(env, pair);
 		if (!refreshed) {
 			return fail(401, "This sign-in ended. Sign in again.", {
@@ -184,7 +199,7 @@ async function withEmailSession(
 	}
 	let response: Response;
 	try {
-		response = await request({ kind: "email", token: pair.accessToken });
+		response = await request({ kind: "email", token: pair.accessToken }, pair);
 	} catch {
 		response = fail(502, "Could not complete the authenticated request.");
 	}
@@ -272,6 +287,24 @@ async function auth(
 			return await authGetAuthKey(req, env);
 		case "POST /auth/history-key":
 			return await authPostHistoryKey(req, env, url, session);
+		case "POST /auth/refresh": {
+			const limited = await rateLimitResponse(
+				env.AUTH_RATE_LIMITER,
+				env.SESSION_SECRET,
+				"auth-refresh",
+				requestIp(req)
+			);
+			if (limited) {
+				return limited;
+			}
+			return await withEmailSession(env, session, (_, pair) =>
+				json(
+					{ check_session_in_ms: nextSessionCheckIn(pair, Date.now()) },
+					200,
+					SESSION_RESPONSE_HEADERS
+				)
+			);
+		}
 		case "POST /auth/email/start":
 			return await authPostAuthEmailStart(req, env, session);
 		case "POST /auth/email/wait":
@@ -341,24 +374,29 @@ async function historyKeyResponse(
 	}
 }
 async function authGetAuthStatus(env: Env, session: Session | undefined) {
-	const signedIn = isAuthenticatedSession(session);
-	return json({
-		can_resume:
-			signedIn &&
-			session.pair.accessExpiresAt - Date.now() > ACCESS_RENEWAL_WINDOW_MS,
-		email_login: true,
-		kind: signedIn ? session.kind : undefined,
-		passkeys: false,
-		signed_in: signedIn,
-		version: env.VERSION ?? "dev",
-		waiting_for_email: session?.pending
-			? {
-					email: session.pending.email,
-					expires_at: session.pending.expires_at,
-					request_code: await emailLoginFingerprint(session.pending.ticket),
-				}
-			: undefined,
-	});
+	const now = Date.now();
+	const signedIn = isAuthenticatedSession(session, now);
+	const checkIn = signedIn ? nextSessionCheckIn(session.pair, now) : undefined;
+	return json(
+		{
+			can_resume: checkIn !== undefined && checkIn > 0,
+			check_session_in_ms: checkIn,
+			email_login: true,
+			kind: signedIn ? session.kind : undefined,
+			passkeys: false,
+			signed_in: signedIn,
+			version: env.VERSION ?? "dev",
+			waiting_for_email: session?.pending
+				? {
+						email: session.pending.email,
+						expires_at: session.pending.expires_at,
+						request_code: await emailLoginFingerprint(session.pending.ticket),
+					}
+				: undefined,
+		},
+		200,
+		SESSION_RESPONSE_HEADERS
+	);
 }
 
 async function authGetAuthKey(req: Request, env: Env) {

@@ -636,6 +636,58 @@ describe("console URLs", () => {
 		expect(await screen.findByText("Q9W1-DFWF")).toBeVisible();
 		expect(router.state.location.pathname).toBe("/sign-in/check-email");
 	});
+
+	it("renews email sign-in only when due and the Console is visible", async () => {
+		vi.mocked(api.status).mockRestore();
+		vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
+		focusManager.setFocused(true);
+		const visibility = vi
+			.spyOn(document, "visibilityState", "get")
+			.mockReturnValue("visible");
+		const renewalInterval = 9 * 60_000;
+		let renewAt = Date.now() + renewalInterval;
+		const renew = vi.fn(() => {
+			renewAt = Date.now() + renewalInterval;
+			return Response.json({ check_session_in_ms: renewalInterval });
+		});
+		vi.stubGlobal("fetch", (path: string, options: RequestInit) => {
+			if (path === "/auth/status") {
+				return Promise.resolve(
+					Response.json({
+						check_session_in_ms: Math.max(0, renewAt - Date.now()),
+						email_login: true,
+						kind: "email",
+						passkeys: false,
+						signed_in: true,
+						version: "test",
+					})
+				);
+			}
+			if (path === "/auth/refresh" && options.method === "POST") {
+				return Promise.resolve(renew());
+			}
+			return Promise.resolve(new Response(null, { status: 404 }));
+		});
+		await open("/teams/lab/machines");
+		await screen.findByRole("button", { name: "Sign out" });
+		await act(async () => vi.advanceTimersByTimeAsync(renewalInterval - 1));
+		expect(renew).not.toHaveBeenCalled();
+		await act(async () => vi.advanceTimersByTimeAsync(1));
+		expect(renew).toHaveBeenCalledOnce();
+
+		visibility.mockReturnValue("hidden");
+		focusManager.setFocused(false);
+		await act(async () => vi.advanceTimersByTimeAsync(renewalInterval));
+		expect(renew).toHaveBeenCalledOnce();
+		await act(async () => {
+			visibility.mockReturnValue("visible");
+			focusManager.setFocused(true);
+			await vi.advanceTimersByTimeAsync(0);
+		});
+		expect(renew).toHaveBeenCalledTimes(2);
+		expect(screen.getByRole("button", { name: "Sign out" })).toBeVisible();
+	});
+
 	it.each(["virtual_machines", "bare_metal"])(
 		"restores the API resource kind in canonical %s URLs",
 		async (kind) => {

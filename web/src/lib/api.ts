@@ -153,6 +153,7 @@ export interface PendingEmailLogin {
 
 /** Who is signed in, as the Worker sees it. */
 export interface Status {
+	check_session_in_ms?: number;
 	/** Email sign-in is available (Hot Aisle's API must publish it, and the Worker be told its paths). */
 	email_login: boolean;
 	key_stored?: boolean;
@@ -174,11 +175,16 @@ export class APIError extends Error {
 	}
 }
 
+function isProtectedPath(path: string) {
+	return (
+		path.startsWith("/api/") ||
+		path === "/auth/history-key" ||
+		path === "/auth/refresh"
+	);
+}
+
 function checkSession(path: string) {
-	if (
-		(path.startsWith("/api/") || path === "/auth/history-key") &&
-		browserSessionExpired()
-	) {
+	if (isProtectedPath(path) && browserSessionExpired()) {
 		window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
 		throw new APIError(
 			401,
@@ -216,10 +222,7 @@ async function call<T>(
 		path === "/auth/email/start" ||
 		path === "/auth/email/wait" ||
 		path === "/auth/signout" ||
-		(!requestKey &&
-			(path.startsWith("/api/") ||
-				path === "/auth/history-key" ||
-				path === "/auth/status"));
+		(!requestKey && (isProtectedPath(path) || path === "/auth/status"));
 	let reply: EmailSessionReply;
 	try {
 		reply = cookieExchange
@@ -467,7 +470,7 @@ export const api = {
 		}
 		return await call<{ ok: boolean }>("POST", "/auth/signout");
 	},
-	status: async () => {
+	status: async (): Promise<Status> => {
 		const status = await call<Status>("GET", "/auth/status");
 		const stored = keyVault.isSaved();
 		const localKey = keyVault.token() !== undefined;
@@ -480,11 +483,32 @@ export const api = {
 			// Local logout is synchronous; revocation must not delay the sign-in screen.
 			void api.signOut().catch(() => undefined);
 		}
+		let signedInNow = signedIn && !expired;
+		let checkIn = localKey ? undefined : status.check_session_in_ms;
+		if (
+			signedInNow &&
+			checkIn === 0 &&
+			document.visibilityState === "visible"
+		) {
+			try {
+				const renewal = await call<{ check_session_in_ms: number }>(
+					"POST",
+					"/auth/refresh"
+				);
+				checkIn = renewal.check_session_in_ms;
+			} catch (error) {
+				if (!(error instanceof APIError) || error.status !== 401) {
+					throw error;
+				}
+				signedInNow = false;
+			}
+		}
 		return {
 			...status,
+			check_session_in_ms: checkIn,
 			key_stored: stored,
 			...(localKey ? { kind: "key" as const } : {}),
-			signed_in: signedIn && !expired,
+			signed_in: signedInNow,
 		};
 	},
 	team: (handle: string) => call<Team>("GET", `${t(handle)}/`),
