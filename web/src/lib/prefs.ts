@@ -4,11 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 export type Image = "standard" | "vllm" | "custom";
 export type Theme = "system" | "light" | "dark";
 export type StatusMotion = "system" | "on" | "off";
+export type SessionMinutes = 60 | 240 | 720 | 1440 | null;
 export interface Prefs {
 	image: Image;
 	motionVersion: 1;
 	notify: boolean; // desktop notification when a machine is ready
-	sessionMinutes: 60 | 240 | 720 | 1440 | null;
+	sessionMinutes?: SessionMinutes;
 	shortcuts: boolean;
 	sound: boolean; // soft key clicks and a chime when a machine is ready
 	statusMotion: StatusMotion;
@@ -20,7 +21,6 @@ const DEFAULTS: Prefs = {
 	image: "standard",
 	motionVersion: 1,
 	notify: false,
-	sessionMinutes: 60,
 	shortcuts: true,
 	sound: true,
 	statusMotion: "on",
@@ -36,8 +36,19 @@ function normalizeSessionMinutes(value: unknown): Prefs["sessionMinutes"] {
 		case null:
 			return value;
 		default:
-			return DEFAULTS.sessionMinutes;
+			return undefined;
 	}
+}
+
+export function resolveSessionMinutes(
+	minutes: Prefs["sessionMinutes"],
+	usingAPIKey: boolean
+): SessionMinutes {
+	if (minutes !== undefined) {
+		return minutes;
+	}
+	// Email sessions already expire on the server; unlocked API keys do not.
+	return usingAPIKey ? 60 : null;
 }
 
 function read(): Prefs {
@@ -92,23 +103,43 @@ if (typeof window !== "undefined") {
 
 export const getPrefs = () => current;
 
-export function setPrefs(patch: Partial<Prefs>) {
-	current = { ...current, ...patch };
-	current.sessionMinutes = normalizeSessionMinutes(current.sessionMinutes);
+function persistPrefs(prefs: Prefs) {
+	const previous = JSON.parse(localStorage.getItem(KEY) || "{}");
+	const legacy =
+		typeof previous.customURL === "string"
+			? { customURL: previous.customURL }
+			: {};
+	localStorage.setItem(KEY, JSON.stringify({ ...prefs, ...legacy }));
+}
+
+function applyPrefs(prefs: Prefs) {
+	current = prefs;
 	applyStatusMotion(current.statusMotion);
+	for (const listener of listeners) {
+		listener(current);
+	}
+}
+
+function mergePrefs(patch: Partial<Prefs>) {
+	const next = { ...current, ...patch };
+	next.sessionMinutes = normalizeSessionMinutes(next.sessionMinutes);
+	return next;
+}
+
+export function setPrefs(patch: Partial<Prefs>) {
+	const next = mergePrefs(patch);
 	try {
-		const previous = JSON.parse(localStorage.getItem(KEY) || "{}");
-		const legacy =
-			typeof previous.customURL === "string"
-				? { customURL: previous.customURL }
-				: {};
-		localStorage.setItem(KEY, JSON.stringify({ ...current, ...legacy }));
+		persistPrefs(next);
 	} catch {
 		/* private mode: keep it for this session */
 	}
-	for (const l of listeners) {
-		l(current);
-	}
+	applyPrefs(next);
+}
+
+export function savePrefs(patch: Partial<Prefs>) {
+	const next = mergePrefs(patch);
+	persistPrefs(next);
+	applyPrefs(next);
 }
 
 export function usePrefs(): [Prefs, (patch: Partial<Prefs>) => void] {

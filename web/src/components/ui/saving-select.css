@@ -1,0 +1,21 @@
+.saving-select {
+	position: relative;
+}
+.saving-select select {
+	padding-inline-end: 60px;
+}
+.saving-select-mark {
+	position: absolute;
+	inset-block-start: 50%;
+	inset-inline-end: 34px;
+	color: var(--on);
+	pointer-events: none;
+	transform: translateY(-50%);
+}
+.saving-select-mark[data-result="failed"] {
+	color: var(--bad);
+}
+.saving-select-mark[data-expired="true"] {
+	opacity: 0;
+	transition: opacity var(--d-2) var(--ease);
+}

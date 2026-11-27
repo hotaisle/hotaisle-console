@@ -1,28 +1,28 @@
 import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { FormError } from "../../components/forms/form-error";
+import { SavingSelect } from "../../components/ui/saving-select";
 import { cloudInitVault } from "../../lib/cloud-init-vault";
 import type { Image } from "../../lib/prefs";
-import { IMAGES, usePrefs } from "../../lib/prefs";
+import { IMAGES, savePrefs, usePrefs } from "../../lib/prefs";
 
-const IMAGE_OPTIONS = Object.keys(IMAGES) as Image[];
+const IMAGE_OPTIONS = (Object.keys(IMAGES) as Image[]).map((value) => ({
+	label: IMAGES[value].name,
+	value,
+}));
+
+function saveImage(image: Image): undefined {
+	savePrefs({ image });
+}
+
 export function DefaultMachineSettings() {
-	const [prefs, set] = usePrefs();
+	const [prefs] = usePrefs();
 	const cloudInit = useSyncExternalStore(
 		cloudInitVault.subscribe,
 		cloudInitVault.getSnapshot
 	);
 	const [urlValue, setURLValue] = useState(cloudInit.value);
 	useEffect(() => setURLValue(cloudInit.value), [cloudInit.value]);
-	const image = useCallback(
-		(event: ChangeEvent<HTMLSelectElement>) => {
-			const { value } = event.currentTarget;
-			if (Object.hasOwn(IMAGES, value)) {
-				set({ image: value as Image });
-			}
-		},
-		[set]
-	);
 	const url = useCallback(
 		(event: ChangeEvent<HTMLInputElement>) =>
 			setURLValue(event.currentTarget.value),
@@ -40,13 +40,14 @@ export function DefaultMachineSettings() {
 				<label className="field-l" htmlFor="def-image">
 					Image
 				</label>
-				<select id="def-image" onChange={image} value={prefs.image}>
-					{IMAGE_OPTIONS.map((value) => (
-						<option key={value} value={value}>
-							{IMAGES[value].name}
-						</option>
-					))}
-				</select>
+				<SavingSelect
+					errorMessage="Couldn't save the default image to browser storage."
+					id="def-image"
+					label="Default image"
+					onSave={saveImage}
+					options={IMAGE_OPTIONS}
+					value={prefs.image}
+				/>
 			</div>
 			{prefs.image === "custom" ? (
 				<div className="field">
