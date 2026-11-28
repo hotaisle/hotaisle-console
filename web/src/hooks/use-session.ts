@@ -16,7 +16,10 @@ const advanceSessionEpoch = () => {
 };
 
 function lockOtherTabs() {
-	if (typeof BroadcastChannel === "undefined") {
+	if (
+		import.meta.env.MODE === "preview" ||
+		typeof BroadcastChannel === "undefined"
+	) {
 		return;
 	}
 	const channel = new BroadcastChannel(CHANNEL);
@@ -27,7 +30,10 @@ function lockOtherTabs() {
 export function useSessionSync() {
 	const client = useQueryClient();
 	useEffect(() => {
-		if (typeof BroadcastChannel === "undefined") {
+		if (
+			import.meta.env.MODE === "preview" ||
+			typeof BroadcastChannel === "undefined"
+		) {
 			return;
 		}
 		const channel = new BroadcastChannel(CHANNEL);

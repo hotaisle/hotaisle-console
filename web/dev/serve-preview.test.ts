@@ -57,6 +57,16 @@ describe("isolated local preview serving", () => {
 			(await request("/__preview/", "preview.localhost", "HEAD")).body
 		).toBe("");
 	});
+	it("serves the completed build revision uncached on the preview origin only", async () => {
+		await mkdir(join(root, "__preview"));
+		const path = "/__preview/revision.txt";
+		await writeFile(join(root, path), "build-a");
+		const revision = await request(path);
+		expect(revision.status).toBe(200);
+		expect(revision.headers["Cache-Control"]).toBe("no-store");
+		expect(revision.body).toBe("build-a");
+		expect((await request(path, "localhost:8787")).next).toHaveBeenCalledOnce();
+	});
 	it("corrects old preview-origin console links and blocks real auth and API requests", async () => {
 		expect((await request("/teams/lab/machines")).headers.Location).toBe(
 			"/__preview/"

@@ -34,15 +34,14 @@ ending machines, and purchasing credits have real effects.
 For reliable Fast Refresh, component modules export only React components. Keep internal constants
 private and shared runtime helpers in separate `.ts` modules so edits do not invalidate component boundaries.
 
-To explore the machine UX without renting hardware, keep that development process running and build the
-local preview:
-
-```sh
-bun run preview
-```
+To explore the machine UX without renting hardware, keep `bun run dev` running. It builds and
+watches the preview alongside the normal console.
 
 Open [the machine preview](http://preview.localhost:8787/__preview/). The toolbar offers Empty, Assigned, Cloud-init,
-Booting, Running, Multiple machines, Bare metal, Ended, History (200 runs), and Launch failure scenarios using the actual app components.
+Booting, Running, Multiple machines, Bare metal, Ended, History (200 runs), and Launch failure scenarios.
+Preview mounts the same app, routes, and styles as live. Scenario controls sit outside the app and
+the preview transport answers its API requests with simulated data.
+Running starts past the minimum reservation so the estimated cost can increase immediately.
 Choose Empty, then hold Launch to watch assignment and SSH readiness. Cloud-init adds a simulated booting phase. Try
 ending a machine to see the minimum-charge confirmation and receipt. Reload or Reset returns to the selected
 scenario; simulated changes are held only in memory.
@@ -53,16 +52,30 @@ Open [the bare-metal example](http://preview.localhost:8787/__preview/?scenario=
 the eight-hour minimum and release receipt. Console opens a local, read-only mock console in a new tab;
 its simulated API response never contains a real session URL.
 
-The dedicated `preview.localhost` origin isolates browser storage from the normal console. No login is needed.
+Use the Autopay row to open [Setup](http://preview.localhost:8787/__preview/?scenario=auto-rebill-setup),
+Setup pending, Active, Payment processing, Payment failed, or Cap reached. The header shows the
+current Autopay status beside the balance, with a green **Autopay on** badge when active.
+**Setup pending** also shows the amounts awaiting Stripe authorization. In Setup, turn on **Set up
+autopay** to inspect the form with a low balance. **Payment failed** shows Autopay off and highlights
+that the failed top-up won't be
+retried. The orange **Autopay disabled** badge opens Add credits from other pages and stays visible
+in the header on Add credits. The old settings and payment method are cleared, and restarting Autopay
+requires a new Stripe authorization. You can cancel pending setup, edit settings, or turn off simulated
+autopay. **Cap reached** shows the **Autopay cap reached** badge when the remaining monthly cap can't
+cover another automatic top-up.
+
+The dedicated `preview.localhost` origin isolates browser storage from the normal console. No login is needed:
+each page starts a fresh simulated session, independent of expired sessions and other preview tabs.
 API calls are simulated in the browser, sockets are blocked, unknown operations fail locally, and checkout
 is disabled. Its assets live in `web/preview-dist`, independently of production's `web/dist`, so normal builds
 cannot overwrite the preview. A local Vite middleware serves only this isolated origin; it never falls back
-to the real console or forwards real API requests. `bun run dev` prepares both outputs. Preview code is a
-separate build entry outside `web/src`; normal builds exclude it. Production builds
+to the real console or forwards real API requests. Preview code is a separate build entry outside
+`web/src`; normal builds exclude it. Production builds
 and Worker packaging reject preview files or fixture code. Production requests to `/__preview/` return 404.
-Run `bun run preview` again after changing preview components, or use `bun run --cwd web watch:preview`
-in a development session when you want preview rebuilds on file changes. A missing preview shows build
-instructions instead of redirecting into the real account. The normal console stays at `localhost:8787`.
+Open preview pages reload automatically after each successful rebuild, keeping the URL but
+resetting simulated state. If you started the Worker directly, run `bun run preview` for a one-off
+build or `bun run dev:preview` to watch for changes. A missing preview shows build instructions
+instead of redirecting into the real account. The normal console stays at `localhost:8787`.
 
 For the scripted walkthrough, run `bun run showcase` and open
 [Showcase studio](http://preview.localhost:8787/__preview/showcase.html). It follows sign-in, first-team
@@ -416,10 +429,46 @@ There is no automatic shutdown timer: the upstream API cannot schedule an end, a
 while the machine continues billing. Add-credit checkout uses Hot Aisle's Stripe checkout link; this app does
 not handle card details or claim a payment succeeded before confirmation.
 
-The Add credits page identifies the $20 minimum as a credit purchase, not a compute reservation.
-It warns that payment does not guarantee an immediate launch. When availability is confirmed empty
-and the team has no provisioned machines, a prominent notice explains that launching must wait
-for capacity. Loading or failed availability requests are not presented as confirmed shortages.
+The **Add credits** header shows the current team balance when available.
+Add credits and Autopay settings show their titles only in the panel, not in the navigation header.
+Add credits shows the minimum beside the custom amount: $20 for a one-time purchase or $25 for
+autopay. Credits do not reserve a machine. A capacity notice appears only when availability is confirmed
+empty and the team has no provisioned machines; loading or failed requests do not imply a shortage.
+Billing amounts accept up to two decimal places. Invalid values are highlighted and explained next to the field.
+Add credits reserves room for the Autopay setup row while checking its status and keeps the
+one-time checkout form usable while it loads. A divider separates Autopay from the amount selector,
+labeled **Top-up amount** for one-time credits and **Autopay amount** when setting up Autopay.
+The Add credits Back control returns to the page that opened checkout, preserving launch choices in
+the URL. A direct checkout link goes back to the same team's machine page.
+
+**Autopay settings** has its own team URL (`/teams/$team/credits/autopay`). When opened from
+**Add credits**, it adds a history entry. Browser Back, the panel arrow, and **Cancel** return to
+**Add credits** and discard unsaved changes. Browser Forward and reload reopen the editor with the
+saved amounts. From a direct link, the panel arrow and **Cancel** return to the same team’s
+**Add credits** page.
+
+Autopay setup shows the balance threshold and monthly cap.
+While setup is pending, Add credits shows the submitted trigger, top-up amount, and monthly cap from
+the API, even after reload. The standalone preview exercises the same pending-settings response.
+Autopay uses the team's hourly rate from the balance API to show the runway above the API
+minimum at the trigger and the time between top-ups.
+It warns below 24 hours of runway and hides the estimates when the hourly rate is zero or
+unavailable. These estimates assume steady usage and do not account for the cap or payment delays.
+On first load, Add credits waits for Autopay status, balance, and capacity before showing the form.
+Cached data stays visible during background refreshes.
+The cap summary labels the limit **Monthly cap (UTC)** and mentions pending payments only when a
+payment has reserved part of the cap.
+The Autopay switch is on **Add credits**, not in the settings editor. Turning it off stops future
+top-ups; a payment already processing can still complete.
+If you reopen setup in the same tab while the previous amounts are still cached, the form
+prefills them. Turning Autopay back on still requires authorization on Stripe.
+The purchaser who started setup can choose **Continue setup on Stripe** to resume the existing
+session while it is open. **Cancel setup** is a separate action. The preview shows both controls
+but never opens a real Stripe checkout.
+**Edit settings** shows the $25 minimum in the top-up amount label.
+After a successful save, Add credits shows a confirmation with a green checkmark.
+**Update payment on Stripe** opens Stripe directly using the latest saved Autopay amounts.
+The new payment method takes effect after Stripe authorization succeeds.
 The local **No capacity** preview starts with no provisioned machines and zero available quantities
 to exercise this warning without real payments.
 

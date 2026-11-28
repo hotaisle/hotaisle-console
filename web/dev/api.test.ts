@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { machineKey } from "../../shared/machine-identity";
+import { reservationReadings } from "../src/features/machines/reservation";
 import type { VM, VMState } from "../src/lib/api";
 import { PreviewAPI } from "./api";
 
@@ -121,6 +122,53 @@ describe("development preview machine lifecycle", () => {
 			enabled: false,
 		});
 		expect((await request(api, "POST", path, settings)).status).toBe(501);
+	});
+	it("shows and clears the submitted amounts in the pending setup preview", async () => {
+		const api = new PreviewAPI("auto-rebill-pending");
+		const path = "/api/teams/preview/auto-rebill/";
+		expect(await (await request(api, "GET", path)).json()).toMatchObject({
+			can_disable: true,
+			can_resume_setup: true,
+			can_update_settings: false,
+			enabled: false,
+			monthly_cap_cents: 0,
+			pending_settings: {
+				monthly_cap_cents: 50_000,
+				rebill_amount_cents: 10_000,
+				threshold_cents: 5000,
+			},
+			rebill_amount_cents: 0,
+			setup_pending: true,
+			threshold_cents: 0,
+		});
+		expect((await request(api, "GET", `${path}setup/`)).status).toBe(501);
+		expect((await request(api, "DELETE", path)).status).toBe(204);
+		const status = await (await request(api, "GET", path)).json();
+		expect(status).toMatchObject({
+			can_resume_setup: false,
+			enabled: false,
+			setup_pending: false,
+			state: "disabled",
+		});
+		expect(status).not.toHaveProperty("pending_settings");
+	});
+	it("keeps a processing payment reserved after simulated autopay is turned off", async () => {
+		const api = new PreviewAPI("auto-rebill-processing");
+		const path = "/api/teams/preview/auto-rebill/";
+		const payment = {
+			cap_remaining_this_month_cents: 30_000,
+			cap_reserved_this_month_cents: 10_000,
+			state: "payment_processing",
+		};
+		expect(await (await request(api, "GET", path)).json()).toMatchObject({
+			...payment,
+			enabled: true,
+		});
+		expect((await request(api, "DELETE", path)).status).toBe(204);
+		expect(await (await request(api, "GET", path)).json()).toMatchObject({
+			...payment,
+			enabled: false,
+		});
 	});
 	it("simulates invitations in memory and keeps members when team details change", async () => {
 		const api = new PreviewAPI("running");
@@ -401,15 +449,29 @@ describe("development preview machine lifecycle", () => {
 			api.initialRecords().machines[machineKey("preview", machines[2])]?.image
 		).toBe("standard");
 	});
+	it("shows increasing estimated cost as soon as the Running scenario opens", async () => {
+		const now = Date.now();
+		const api = new PreviewAPI("running", () => now);
+		const [machine] = (await (
+			await request(api, "GET", MACHINES)
+		).json()) as VM[];
+		const initial = reservationReadings(machine, now);
+		expect(initial.underMin).toBe(false);
+		expect(reservationReadings(machine, now + 60_000).cost).toBeGreaterThan(
+			initial.cost ?? Number.POSITIVE_INFINITY
+		);
+	});
 	it("requires minimum-charge confirmation to release a new machine", async () => {
-		const api = new PreviewAPI("running");
-		expect(
-			(await request(api, "DELETE", `${MACHINES}preview-001/`)).status
-		).toBe(409);
-		expect(
-			(await request(api, "DELETE", `${MACHINES}preview-001/?force=true`))
-				.status
-		).toBe(204);
+		const api = new PreviewAPI("empty");
+		const launched = await request(api, "POST", MACHINES, {
+			gpus: [{ count: 2 }],
+		});
+		const machine = (await launched.json()) as VM;
+		const path = `${MACHINES}${machine.name}/`;
+		expect((await request(api, "DELETE", path)).status).toBe(409);
+		expect((await request(api, "DELETE", `${path}?force=true`)).status).toBe(
+			204
+		);
 		expect(await (await request(api, "GET", MACHINES)).json()).toEqual([]);
 	});
 	it("keeps failed launches failed and never creates a machine", async () => {

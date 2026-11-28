@@ -1,12 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "./api";
-import { dollarCents, rebillSettings, rebillValidation } from "./auto-rebill";
+import {
+	creditPurchaseError,
+	dollarCents,
+	formatDollarInput,
+	rebillSettings,
+	rebillValidation,
+} from "./auto-rebill";
 
 afterEach(() => vi.unstubAllGlobals());
 describe("automatic rebill amounts", () => {
 	it.each([
 		["0.29", 29],
 		["25", 2500],
+		["25.", 2500],
 		["999999.99", 99_999_999],
 	])("converts %s exactly into cents", (dollars, cents) =>
 		expect(dollarCents(dollars)).toBe(cents)
@@ -15,6 +22,19 @@ describe("automatic rebill amounts", () => {
 		"rejects invalid dollar values: %s",
 		(value) => expect(dollarCents(value)).toBeUndefined()
 	);
+	it("formats dollar inputs without trailing zero cents", () => {
+		expect(formatDollarInput(5000)).toBe("50");
+		expect(formatDollarInput(12_529)).toBe("125.29");
+		expect(formatDollarInput(10_050)).toBe("100.50");
+	});
+	it("validates one-time credit purchase minimums and maximums", () => {
+		expect(creditPurchaseError("20")).toBeUndefined();
+		expect(creditPurchaseError("250.50")).toBeUndefined();
+		expect(creditPurchaseError("999999.99")).toBeUndefined();
+		expect(creditPurchaseError("19.99")).toContain("$20");
+		expect(creditPurchaseError("1000000")).toContain("$999,999.99");
+		expect(creditPurchaseError("")).toContain("$20");
+	});
 	it("validates the API minimums and cap without silently rounding", () => {
 		expect(
 			rebillValidation({ amount: "24.99", cap: "20", threshold: "4.99" })

@@ -1,5 +1,6 @@
+import { useCallback } from "react";
 import type { Scenario } from "./scenarios";
-import { initialRoute, SCENARIOS } from "./scenarios";
+import { AUTOPAY_SCENARIOS, initialRoute, SCENARIOS } from "./scenarios";
 
 function scenarioURL(scenario: Scenario) {
 	const url = new URL(window.location.href);
@@ -7,13 +8,33 @@ function scenarioURL(scenario: Scenario) {
 	url.hash = initialRoute(scenario);
 	return url.href;
 }
-function reset() {
-	window.location.reload();
+
+function ScenarioLinks({
+	items,
+	scenario,
+}: {
+	items: readonly { id: Scenario; label: string }[];
+	scenario: Scenario;
+}) {
+	return items.map((item) => (
+		<a
+			aria-current={item.id === scenario ? "page" : undefined}
+			className={`btn ${item.id === scenario ? "on" : ""}`}
+			href={scenarioURL(item.id)}
+			key={item.id}
+		>
+			{item.label}
+		</a>
+	));
 }
 
 export function PreviewControls({ scenario }: { scenario: Scenario }) {
 	const consoleURL = new URL("/", window.location.href);
 	consoleURL.hostname = "localhost";
+	const reset = useCallback(() => {
+		window.history.replaceState(null, "", scenarioURL(scenario));
+		window.location.reload();
+	}, [scenario]);
 	return (
 		<aside
 			aria-label="Development preview controls"
@@ -29,17 +50,12 @@ export function PreviewControls({ scenario }: { scenario: Scenario }) {
 					End preview
 				</a>
 			</div>
-			<nav aria-label="Start from a preview state">
-				{SCENARIOS.map((item) => (
-					<a
-						aria-current={item.id === scenario ? "page" : undefined}
-						className={`btn ${item.id === scenario ? "on" : ""}`}
-						href={scenarioURL(item.id)}
-						key={item.id}
-					>
-						{item.label}
-					</a>
-				))}
+			<nav aria-label="Autopay preview states">
+				<strong>Autopay</strong>
+				<ScenarioLinks items={AUTOPAY_SCENARIOS} scenario={scenario} />
+			</nav>
+			<nav aria-label="Other preview states">
+				<ScenarioLinks items={SCENARIOS} scenario={scenario} />
 			</nav>
 			<p>
 				Choose Empty, then hold Launch to watch assigned → ready. Cloud-init

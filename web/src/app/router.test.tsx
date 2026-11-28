@@ -37,6 +37,10 @@ function ConsoleProbe({ team }: { team: Team }) {
 	const { logout } = useSessionActions();
 	const signOut = useCallback(() => logout.mutate(), [logout.mutate]);
 	const location = useLocation();
+	const credits = useCallback(
+		() => navigation.push("credits"),
+		[navigation.push]
+	);
 	const settings = useCallback(
 		() => navigation.push("settings"),
 		[navigation.push]
@@ -54,6 +58,11 @@ function ConsoleProbe({ team }: { team: Team }) {
 			<button onClick={settings} type="button">
 				Settings
 			</button>
+			{navigation.view === "order" && (
+				<button onClick={credits} type="button">
+					Add credits
+				</button>
+			)}
 			<button onClick={navigation.back} type="button">
 				Back
 			</button>
@@ -124,8 +133,8 @@ afterAll(() => {
 		}
 	}
 });
-async function open(path: string) {
-	const history = createMemoryHistory({ initialEntries: [path] });
+async function open(path: string, previous: string[] = []) {
+	const history = createMemoryHistory({ initialEntries: [...previous, path] });
 	const router = createAppRouter(history);
 	render(
 		<TestProvider>
@@ -1054,6 +1063,29 @@ describe("console URLs", () => {
 		await screen.findByRole("heading", { name: "order" });
 		expect(router.state.location.pathname).toBe("/teams/lab/launch");
 		expect(screen.getByTestId("order")).toHaveTextContent("2:standard");
+	});
+	it("leaves a direct Add credits page even if the previous entry is also Add credits", async () => {
+		const path = "/teams/lab/credits";
+		const { router } = await open(path, [path]);
+		await screen.findByRole("heading", { name: "credits" });
+		await userEvent.setup().click(screen.getByRole("button", { name: "Back" }));
+		await screen.findByRole("heading", { name: "home" });
+		expect(router.state.location.pathname).toBe("/teams/lab/machines");
+	});
+	it("returns from Add credits to the launch URL with its selections intact", async () => {
+		const path = "/teams/lab/launch?gpus=2&image=vllm";
+		const { history, router } = await open(path);
+		const user = userEvent.setup();
+		await user.click(
+			await screen.findByRole("button", { name: "Add credits" })
+		);
+		await screen.findByRole("heading", { name: "credits" });
+		await user.click(screen.getByRole("button", { name: "Back" }));
+		await screen.findByRole("heading", { name: "order" });
+		expect(router.state.location.href).toBe(path);
+		expect(screen.getByTestId("order")).toHaveTextContent("2:vllm");
+		await act(async () => history.forward());
+		await screen.findByRole("heading", { name: "credits" });
 	});
 	it("keeps the requested destination when sign-in is required", async () => {
 		vi.spyOn(api, "status").mockResolvedValue({

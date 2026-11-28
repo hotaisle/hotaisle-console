@@ -265,8 +265,7 @@ describe("showcase playback", () => {
 		const rebill = STORYBOARD.find((scene) => scene.id === "auto-rebill");
 		expect(rebill?.actions?.at(-2)).toMatchObject({
 			kind: "click",
-			selector: ".rebill-form button",
-			text: "Cancel",
+			selector: ".autopay-toggle",
 		});
 		expect(rebill?.actions?.at(-1)).toMatchObject({
 			kind: "click",
@@ -275,7 +274,7 @@ describe("showcase playback", () => {
 		expect(
 			STORYBOARD.flatMap((scene) => scene.actions ?? []).some(
 				(action) =>
-					action.text?.includes("Continue to checkout") ||
+					action.text?.includes("Set up autopay") ||
 					action.text?.includes("Continue to Stripe") ||
 					(action.kind === "click" &&
 						action.selector.includes('type="submit"') &&

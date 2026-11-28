@@ -426,6 +426,11 @@ export const api = {
 				specs: offer.rawSpecs,
 			})
 		),
+	resumeAutoRebillSetup: (team: string) =>
+		call<{ checkout_url: string; expires_at: string }>(
+			"GET",
+			`${t(team)}/auto-rebill/setup/`
+		),
 	revokeAPIToken: (prefix: string) =>
 		call<void>("DELETE", `/api/user/api_keys/${encodeURIComponent(prefix)}/`),
 	setSupportAccess: async (team: string, vm: MachineRef, enabled: boolean) => {

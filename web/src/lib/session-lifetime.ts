@@ -11,7 +11,7 @@ let fallback: SessionLifetime | undefined;
 let memoryOnly = false;
 
 function read(): SessionLifetime | undefined {
-	if (memoryOnly) {
+	if (import.meta.env.MODE === "preview" || memoryOnly) {
 		return fallback;
 	}
 	let stored: string | null;
@@ -45,6 +45,9 @@ function read(): SessionLifetime | undefined {
 
 function write(value: SessionLifetime) {
 	fallback = value;
+	if (import.meta.env.MODE === "preview") {
+		return;
+	}
 	try {
 		localStorage.setItem(KEY, JSON.stringify(value));
 		memoryOnly = false;

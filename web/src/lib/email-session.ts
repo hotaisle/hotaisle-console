@@ -15,9 +15,27 @@ export interface EmailSessionReply {
 
 export class EmailSessionError extends Error {}
 
+// Each preview page owns an independent, memory-only simulated session.
+let previewState: Map<string, string> | undefined;
+
+function readCoordination(key: string) {
+	return import.meta.env.MODE === "preview"
+		? (previewState?.get(key) ?? null)
+		: localStorage.getItem(key);
+}
+
+function writeCoordination(key: string, value: string) {
+	if (import.meta.env.MODE === "preview") {
+		previewState ??= new Map();
+		previewState.set(key, value);
+	} else {
+		localStorage.setItem(key, value);
+	}
+}
+
 function state(): State {
-	const epoch = localStorage.getItem(EPOCH_KEY);
-	const stored = localStorage.getItem(STATE_KEY);
+	const epoch = readCoordination(EPOCH_KEY);
+	const stored = readCoordination(STATE_KEY);
 	if (stored === null) {
 		return {
 			epoch: epoch ?? "initial",
@@ -49,12 +67,12 @@ function state(): State {
 }
 
 function store(value: State) {
-	localStorage.setItem(STATE_KEY, JSON.stringify(value));
+	writeCoordination(STATE_KEY, JSON.stringify(value));
 }
 
 export function endEmailSession() {
 	// Exchange phase writes must never overwrite a newer cancellation epoch.
-	localStorage.setItem(EPOCH_KEY, crypto.randomUUID());
+	writeCoordination(EPOCH_KEY, crypto.randomUUID());
 }
 
 export function emailSessionEnded() {
@@ -162,7 +180,7 @@ export async function emailSessionRequest(
 		endEmailSession();
 	} else if (mode === "start") {
 		const epoch = crypto.randomUUID();
-		localStorage.setItem(EPOCH_KEY, epoch);
+		writeCoordination(EPOCH_KEY, epoch);
 		store({ epoch, phase: "login" });
 	}
 	const { epoch } = state();
