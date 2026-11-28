@@ -41,6 +41,7 @@ Open [the machine preview](http://preview.localhost:8787/__preview/). The toolba
 Booting, Running, Multiple machines, Bare metal, Ended, History (200 runs), and Launch failure scenarios.
 Preview mounts the same app, routes, and styles as live. Scenario controls sit outside the app and
 the preview transport answers its API requests with simulated data.
+Running starts past the minimum reservation so the estimated cost can increase immediately.
 Choose Empty, then hold Launch to watch assignment and SSH readiness. Cloud-init adds a simulated booting phase. Try
 ending a machine to see the minimum-charge confirmation and receipt. Reload or Reset returns to the selected
 scenario; simulated changes are held only in memory.
@@ -449,6 +450,12 @@ saved amounts. From a direct link, the panel arrow and **Cancel** return to the 
 Autopay setup shows the balance threshold and monthly cap.
 While setup is pending, Add credits shows the submitted trigger, top-up amount, and monthly cap from
 the API, even after reload. The standalone preview exercises the same pending-settings response.
+Autopay uses the team's hourly rate from the balance API to show the runway above the API
+minimum at the trigger and the time between top-ups.
+It warns below 24 hours of runway and hides the estimates when the hourly rate is zero or
+unavailable. These estimates assume steady usage and do not account for the cap or payment delays.
+On first load, Add credits waits for Autopay status, balance, and capacity before showing the form.
+Cached data stays visible during background refreshes.
 The cap summary labels the limit **Monthly cap (UTC)** and mentions pending payments only when a
 payment has reserved part of the cap.
 The Autopay switch is on **Add credits**, not in the settings editor. Turning it off stops future

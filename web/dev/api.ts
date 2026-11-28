@@ -77,9 +77,8 @@ export class PreviewAPI {
 			[this.team, ...this.otherTeams],
 			scenario !== "sign-in"
 		);
-		this.rebill = new PreviewAutoRebill(
-			autopayScenario(scenario)?.state ?? "disabled"
-		);
+		const autopay = autopayScenario(scenario);
+		this.rebill = new PreviewAutoRebill(autopay?.state ?? "disabled");
 		this.scenario = scenario;
 		this.expireSession = scenario === "session-ended";
 		this.auth = {
@@ -115,6 +114,9 @@ export class PreviewAPI {
 			scenario === "running"
 		) {
 			this.seed(2, scenario);
+		}
+		if (autopay) {
+			this.seed(2, "running");
 		}
 		if (scenario === "multiple") {
 			this.seed(2, "running");
@@ -167,7 +169,8 @@ export class PreviewAPI {
 		this.serial += 1;
 		const name =
 			customName ?? `preview-${String(this.serial).padStart(3, "0")}`;
-		const startedAt = this.now() - 38 * 60_000;
+		const ageMinutes = mode === "running" ? 75 : 38;
+		const startedAt = this.now() - ageMinutes * 60_000;
 		const machine = newMachine(name, count, mode, startedAt);
 		this.machines.set(name, machine);
 		updateMachine(

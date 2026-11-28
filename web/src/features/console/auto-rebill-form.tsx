@@ -2,12 +2,18 @@ import { revalidateLogic } from "@tanstack/react-form";
 import { useRef } from "react";
 import { Form } from "../../components/forms/form";
 import { useAppForm } from "../../components/forms/use-app-form";
-import type { AutoRebillSettings } from "../../lib/auto-rebill";
+import type {
+	AutoRebillSettings,
+	AutoRebillValues,
+} from "../../lib/auto-rebill";
 import {
+	dollarCents,
 	formatDollarInput,
 	rebillSettings,
 	rebillValidation,
 } from "../../lib/auto-rebill";
+import type { TeamUsage } from "./autopay-usage";
+import { AutopayUsage } from "./autopay-usage";
 import { DollarField } from "./dollar-field";
 
 export const AUTO_REBILL_WARNING =
@@ -29,17 +35,20 @@ const FIELDS = [
 	},
 ] as const;
 const submitting = (state: { isSubmitting: boolean }) => state.isSubmitting;
+const formValues = (state: { values: AutoRebillValues }) => state.values;
 
 export function AutoRebillForm({
 	busy,
 	settings,
 	onSubmit,
 	onCancel,
+	usage,
 }: {
 	busy: boolean;
 	onCancel: () => void;
 	onSubmit: (settings: AutoRebillSettings) => Promise<void>;
 	settings: AutoRebillSettings;
+	usage?: TeamUsage;
 }) {
 	const amount = useRef<HTMLInputElement>(null);
 	const cap = useRef<HTMLInputElement>(null);
@@ -75,6 +84,24 @@ export function AutoRebillForm({
 					{() => <DollarField label={label} ref={inputs[name]} required />}
 				</form.AppField>
 			))}
+			{usage && usage.hourly_rate > 0 ? (
+				<form.Subscribe selector={formValues}>
+					{({ amount: topUp, threshold: trigger }) => (
+						<div className="autopay-estimates">
+							<AutopayUsage
+								cents={dollarCents(trigger)}
+								kind="trigger"
+								usage={usage}
+							/>
+							<AutopayUsage
+								cents={dollarCents(topUp)}
+								kind="interval"
+								usage={usage}
+							/>
+						</div>
+					)}
+				</form.Subscribe>
+			) : null}
 			<p className="rebill-warning">{AUTO_REBILL_WARNING}</p>
 			<div className="rebill-actions">
 				<form.AppForm>

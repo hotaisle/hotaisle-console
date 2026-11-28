@@ -20,7 +20,7 @@
 	font-size: 1.0625rem;
 	line-height: 1.45;
 }
-.autopay-slot + section {
+.auto-rebill + section {
 	padding-block-start: 0.625rem;
 	margin-block-start: 0.375rem;
 	border-block-start: 1px solid var(--line-2);
@@ -45,31 +45,10 @@
 .credits-secondary {
 	color: var(--ink-2);
 }
-.autopay-slot {
-	/* Reserve the two-line setup row; taller summaries expand from here. */
-	--autopay-space: calc(2lh + 0.25rem);
-	min-block-size: var(--autopay-space);
-}
 .auto-rebill {
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
-}
-@media (prefers-reduced-motion: no-preference) {
-	.autopay-slot[data-checking="false"] .auto-rebill {
-		animation: fade-in var(--d-2) var(--ease);
-	}
-	@supports (interpolate-size: allow-keywords) {
-		.autopay-slot {
-			interpolate-size: allow-keywords;
-			overflow: clip;
-			overflow-clip-margin: 4px;
-			transition: block-size var(--d-3) var(--ease);
-		}
-		.autopay-slot[data-checking="true"] {
-			block-size: var(--autopay-space);
-		}
-	}
 }
 .rebill-controls:empty {
 	display: none;
@@ -114,7 +93,7 @@
 	gap: 0.75rem;
 	align-items: center;
 	justify-content: space-between;
-	min-block-size: var(--autopay-space);
+	min-block-size: calc(2lh + 0.25rem);
 	cursor: pointer;
 }
 .autopay-toggle label {
@@ -124,9 +103,6 @@
 	position: absolute;
 	inset: 0;
 	content: "";
-}
-.autopay-checking {
-	cursor: default;
 }
 .autopay-toggle-copy {
 	display: grid;
@@ -325,7 +301,7 @@
 }
 .rebill-summary {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) auto;
+	grid-template-columns: minmax(min-content, 1fr) minmax(0, auto);
 	gap: 6px 16px;
 	margin: 0;
 	font-size: inherit;
@@ -337,4 +313,36 @@
 	margin: 0;
 	font-variant-numeric: tabular-nums;
 	text-align: end;
+}
+.rebill-value {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0 0.625rem;
+	align-items: baseline;
+	justify-content: flex-end;
+}
+.rebill-value > :last-child {
+	white-space: nowrap;
+}
+.autopay-estimates {
+	display: grid;
+	gap: 4px;
+}
+.autopay-estimates:empty {
+	display: none;
+}
+.autopay-usage {
+	display: flex;
+	gap: 0.375rem;
+	align-items: baseline;
+	color: var(--ink-2);
+}
+.autopay-usage.warn {
+	font-weight: 600;
+	color: var(--amber);
+}
+.autopay-usage svg {
+	flex: none;
+	align-self: start;
+	margin-block-start: 0.25em;
 }

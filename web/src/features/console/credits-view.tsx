@@ -17,6 +17,8 @@ import {
 import { money } from "../../lib/format";
 import { AutoRebillCard, canConfigureInCheckout } from "./auto-rebill";
 import { AUTO_REBILL_WARNING } from "./auto-rebill-form";
+import type { TeamUsage } from "./autopay-usage";
+import { AutopayUsage } from "./autopay-usage";
 import { checkoutURL, prepareCheckoutWindow } from "./checkout-window";
 import { DollarField } from "./dollar-field";
 import type { PanelBack } from "./panel-page";
@@ -46,9 +48,11 @@ interface CreditsViewProps {
 	back: PanelBack;
 	balanceCents?: number;
 	editingAutopay?: boolean;
+	loading?: boolean;
 	notice?: ReactNode;
 	onDone: () => void;
 	team: string;
+	usage?: TeamUsage;
 	waitingForCapacity: boolean;
 }
 
@@ -60,12 +64,15 @@ function CreditsContent({
 	back,
 	balanceCents,
 	editingAutopay = false,
+	loading = false,
 	notice,
 	onDone,
 	team,
+	usage,
 	waitingForCapacity,
 }: CreditsViewProps) {
 	const rebill = useAutoRebill(team);
+	const checking = loading || rebill.status.isPending;
 	const [wantAutopay, setWantAutopay] = useState(false);
 	const checkout = useMutation({
 		mutationFn: async (cents: number) => {
@@ -165,42 +172,48 @@ function CreditsContent({
 			</PanelPage>
 		);
 	}
+	const checkoutLabel = autopayActive ? "Autopay checkout" : "One-time credits";
+	const checkoutError = checkout.isError
+		? `Couldn't open checkout. ${checkout.error.message}`
+		: undefined;
 
 	return (
 		<PanelPage
 			back={panelBack}
 			notice={notice}
 			title={editingAutopay ? "Autopay settings" : "Add credits"}
-			titleAside={editingAutopay ? undefined : balance}
+			titleAside={editingAutopay || checking ? undefined : balance}
 		>
 			<div className="credits-view">
-				<div className="autopay-slot" data-checking={rebill.status.isPending}>
-					<AutoRebillCard
-						autopayEnabled={autopayActive}
-						controls={rebill}
-						onCloseEditor={editingAutopay ? back.onClick : undefined}
-						onDone={onDone}
-						onToggleAutopay={toggleAutopay}
-						team={team}
-					/>
-				</div>
-				{showSetupCheckout || editingAutopay ? null : (
-					<section
-						aria-label={autopayActive ? "Autopay checkout" : "One-time credits"}
-					>
-						<CreditsCheckoutForm
-							autopayActive={autopayActive}
-							checkoutError={
-								checkout.isError
-									? `Couldn't open checkout. ${checkout.error.message}`
-									: undefined
-							}
-							onBuyCredits={buyCredits}
-							onStartAutopaySetup={startAutopaySetup}
-							previousSettings={rebill.previousSettings}
-							waitingForCapacity={waitingForCapacity}
+				{checking ? (
+					<p className="credits-secondary" role="status">
+						Loading credits…
+					</p>
+				) : (
+					<>
+						<AutoRebillCard
+							autopayEnabled={autopayActive}
+							controls={rebill}
+							onCloseEditor={editingAutopay ? back.onClick : undefined}
+							onDone={onDone}
+							onToggleAutopay={toggleAutopay}
+							team={team}
+							usage={usage}
 						/>
-					</section>
+						{showSetupCheckout || editingAutopay ? null : (
+							<section aria-label={checkoutLabel}>
+								<CreditsCheckoutForm
+									autopayActive={autopayActive}
+									checkoutError={checkoutError}
+									onBuyCredits={buyCredits}
+									onStartAutopaySetup={startAutopaySetup}
+									previousSettings={rebill.previousSettings}
+									usage={usage}
+									waitingForCapacity={waitingForCapacity}
+								/>
+							</section>
+						)}
+					</>
 				)}
 			</div>
 		</PanelPage>
@@ -213,6 +226,7 @@ function CreditsCheckoutForm({
 	onBuyCredits,
 	onStartAutopaySetup,
 	previousSettings,
+	usage,
 	waitingForCapacity,
 }: {
 	autopayActive: boolean;
@@ -220,6 +234,7 @@ function CreditsCheckoutForm({
 	onBuyCredits: (cents: number) => Promise<void>;
 	onStartAutopaySetup: (settings: AutoRebillSettings) => Promise<void>;
 	previousSettings?: AutoRebillSettings;
+	usage?: TeamUsage;
 	waitingForCapacity: boolean;
 }) {
 	const group = useId();
@@ -355,7 +370,7 @@ function CreditsCheckoutForm({
 
 	return (
 		<form.Subscribe selector={formValues}>
-			{({ amount, custom }) => {
+			{({ amount, custom, threshold }) => {
 				const effective = custom.trim() || String(amount);
 				const cents = dollarCents(effective);
 				const copy = checkoutCopy(autopayActive, cents);
@@ -389,6 +404,16 @@ function CreditsCheckoutForm({
 										)}
 									</form.AppField>
 								))}
+							</div>
+						) : null}
+						{autopayActive && usage && usage.hourly_rate > 0 ? (
+							<div className="autopay-estimates">
+								<AutopayUsage
+									cents={dollarCents(threshold)}
+									kind="trigger"
+									usage={usage}
+								/>
+								<AutopayUsage cents={cents} kind="interval" usage={usage} />
 							</div>
 						) : null}
 						<p

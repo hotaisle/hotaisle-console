@@ -12,6 +12,7 @@ import { PreviewAPI } from "../../../dev/api";
 import { autoRebillStatus } from "../../../test/fixtures/auto-rebill";
 import { renderWithQuery } from "../../../test/render";
 import { api } from "../../lib/api";
+import type { TeamUsage } from "./autopay-usage";
 import { CreditsView } from "./credits-view";
 import { useNavigation } from "./use-navigation";
 
@@ -23,6 +24,7 @@ const CHECKOUT_PATTERN = /^Continue to Stripe · /u;
 const AMOUNT_250 = /\$250/u;
 const PENDING_PAYMENT_CAP = /Pending payments count toward the cap/u;
 const FAILED_AUTOPAY = /The automatic payment failed and will not be retried/u;
+const CADENCE = /^~/u;
 const ADD_CREDITS = "Add credits";
 const EDIT_SETTINGS = "Edit settings";
 const AUTOPAY_SETTINGS = "Autopay settings";
@@ -39,7 +41,13 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 
-function CreditsPage({ balanceCents }: { balanceCents?: number }) {
+function CreditsPage({
+	balanceCents,
+	usage,
+}: {
+	balanceCents?: number;
+	usage?: TeamUsage;
+}) {
 	const { back, editingAutopay } = useNavigation("lab");
 	return (
 		<CreditsView
@@ -51,15 +59,20 @@ function CreditsPage({ balanceCents }: { balanceCents?: number }) {
 			editingAutopay={editingAutopay}
 			onDone={vi.fn()}
 			team="lab"
+			usage={usage}
 			waitingForCapacity={false}
 		/>
 	);
 }
 
-function renderCredits(balanceCents?: number, initialEntries = [CREDITS_PATH]) {
+function renderCredits(
+	balanceCents?: number,
+	initialEntries = [CREDITS_PATH],
+	usage?: TeamUsage
+) {
 	const history = createMemoryHistory({ initialEntries });
 	const root = createRootRoute({
-		component: () => <CreditsPage balanceCents={balanceCents} />,
+		component: () => <CreditsPage balanceCents={balanceCents} usage={usage} />,
 	});
 	const router = createRouter({
 		history,
@@ -79,7 +92,7 @@ describe("autopay controls", () => {
 	it("starts in one-time checkout and validates the cap before requesting setup", async () => {
 		const setup = vi.spyOn(api, "setupAutoRebill");
 		const user = userEvent.setup();
-		renderCredits();
+		renderCredits(undefined, [CREDITS_PATH], { hourly_rate: 0 });
 		const toggle = await screen.findByRole("switch", { name: SET_UP_AUTOPAY });
 		expect(toggle).not.toBeChecked();
 		expect(
@@ -97,6 +110,7 @@ describe("autopay controls", () => {
 			screen.getByRole("button", { name: "Set up autopay on Stripe" })
 		).toBeInTheDocument();
 		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+		expect(screen.queryByText(CADENCE)).not.toBeInTheDocument();
 
 		const cap = screen.getByRole("textbox", { name: "Monthly cap ($)" });
 		await user.clear(cap);
@@ -249,7 +263,10 @@ describe("autopay controls", () => {
 				threshold_cents: 0,
 			})
 		);
-		renderCredits();
+		renderCredits(20_000, [CREDITS_PATH], {
+			hourly_rate: 250,
+			minimum_balance: 300,
+		});
 		const autopay = within(
 			await screen.findByRole("region", { name: AUTOPAY })
 		);
@@ -257,6 +274,10 @@ describe("autopay controls", () => {
 		for (const value of ["$53.00", "$137.29", "$750.00", "$688.00"]) {
 			expect(autopay.getByText(value)).toBeInTheDocument();
 		}
+		expect(autopay.getByText("Warning:").parentElement).toHaveTextContent(
+			"~20 hours left"
+		);
+		expect(autopay.getByText("~2 days 6 hours")).toBeVisible();
 		expect(autopay.getByText(PENDING_PAYMENT_CAP)).toBeVisible();
 		expect(autopay.getByRole("button", { name: "Cancel setup" })).toBeVisible();
 		expect(
@@ -266,6 +287,25 @@ describe("autopay controls", () => {
 		expect(
 			screen.getByRole("button", { name: "Continue to Stripe · $100" })
 		).toBeVisible();
+	});
+	it("warns below 24 hours at the trigger, not at exactly 24 hours", async () => {
+		const user = userEvent.setup();
+		renderCredits(30_000, [CREDITS_PATH], {
+			hourly_rate: 200,
+			minimum_balance: 200,
+		});
+		await user.click(
+			await screen.findByRole("switch", { name: SET_UP_AUTOPAY })
+		);
+		expect(screen.getByText("~1 day left at trigger")).toBeVisible();
+		expect(screen.queryByText("Warning:")).not.toBeInTheDocument();
+
+		const trigger = screen.getByRole("textbox", { name: "Top up below ($)" });
+		await user.clear(trigger);
+		await user.type(trigger, "49.99");
+		expect(screen.getByText("Warning:").parentElement).toHaveTextContent(
+			"~23 hours left"
+		);
 	});
 	it("opens the original pending setup without restarting or activating autopay", async () => {
 		const url = "https://checkout.stripe.com/setup/test";

@@ -39,7 +39,7 @@ function balanceLabel(balance?: Balance, runout?: number) {
 	if (balance.hourly_rate <= 0) {
 		return "Balance";
 	}
-	return `${money(balance.hourly_rate)}/hr, lasts ${isPresent(runout) ? duration(runout) : "…"}`;
+	return `${money(balance.hourly_rate)}/hr, lasts ${isPresent(runout) ? `~${duration(runout)}` : "…"}`;
 }
 export function ConsoleHeader({
 	team,

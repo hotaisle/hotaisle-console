@@ -9,6 +9,8 @@ import type {
 } from "../../lib/auto-rebill";
 import { money } from "../../lib/format";
 import { AutoRebillForm } from "./auto-rebill-form";
+import type { TeamUsage } from "./autopay-usage";
+import { AutopayUsage } from "./autopay-usage";
 import type { AutoRebillControls } from "./use-auto-rebill";
 import "./auto-rebill.css";
 
@@ -64,6 +66,7 @@ export function AutoRebillCard({
 	onDone,
 	onToggleAutopay,
 	team,
+	usage,
 }: {
 	autopayEnabled: boolean;
 	controls: AutoRebillControls;
@@ -71,6 +74,7 @@ export function AutoRebillCard({
 	onDone: () => void;
 	onToggleAutopay: (enabled: boolean) => void;
 	team: string;
+	usage?: TeamUsage;
 }) {
 	const { status, change, setupConfirmed } = controls;
 	const { data } = status;
@@ -79,21 +83,12 @@ export function AutoRebillCard({
 	if (!data) {
 		return (
 			<section aria-label="Autopay" className="auto-rebill">
-				{status.isError ? (
-					<div className="autopay-head">
-						<div className="autopay-title">
-							<h2>Autopay</h2>
-							<span className="autopay-pill is-off">Unavailable</span>
-						</div>
+				<div className="autopay-head">
+					<div className="autopay-title">
+						<h2>Autopay</h2>
+						<span className="autopay-pill is-off">Unavailable</span>
 					</div>
-				) : (
-					<div className="autopay-toggle autopay-checking">
-						<div className="autopay-toggle-copy">
-							<h2>Autopay</h2>
-							<span>Checking…</span>
-						</div>
-					</div>
-				)}
+				</div>
 				{status.isError ? (
 					<FormError
 						actions={
@@ -137,6 +132,7 @@ export function AutoRebillCard({
 						controls={controls}
 						data={data}
 						onClose={onCloseEditor}
+						usage={usage}
 					/>
 				) : (
 					<AutoRebillBody
@@ -145,6 +141,7 @@ export function AutoRebillCard({
 						onDone={onDone}
 						showCheckout={showCheckout}
 						team={team}
+						usage={usage}
 					/>
 				)}
 			</div>
@@ -157,10 +154,12 @@ function RebillEditor({
 	controls,
 	data,
 	onClose,
+	usage,
 }: {
 	controls: AutoRebillControls;
 	data: AutoRebillStatus;
 	onClose: () => void;
+	usage?: TeamUsage;
 }) {
 	const router = useRouter();
 	const { save } = controls;
@@ -183,6 +182,7 @@ function RebillEditor({
 			onCancel={onClose}
 			onSubmit={submit}
 			settings={data}
+			usage={usage}
 		/>
 	) : (
 		<p>Autopay settings aren’t editable for this team right now.</p>
@@ -195,12 +195,14 @@ function AutoRebillBody({
 	onDone,
 	showCheckout,
 	team,
+	usage,
 }: {
 	controls: AutoRebillControls;
 	data: AutoRebillStatus;
 	onDone: () => void;
 	showCheckout: boolean;
 	team: string;
+	usage?: TeamUsage;
 }) {
 	const checkout = controls.change.data;
 	if (showCheckout && checkout?.kind === "setup") {
@@ -210,6 +212,7 @@ function AutoRebillBody({
 					data={data}
 					pending
 					submittedSettings={checkout.settings}
+					usage={usage}
 				/>
 				<SetupCheckoutHandoff
 					canDisable={data.can_disable}
@@ -222,7 +225,7 @@ function AutoRebillBody({
 	}
 	return (
 		<>
-			<RebillSummary data={data} />
+			<RebillSummary data={data} usage={usage} />
 			<RebillButtons controls={controls} data={data} team={team} />
 		</>
 	);
@@ -427,10 +430,12 @@ function RebillSummary({
 	data,
 	pending = data.setup_pending,
 	submittedSettings,
+	usage,
 }: {
 	data: AutoRebillStatus;
 	pending?: boolean;
 	submittedSettings?: AutoRebillSettings;
+	usage?: TeamUsage;
 }) {
 	const settings = pending
 		? (data.pending_settings ?? submittedSettings)
@@ -454,9 +459,25 @@ function RebillSummary({
 					{showSettings ? (
 						<>
 							<dt>Balance trigger</dt>
-							<dd>{money(settings.threshold_cents)}</dd>
+							<dd className="rebill-value">
+								<AutopayUsage
+									as="span"
+									cents={settings.threshold_cents}
+									kind="trigger"
+									usage={usage}
+								/>
+								<span>{money(settings.threshold_cents)}</span>
+							</dd>
 							<dt>Top-up amount</dt>
-							<dd>{money(settings.rebill_amount_cents)}</dd>
+							<dd className="rebill-value">
+								<AutopayUsage
+									as="span"
+									cents={settings.rebill_amount_cents}
+									kind="interval"
+									usage={usage}
+								/>
+								<span>{money(settings.rebill_amount_cents)}</span>
+							</dd>
 							<dt>Monthly cap (UTC)</dt>
 							<dd>{money(settings.monthly_cap_cents)}</dd>
 							<dt>Used this month</dt>
@@ -484,12 +505,10 @@ function RebillSummary({
 			) : null}
 			{data.problem ? <RebillProblem problem={data.problem} /> : null}
 			{data.state === "payment_processing" ? (
-				<p>
-					Credits will appear after the payment succeeds.
-					{data.enabled
-						? ""
-						: " Future top-ups are off; this payment is still processing."}
-				</p>
+				<p>Credits post after payment clears.</p>
+			) : null}
+			{data.state === "payment_processing" && !data.enabled ? (
+				<p>Future top-ups are off; this payment is still processing.</p>
 			) : null}
 		</>
 	);

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { machineKey } from "../../shared/machine-identity";
+import { reservationReadings } from "../src/features/machines/reservation";
 import type { VM, VMState } from "../src/lib/api";
 import { PreviewAPI } from "./api";
 
@@ -448,15 +449,29 @@ describe("development preview machine lifecycle", () => {
 			api.initialRecords().machines[machineKey("preview", machines[2])]?.image
 		).toBe("standard");
 	});
+	it("shows increasing estimated cost as soon as the Running scenario opens", async () => {
+		const now = Date.now();
+		const api = new PreviewAPI("running", () => now);
+		const [machine] = (await (
+			await request(api, "GET", MACHINES)
+		).json()) as VM[];
+		const initial = reservationReadings(machine, now);
+		expect(initial.underMin).toBe(false);
+		expect(reservationReadings(machine, now + 60_000).cost).toBeGreaterThan(
+			initial.cost ?? Number.POSITIVE_INFINITY
+		);
+	});
 	it("requires minimum-charge confirmation to release a new machine", async () => {
-		const api = new PreviewAPI("running");
-		expect(
-			(await request(api, "DELETE", `${MACHINES}preview-001/`)).status
-		).toBe(409);
-		expect(
-			(await request(api, "DELETE", `${MACHINES}preview-001/?force=true`))
-				.status
-		).toBe(204);
+		const api = new PreviewAPI("empty");
+		const launched = await request(api, "POST", MACHINES, {
+			gpus: [{ count: 2 }],
+		});
+		const machine = (await launched.json()) as VM;
+		const path = `${MACHINES}${machine.name}/`;
+		expect((await request(api, "DELETE", path)).status).toBe(409);
+		expect((await request(api, "DELETE", `${path}?force=true`)).status).toBe(
+			204
+		);
 		expect(await (await request(api, "GET", MACHINES)).json()).toEqual([]);
 	});
 	it("keeps failed launches failed and never creates a machine", async () => {

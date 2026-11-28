@@ -182,9 +182,11 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 				back={backAction}
 				balanceCents={b?.available_balance}
 				editingAutopay={editingAutopay}
+				loading={!creditsReady(context)}
 				notice={notice}
 				onDone={creditsDone}
 				team={h}
+				usage={b}
 				waitingForCapacity={
 					offers.data !== undefined &&
 					!offers.error &&
@@ -213,7 +215,7 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 					viewTransitionName: "panel",
 				}}
 			>
-				{view === "credits" && loaded ? (
+				{view === "credits" ? (
 					body
 				) : (
 					<PanelPage
@@ -231,4 +233,8 @@ export function ConsolePanel({ context }: { context: ConsoleContext }) {
 			</footer>
 		</aside>
 	);
+}
+
+function creditsReady({ b, balance, loaded }: ConsoleContext) {
+	return loaded && (b !== undefined || balance.error !== undefined);
 }
